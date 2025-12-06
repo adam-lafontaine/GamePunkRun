@@ -68,6 +68,28 @@ namespace mv
 }
 
 
+void save_screenshot()
+{
+    constexpr auto root = "/home/adam/Repos/GamePunkRun/engine/src/screenshots";
+
+    mv::state.cmd_save_screenshot = 0;
+
+    auto src = img::as_image(mv::game_screen_scale_rotate);
+
+    auto timestamp = dt::current_timestamp_i64();
+
+    StackBuffer<u8, 128> str_data;
+    auto str = span::make_string_view(str_data);
+
+    span::zero_string(str);
+    span::sprintf(str, "%s/%lld.png", root, timestamp);
+
+    auto path = span::to_cstr(str);
+
+    img::write_image(src, path);
+}
+
+
 void end_program()
 {
     mv::run_state = RunState::End;
@@ -328,6 +350,12 @@ static void main_loop_seq()
         render_textures();
 
         render_imgui_frame();
+
+        if (mv::state.cmd_save_screenshot)
+        {
+            mv::state.cmd_save_screenshot = 0;
+            save_screenshot();
+        }
 
         mv::inputs.swap();
 
