@@ -247,8 +247,8 @@ static bool main_init()
 {
     mv::ui_state.window_title = mv::APP_TITLE;    
 
-    mv::ui_state.window_width = 1400;
-    mv::ui_state.window_height = 950;
+    mv::ui_state.window_width = 1300;
+    mv::ui_state.window_height = 760;
     
     if (!ui_imgui::init(mv::ui_state))
     {

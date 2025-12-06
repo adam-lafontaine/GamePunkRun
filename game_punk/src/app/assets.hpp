@@ -701,7 +701,14 @@ namespace assets
 #else
 
     constexpr auto GAME_DATA_PATH = "./punk_run.bin";
-    constexpr auto GAME_DATA_PATH_FALLBACK = "/home/adam/Repos/GameEPC2/game_punk/res/xbin/punk_run.bin";
+
+
+#ifdef _WIN32
+    constexpr auto GAME_DATA_PATH_FALLBACK = "C:/D_Data/Repos/GamePunkRun/game_punk/res/xbin/punk_run.bin";
+#else
+    constexpr auto GAME_DATA_PATH_FALLBACK = "/home/adam/Repos/GamePunkRun/game_punk/res/xbin/punk_run.bin";
+#endif
+    
 
 
     static bool load_asset_data(AssetData& dst)
