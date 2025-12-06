@@ -1,5 +1,6 @@
-GPP := g++- -std=c++20
+GPP := g++ -std=c++20
 GPP += -mavx -mavx2 -mfma
+GPP += -mwindows
 #GPP += -Wall -Wextra
 
 GPP += -DGAME_PUNK_RELEASE
@@ -76,7 +77,7 @@ icon_dep := icon_punk_64.ico
 
 $(main_o): $(main_c) $(main_dep)
 	@echo "  --- main ---"
-	$(CPP) $(CPPFLAGS) $(IFLAGS) -o $@ -c $< $(LDFLAGS)
+	$(GPP) $(CPPFLAGS) $(IFLAGS) -o $@ -c $< $(LDFLAGS)
 
 
 $(icon_o): $(icon_rc) $(icon_dep)
@@ -86,7 +87,7 @@ $(icon_o): $(icon_rc) $(icon_dep)
 
 $(program_exe): $(obj)
 	@echo "  --- link ---"
-	$(CPP) $(CPPFLAGS) -o $@ $+ $(LDFLAGS)
+	$(GPP) $(CPPFLAGS) -o $@ $+ $(LDFLAGS)
 	cp $(BIN_DATA) $(R_BUILD)
 	cp $(SDL_DLL) $(R_BUILD)
 	cp $(SDL_MIXER_DLL) $(R_BUILD)

@@ -31,6 +31,11 @@ using ImageList = std::vector<Matrix2D<T>>;
 using List2Du32 = std::vector<Vec2Du32>;
 
 
+#ifdef _WIN32
+#error Tools runs on the Linux machine only
+#endif
+
+
 namespace sky
 {
     constexpr auto SRC_DIR = "/home/adam/Desktop/Game Assets/image/sky";
