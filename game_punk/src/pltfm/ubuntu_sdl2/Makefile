@@ -17,15 +17,15 @@ GPP += -DIMAGE_READ
 EXE := punk_run
 
 NO_FLAGS := 
-SDL := -lSDL3
-SDL_AUDIO := -lSDL3_mixer
+SDL := -lSDL2
+SDL_AUDIO := -lSDL2_mixer
 THREAD := -lpthread -ltbb
 
 ALL_LFLAGS := $(SDL) $(SDL_AUDIO) $(THREAD)
 
 ROOT := ../../..
 
-BUILD := $(ROOT)/build/ubuntu_sdl3
+BUILD := $(ROOT)/build/ubuntu_sdl2
 
 RES := $(ROOT)/res
 
@@ -33,7 +33,7 @@ BIN_DATA := $(RES)/xbin/punk_run.bin
 
 OUT := $(BUILD)/$(EXE)
 
-SRC := ubuntu_sdl3_punk_main.cpp
+SRC := ubuntu_sdl2_punk_main.cpp
 
 
 #****************
