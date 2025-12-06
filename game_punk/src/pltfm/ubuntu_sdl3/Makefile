@@ -21,7 +21,8 @@ SDL := -lSDL3
 SDL_AUDIO := -lSDL3_mixer
 THREAD := -lpthread -ltbb
 
-ALL_LFLAGS := $(SDL) $(SDL_AUDIO) $(THREAD)
+#ALL_LFLAGS := $(SDL) $(SDL_AUDIO) $(THREAD)
+ALL_LFLAGS := $(SDL) $(SDL_AUDIO)
 
 ROOT := ../../..
 
