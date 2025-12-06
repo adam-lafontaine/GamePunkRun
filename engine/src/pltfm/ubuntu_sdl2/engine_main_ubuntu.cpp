@@ -357,4 +357,4 @@ int main()
     return 0;
 }
 
-#include "main_o.cpp"
+#include "../main_o/main_o_sdl2.cpp"
