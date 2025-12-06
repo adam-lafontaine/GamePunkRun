@@ -1,0 +1,7 @@
+#include "../../../libs/sdl3/sdl_span.cpp"
+#include "../../../libs/sdl3/sdl_alloc.cpp"
+#include "../../../libs/image/image.cpp"
+#include "../../../libs/sdl3/sdl_filesystem.cpp"
+#include "../../../libs/sdl3/sdl_stb_libs.cpp"
+#include "../../../libs/sdl3/sdl_math.cpp"
+#include "../../../libs/sdl3/sdl_datetime.cpp"

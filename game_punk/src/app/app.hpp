@@ -1,0 +1,101 @@
+#pragma once
+
+#include "../../../libs/io/input/input.hpp"
+#include "../../../libs/image/image.hpp"
+
+
+namespace game_punk
+{
+    constexpr auto APP_TITLE = "Punk Run";
+    constexpr auto VERSION = "0.1.0";
+    constexpr auto DATE = "2025-12-06";
+
+
+    class StateData;
+
+
+    class AppState
+    {
+    public:
+        image::ImageView screen;
+
+        StateData* data_ = 0;
+    };
+
+
+    enum class AppError : int
+    {
+        None = 0,
+        Memory,
+        Assets,
+        ScreeenDimensions,
+        ScreenWidth,
+        ScreenHeight
+    };
+
+
+    class AppResult
+    {
+    public:
+        bool success = false;
+
+        Vec2Du32 app_dimensions;
+
+        AppError error = AppError::None;
+    };
+
+
+    AppResult init(AppState& state);
+
+    AppResult init(AppState& state, Vec2Du32 available_dims);
+
+    bool set_screen_memory(AppState& state, image::ImageView screen);
+
+    void reset(AppState& state);
+
+    void close(AppState& state);
+
+    void update(AppState& state, input::Input const& input);
+
+    cstr decode_error(AppError error);
+}
+
+
+/* debugging context */
+
+namespace game_punk
+{
+#ifndef GAME_PUNK_RELEASE
+
+
+    class DebugContext
+    {
+    public:
+
+        union
+        {
+            b8 all = 0xFF;
+
+            struct
+            {
+                b8 ui : 1;
+                b8 hud : 1;
+                b8 sky : 1;
+                b8 bg1 : 1;
+                b8 bg2 : 1;
+                b8 sprite : 1;
+            };
+        } layers;
+        
+    };
+
+
+    bool set_screen_memory_dbg(AppState& state, image::ImageView screen, DebugContext& dbg);
+
+
+    void update_dbg(AppState& state, input::Input const& input, DebugContext const& dbg);
+
+
+#endif
+}
+
