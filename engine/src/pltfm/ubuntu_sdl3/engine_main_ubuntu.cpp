@@ -37,13 +37,9 @@ enum class RunState : int
 namespace mv
 {
 #ifdef NDEBUG
-
-    constexpr auto APP_TITLE = "Engine SDL3";
-
+    constexpr auto APP_TITLE = "Engine SDL3 Ubuntu";
 #else
-
-    constexpr auto APP_TITLE = "Engine SDL3 (Debug)";
-
+    constexpr auto APP_TITLE = "Engine SDL3 Ubuntu (Debug)";
 #endif
 
     ui_imgui::UIState ui_state{};
