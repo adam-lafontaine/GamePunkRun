@@ -1712,13 +1712,13 @@ namespace game_punk
         InputCommand cmd;
 
         cmd.camera.move = 0;
-        cmd.camera.north = input.keyboard.kbd_up.is_down;
+        /*cmd.camera.north = input.keyboard.kbd_up.is_down;
         cmd.camera.south = input.keyboard.kbd_down.is_down;
         cmd.camera.east = input.keyboard.kbd_right.is_down;
-        cmd.camera.west = input.keyboard.kbd_left.is_down;
+        cmd.camera.west = input.keyboard.kbd_left.is_down;*/
 
         cmd.text.changed = 0;
-        cmd.text.up = input.keyboard.npd_plus.pressed;
+        //cmd.text.up = input.keyboard.npd_plus.pressed;
 
         return cmd;
     }

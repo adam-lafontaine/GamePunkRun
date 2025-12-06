@@ -70,7 +70,8 @@ icon_o := $(O_BUILD)/icon.o
 
 obj += $(icon_o)
 
-icon_dep := icon_punk_64.ico
+#icon_dep := icon_punk_64.ico
+icon_dep := 
 
 #****************
 
