@@ -504,7 +504,7 @@ namespace assets
     {
         using FT = bt::FileType;
 
-        bt::UIset_title title;
+        bt::UIset_Title title;
 
         constexpr auto file_type_ok = title.file_type == FT::Image1C;
         constexpr auto table_type_ok = title.table_type == FT::Image4C;

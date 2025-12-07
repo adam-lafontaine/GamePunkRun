@@ -47,6 +47,9 @@ namespace ui
     public:
         std::string name;
 
+        sfs::path palette_file;
+        img::Image palette_image;
+
         PathList digit_files;
         PathList alpha_files_1;
         PathList alpha_files_2;
@@ -71,9 +74,16 @@ namespace ui
         for (auto const& file : util::get_png_files(dir))
         {
             auto name = file.filename().string();
-            if (std::isdigit(name[0]))
+
+            if (name == "Palette.png")
+            {
+                result.n_expected++;
+                result.palette_file = file;
+            }
+            else if (std::isdigit(name[0]))
             {
                 result.digit_files.push_back(file);
+                result.n_expected++;
             }
             else if (isalpha(name[0]))
             {
@@ -81,10 +91,12 @@ namespace ui
                 {
                 case '1':
                     result.alpha_files_1.push_back(file);
+                    result.n_expected++;
                     break;
 
                 case '2':
                     result.alpha_files_2.push_back(file);
+                    result.n_expected++;
                     break;
 
                 default: break;
@@ -92,7 +104,7 @@ namespace ui
             }
         }
 
-        result.n_expected = result.digit_files.size() + result.alpha_files_1.size() + result.alpha_files_2.size();
+        result.n_read += util::read_image(result.palette_file, result.palette_image);
 
         auto sort = [](PathList& list) 
         { 
@@ -112,12 +124,28 @@ namespace ui
 
         return result;
     }
-}
 
 
-namespace ui
-{    
-    static u32 count_write_font_mask_image(FontImageResult& res, sfs::path const& out_dir)
+    static u32 count_write_font_table_image(FontImageResult& res, sfs::path const& out)
+    {
+        u32 count = 0;
+
+        auto table = util::create_color_table_image(res.palette_image);
+        if (table.data_)
+        {
+            count++;
+            auto path = out / "table.png";
+            util::write_image(table, path);
+            img::destroy_image(table);
+        }        
+        
+        img::destroy_image(res.palette_image);
+
+        return count;
+    }
+
+
+    static u32 count_write_font_mask_image(FontImageResult& res, sfs::path const& out)
     {
         u32 count = 0;
 
@@ -184,15 +212,114 @@ namespace ui
 
         util::transform_mask(dst, mask);
 
-        count += util::write_image(mask, (out_dir / "font.png"));
+        count += util::write_image(mask, (out / "font.png"));
 
         img::destroy_image(dst);
         img::destroy_image(mask);
 
         return count;
     }
+}
 
 
+/* icons */
+
+namespace ui
+{
+    class IconImageResult
+    {
+    public:
+        std::string name;
+
+        sfs::path palette_file;
+        img::Image palette_image;
+
+        sfs::path frame_file;
+        img::Image frame_image;
+
+        PathList icon_files;
+        ImageList<p32> icon_images;
+
+        u32 n_expected = 0;
+        u32 n_read = 0;
+    };
+
+
+    static IconImageResult get_icon_images(sfs::path const& dir)
+    {
+        IconImageResult result;
+
+        result.name = dir.filename();
+        result.n_expected = 0;
+        result.n_read = 0;
+
+        for (auto const& file : util::get_png_files(dir))
+        {
+            auto name = file.filename().string();
+
+            if (name == "Palette.png")
+            {
+                result.n_expected++;
+                result.palette_file = file;
+            }
+            else if (name[0] == 'F') // Frame
+            {
+                result.n_expected++;
+                result.frame_file == file;
+            }
+            else if (name[0] == 'S') // SkillIcon
+            {
+                result.n_expected++;
+                result.icon_files.push_back(file);
+            }
+        }
+
+        result.n_read += util::read_image(result.palette_file, result.palette_image);
+
+        auto sort = [](PathList& list) 
+        { 
+            auto comp = [](auto const& a, auto const& b) { return a.filename() < b.filename(); };
+            std::sort(list.begin(), list.end(), comp); 
+        };
+
+        sort(result.icon_files);
+
+        result.n_read += util::count_read_image_files_rotate_90(result.icon_files, result.icon_images);
+
+        assert(result.n_expected == result.n_read);
+
+        return result;
+    }
+
+
+    static u32 count_write_icon_table_image(IconImageResult& res, sfs::path const& out)
+    {
+        u32 count = 0;
+
+        auto table = util::create_color_table_image(res.palette_image);
+        if (table.data_)
+        {
+            count++;
+            auto path = out / "table.png";
+            util::write_image(table, path);
+            img::destroy_image(table);
+        }        
+        
+        img::destroy_image(res.palette_image);
+
+        return count;
+    }
+
+
+    static u32 count_write_convert_icon_images(IconImageResult& res, sfs::path const& out)
+    {
+
+    }
+}
+
+
+namespace ui
+{  
     static u32 count_write_convert_image_files(ImageResult& res, img::Image const& table, sfs::path const& dst_dir)
     {
         u32 count = 0;
@@ -227,6 +354,57 @@ namespace ui
     }
 
 
+    static void generate_font_images(sfs::path const& dir, sfs::path const& out)
+    {
+        // Magic!
+        auto out_files = out / "images";
+        sfs::create_directories(out_files);
+
+        auto res = get_font_images(dir);
+        auto n_font = count_write_font_mask_image(res, out_files);
+        n_font += count_write_font_table_image(res, out);
+        print_result(res, n_font);
+    }
+
+
+    static void generate_title_images(sfs::path const& dir, sfs::path const& out)
+    {
+        // Magic!
+        auto out_files = out / "images";
+        sfs::create_directories(out_files);
+
+        auto res = get_images(dir);
+        auto table = util::create_color_table_image(res.images);
+
+        auto path = out / "table.png";
+        util::write_image(table, path);
+
+        auto n_image = count_write_convert_image_files(res, table, out_files);
+
+        print_result(res, n_image);
+        img::destroy_image(table);
+    }
+
+
+    static void generate_icon_images(sfs::path const& dir, sfs::path const& out)
+    {
+        // Magic!
+        auto out_files = out / "images";
+        sfs::create_directories(out_files);
+
+        auto res = get_icon_images(dir);
+        auto n_icon = 0u;
+        n_icon += count_write_icon_table_image(res, out);
+        print_result(res, n_icon);
+    }
+}
+
+
+namespace ui
+{
+    
+
+
     void generate_ui()
     {
         auto out_dir = sfs::path(OUT_DIR);
@@ -238,47 +416,25 @@ namespace ui
 
         for (auto const& dir : util::get_sub_directories(in_dir))
         {
-            auto out = out_dir / dir.filename();
-            sfs::create_directories(out);
+            auto name = dir.filename();
+            auto out = out_dir / name;
+            
 
-            // Magic!
-            auto out_files = out / "images";
-            sfs::create_directories(out_files);
-
-            if (dir.filename() == "Font")
+            if (name == "Font")
             {
-                auto res = get_font_images(dir);
-                auto n_font = count_write_font_mask_image(res, out_files);
-                print_result(res, n_font);
-
-                auto res_table = get_images(dir);
-                auto table = util::create_color_table_image(res_table.images);
-
-                auto path = out / "table.png";
-                util::write_image(table, path);
-                img::destroy_image(table);
-
-                for (auto& src :res_table.images)
-                {
-                    img::destroy_image(src);
-                }
+                sfs::create_directories(out);
+                generate_font_images(dir, out);
             }
-            else
+            else if (name == "Title")
             {
-                auto res = get_images(dir);
-                auto table = util::create_color_table_image(res.images);
-
-                auto path = out / "table.png";
-                util::write_image(table, path);
-
-                auto n_image = count_write_convert_image_files(res, table, out_files);
-
-                print_result(res, n_image);
-                img::destroy_image(table);
-                
+                sfs::create_directories(out);
+                generate_title_images(dir, out);               
             }
-
-
+            else if (name == "Icon")
+            {
+                sfs::create_directories(out);
+                generate_icon_images(dir, out);
+            }
         }
     }
 }

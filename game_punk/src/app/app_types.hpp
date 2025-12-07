@@ -1106,7 +1106,7 @@ namespace game_punk
 
     static void count_ui_state(UIState& ui, MemoryCounts& counts)
     {
-        bt::UIset_title title;
+        bt::UIset_Title title;
         auto t_info = title.file_info.title_main;
         count_view(ui.data.title, counts, t_info.width, t_info.height);        
         

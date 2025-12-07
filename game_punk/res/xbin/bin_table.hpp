@@ -1,5 +1,5 @@
 #pragma once
-/* timestamp: 1764971597794290523 */
+/* timestamp: 1765071867307273469 */
 
 
 // bin_table_types.hpp
@@ -348,7 +348,7 @@ namespace bin_table
 	{
 	public:
 		u32 offset = 821043;
-		u32 size = 3004;
+		u32 size = 3000;
 
 		static constexpr FileType file_type = FileType::Image1C;
 		static constexpr FileType table_type = FileType::Image4C;
@@ -367,7 +367,7 @@ namespace bin_table
 			} file_info;
 		};
 
-		static constexpr FileInfo_Image color_table = to_file_info_image(table_type, 38, 1, "table", 823826, 221);
+		static constexpr FileInfo_Image color_table = to_file_info_image(table_type, 37, 1, "table", 823826, 217);
 
 		constexpr UIset_Font(){}
 	};
@@ -379,10 +379,10 @@ namespace bin_table
 namespace bin_table
 {
 
-	class UIset_title
+	class UIset_Title
 	{
 	public:
-		u32 offset = 824047;
+		u32 offset = 824043;
 		u32 size = 1403;
 
 		static constexpr FileType file_type = FileType::Image1C;
@@ -393,7 +393,7 @@ namespace bin_table
 		union
 		{
 			FileInfo_Image items[count] = {
-				to_file_info_image(file_type, 74, 96, "title_main", 824047, 1321),
+				to_file_info_image(file_type, 74, 96, "title_main", 824043, 1321),
 			};
 
 			struct
@@ -402,9 +402,9 @@ namespace bin_table
 			} file_info;
 		};
 
-		static constexpr FileInfo_Image color_table = to_file_info_image(table_type, 4, 1, "table", 825368, 82);
+		static constexpr FileInfo_Image color_table = to_file_info_image(table_type, 4, 1, "table", 825364, 82);
 
-		constexpr UIset_title(){}
+		constexpr UIset_Title(){}
 	};
 
 }

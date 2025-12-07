@@ -40,9 +40,9 @@ namespace sky
 {
     constexpr auto SRC_DIR = "/home/adam/Desktop/Game Assets/image/sky";
 
-    constexpr auto OUT_SKY_BASE_DIR    = "/home/adam/Repos/GameEPC2/game_punk/tools/sky/out_files/base";
-    constexpr auto OUT_SKY_OVERLAY_DIR = "/home/adam/Repos/GameEPC2/game_punk/tools/sky/out_files/overlay";
-    constexpr auto OUT_SKY_TABLE_DIR = "/home/adam/Repos/GameEPC2/game_punk/tools/sky/out_files/table";
+    constexpr auto OUT_SKY_BASE_DIR    = "/home/adam/Repos/GamePunkRun/game_punk/tools/sky/out_files/base";
+    constexpr auto OUT_SKY_OVERLAY_DIR = "/home/adam/Repos/GamePunkRun/game_punk/tools/sky/out_files/overlay";
+    constexpr auto OUT_SKY_TABLE_DIR = "/home/adam/Repos/GamePunkRun/game_punk/tools/sky/out_files/table";
 }
 
 
@@ -50,7 +50,7 @@ namespace bg
 {
     constexpr auto SRC_DIR = "/home/adam/Desktop/Game Assets/image/backgrounds";
 
-    constexpr auto OUT_DIR = "/home/adam/Repos/GameEPC2/game_punk/tools/background/out_files/gen";
+    constexpr auto OUT_DIR = "/home/adam/Repos/GamePunkRun/game_punk/tools/background/out_files/gen";
 }
 
 
@@ -58,7 +58,7 @@ namespace sprite
 {
     constexpr auto SRC_CHARACTER_DIR = "/home/adam/Desktop/Game Assets/image/characters";
 
-    constexpr auto OUT_DIR = "/home/adam/Repos/GameEPC2/game_punk/tools/sprite/out_files/gen";
+    constexpr auto OUT_DIR = "/home/adam/Repos/GamePunkRun/game_punk/tools/sprite/out_files/gen";
 }
 
 
@@ -66,7 +66,7 @@ namespace tile
 {
     constexpr auto SRC_DIR = "/home/adam/Desktop/Game Assets/image/tiles";
 
-    constexpr auto OUT_DIR = "/home/adam/Repos/GameEPC2/game_punk/tools/tile/out_files/gen";
+    constexpr auto OUT_DIR = "/home/adam/Repos/GamePunkRun/game_punk/tools/tile/out_files/gen";
 }
 
 
@@ -74,17 +74,17 @@ namespace ui
 {
     constexpr auto SRC_DIR = "/home/adam/Desktop/Game Assets/image/ui";
 
-    constexpr auto OUT_DIR = "/home/adam/Repos/GameEPC2/game_punk/tools/ui/out_files/gen";
+    constexpr auto OUT_DIR = "/home/adam/Repos/GamePunkRun/game_punk/tools/ui/out_files/gen";
 }
 
 
 namespace bin
 {
-    constexpr auto OUT_BIN_DIR = "/home/adam/Repos/GameEPC2/game_punk/res/xbin";
+    constexpr auto OUT_BIN_DIR = "/home/adam/Repos/GamePunkRun/game_punk/res/xbin";
     constexpr auto OUT_BIN_FILE = "punk_run.bin";
     constexpr auto OUT_BIN_TABLE_FILE = "bin_table.hpp";
 
-    constexpr auto BIN_TABLE_TYPES_PATH = "/home/adam/Repos/GameEPC2/game_punk/tools/z_make_bin/bin_table_types.hpp";
+    constexpr auto BIN_TABLE_TYPES_PATH = "/home/adam/Repos/GamePunkRun/game_punk/tools/z_make_bin/bin_table_types.hpp";
     
 }
 
@@ -236,6 +236,12 @@ namespace util
     inline void write_buffer(MemoryBuffer<u8>& buffer, std::ofstream& bin_file)
     {
         bin_file.write((char*)buffer.data_, buffer.size_);
+    }
+
+
+    inline bool read_image(sfs::path const& path, img::Image& dst)
+    {
+        return img::read_image_from_file(path.c_str(), dst);
     }
 
 
