@@ -210,6 +210,61 @@ namespace game_punk
 }
 
 
+/* random */
+
+namespace game_punk
+{
+    class Randomf32
+    {
+    public:
+        static constexpr u32 capacity = 256;
+
+        f32 values[capacity];
+
+        u8 b_cursor = 0;
+        u8 r_cursor = 0;
+
+    };
+
+
+    static void reset_random(Randomf32& rng)
+    {
+        rng.b_cursor = 0;
+        rng.r_cursor = 0;
+
+        math::rand_init();
+
+        for (u32 i = 0; i < rng.capacity; i++)
+        {
+            rng.values[i] = math::rand(0.0f, 1.0f);
+        }
+    }
+
+
+    static void start_random_frame(Randomf32& rng)
+    {
+        for (u8 i = rng.b_cursor; i < rng.r_cursor; i++)
+        {
+            rng.values[i] = math::rand(0.0f, 1.0f);
+        }
+
+        rng.b_cursor = rng.r_cursor;
+    }
+
+
+    template <typename T>
+    T next_random(Randomf32& rng, T min, T max)
+    {
+        auto val = rng.values[rng.r_cursor++];
+        app_assert(rng.r_cursor != rng.b_cursor && "*** Frame RNG exceded ***");
+
+        auto delta = val * (max - min);
+
+        return min + (T)delta;
+    }
+}
+
+
 /* integral types */
 
 namespace game_punk
@@ -238,6 +293,11 @@ namespace game_punk
         
 
         GameTick64& operator ++ () { ++value_; return *this; }
+
+
+        bool operator == (GameTick64 other) const { return value_ == other.value_; }
+
+        bool operator >= (GameTick64 other) const { return value_ >= other.value_; }
         
     };
 
@@ -254,6 +314,8 @@ namespace game_punk
         constexpr TickQty32(u32 v) { value_ = v; }
 
 
+        static constexpr TickQty32 make(u32 v) { return TickQty32(v); }
+
         static constexpr TickQty32 zero() { return TickQty32(0u); }
 
 
@@ -268,7 +330,17 @@ namespace game_punk
         bool operator <= (TickQty32 other) const { return value_ <= other.value_; }
 
         bool operator >= (TickQty32 other) const { return value_ >= other.value_; }
+
+
+        static TickQty32 get_random(Randomf32& rng, u32 min, u32 max) { return TickQty32(next_random(rng, min, max)); }
     };
+
+
+    GameTick64 operator + (GameTick64 lhs, TickQty32 rhs) { return GameTick64::make(lhs.value_ + rhs.value_); }
+
+    TickQty32 operator - (GameTick64 lhs, TickQty32 rhs) { return lhs.value_ - rhs.value_; }
+
+    TickQty32 operator % (GameTick64 lhs, TickQty32 rhs) { return lhs.value_ % rhs.value_; }
 
 
     bool operator <= (TickQty32 lhs, GameTick64 rhs) { return lhs.value_ <= rhs.value_; }
@@ -278,10 +350,6 @@ namespace game_punk
     TickQty32 operator + (TickQty32 lhs, TickQty32 rhs) { return lhs.value_ + rhs.value_; }
 
     TickQty32 operator - (TickQty32 lhs, TickQty32 rhs) { return lhs.value_ - rhs.value_; }
-
-    TickQty32 operator - (GameTick64 lhs, TickQty32 rhs) { return lhs.value_ - rhs.value_; }
-
-    TickQty32 operator % (GameTick64 lhs, TickQty32 rhs) { return lhs.value_ % rhs.value_; }
 
 
     class ActiveRef
@@ -1147,12 +1215,21 @@ namespace game_punk
             p32 colors[CTS];
         } data;
 
-        u8 font_color_id;
-
         MemoryStack<p32> pixels;
 
         CameraLayer ui;
         CameraLayer hud;
+
+        u8 font_color_id;
+
+        struct 
+        {
+            b8 is_on;
+            GameTick64 end_tick;
+
+        } temp_icon;
+
+        
     };
 
 
@@ -1186,10 +1263,16 @@ namespace game_punk
         ok &= create_view(ui.data.icons, memory);
         ok &= create_stack(ui.pixels, memory);
         ok &= create_camera_layer(ui.ui, memory);
-        ok &= create_camera_layer(ui.hud, memory);
-        
+        ok &= create_camera_layer(ui.hud, memory);        
 
         return ok;
+    }
+
+
+    static void reset_ui_state(UIState& ui)
+    {
+        ui.temp_icon.is_on = 0;
+        ui.temp_icon.end_tick = GameTick64::make(1);
     }
 
 
@@ -1256,7 +1339,7 @@ namespace game_punk
     }
 
 
-    static SpriteView get_ui_icon(UIState& ui)
+    static SpriteView get_ui_icon(UIState& ui, Randomf32& rng, GameTick64 game_tick)
     {
         auto& icons = ui.data.icons;
         auto dims = icons.bitmap_dims;
@@ -1272,11 +1355,34 @@ namespace game_punk
 
         auto dst = to_image_view(view);
 
-        auto src = img::make_view(width, height, icons.data); // Frame
-        img::copy_if_alpha(src, dst);
+        auto do_icon = [&](u8 color_id)
+        {
+            set_ui_color(ui, color_id);
+            auto src = img::make_view(width, height, icons.data); // Frame
+            img::copy_if_alpha(src, dst);
 
-        src.matrix_data_ += id * length; // Icon
-        img::copy_if_alpha(src, dst);
+            src.matrix_data_ += id * length; // Icon
+            img::copy_if_alpha(src, dst);
+        };
+
+        auto& icon = ui.temp_icon;
+
+        if (game_tick >= icon.end_tick)
+        {
+            icon.is_on = !icon.is_on;
+
+            auto delta = icon.is_on ? TickQty32::get_random(rng, 3, 60) : TickQty32::make(6);
+            icon.end_tick = game_tick + delta;
+        }
+
+        if (icon.is_on)
+        {
+            do_icon(20);
+        }
+        else
+        {
+            do_icon(7);
+        }
 
         return view;
     }

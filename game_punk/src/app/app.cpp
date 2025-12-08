@@ -124,6 +124,8 @@ namespace game_punk
 
         u8 camera_speed_px;
 
+        Randomf32 rng;
+
 
         // Temp icon
         CtxPt2Di32 icon_pos;
@@ -138,8 +140,10 @@ namespace game_punk
         reset_background_state(data.background);
         reset_render_state(data.render);
         reset_game_camera(data.camera);
+        reset_random(data.rng);
 
-        set_ui_color(data.ui, 16);
+        reset_ui_state(data.ui);
+        set_ui_color(data.ui, 20);
 
         data.icon_pos.game.x = 86;
         data.icon_pos.game.y = 59;
@@ -254,6 +258,7 @@ namespace game_punk
         ++data.game_tick;
         clear_render_layer(data.spritesheet.layer_sprite);
         start_ui_frame(data.ui);
+        start_random_frame(data.rng);
         clear_camera_layer(data.render.screen_out);
         reset_draw(data.drawq); 
     }
@@ -379,7 +384,7 @@ namespace game_punk
     static void draw_ui_icon(StateData& data)
     {
         // TEMP
-        auto src = get_ui_icon(data.ui);
+        auto src = get_ui_icon(data.ui, data.rng, data.game_tick);
         auto dst = data.ui.ui;
 
         push_draw_ui(data.drawq, src, dst, data.icon_pos);
