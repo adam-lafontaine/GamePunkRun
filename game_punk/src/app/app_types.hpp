@@ -1187,6 +1187,7 @@ namespace game_punk
         ok &= create_stack(ui.pixels, memory);
         ok &= create_camera_layer(ui.ui, memory);
         ok &= create_camera_layer(ui.hud, memory);
+        
 
         return ok;
     }

@@ -195,6 +195,8 @@ namespace game_punk
         ok &= create_tile_state(data.tiles, data.memory);
         ok &= create_ui_state(data.ui, data.memory);
 
+        ok &= verify_allocated(data.memory);
+
         return ok;
     }
     
@@ -401,7 +403,7 @@ namespace game_punk
         auto& hud = data.ui.hud;
         if (layer_active(hud))
         {
-            span::fill(to_span(hud), green);
+            //span::fill(to_span(hud), green);
         }
     }
 

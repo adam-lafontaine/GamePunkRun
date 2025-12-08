@@ -137,6 +137,31 @@ namespace game_punk
         write("  misc", mem.mem_misc, mc.count_misc);
         app_log("\n");
     }
+
+
+    static bool verify_allocated(Memory const& memory)
+    {
+        bool ok = true;
+
+        auto is_ok = [](auto const& buffer) { return buffer.size_ == buffer.capacity_; };
+        
+        ok &= is_ok(memory.mem_8);
+        app_assert(ok && "*** 8 bit Memory not allocated ***");
+
+        ok &= is_ok(memory.mem_16);
+        app_assert(ok && "*** 16 bit Memory not allocated ***");
+
+        ok &= is_ok(memory.mem_32);
+        app_assert(ok && "*** 32 bit Memory not allocated ***");
+
+        ok &= is_ok(memory.mem_64);        
+        app_assert(ok && "*** 64 bit Memory not allocated ***");
+
+        ok &= is_ok(memory.mem_misc);
+        app_assert(ok && "*** Misc Memory not allocated ***");
+
+        return ok;
+    }
     
 }
 
@@ -269,7 +294,7 @@ namespace game_punk
 
 
     template <typename T>
-    static bool create_stack(MemoryStack<T>& stack, Memory memory)
+    static bool create_stack(MemoryStack<T>& stack, Memory& memory)
     {
         if (!stack.capacity_)
         {

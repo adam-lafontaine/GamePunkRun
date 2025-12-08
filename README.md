@@ -21,5 +21,6 @@ https://itch.io/c/2053292/cyberpunk-pixel-art
 * [x] Build SDL2 / windows
 * [x] UI font
 * [x] UI icons
+* [x] Verify memory allocations
 * [ ] Release files
 
