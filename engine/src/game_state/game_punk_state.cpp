@@ -74,6 +74,10 @@ namespace internal
         auto dims = data.camera.viewport_pos_px.game;
 
         ImGui::Text("Position: (%u, %u)", dims.x, dims.y);
+        ImGui::Text("Color: %u", data.ui.font_color_id);
+
+        auto pos = data.icon_pos.game;
+        ImGui::Text("Icon: (%d, %d)", pos.x, pos.y);
     }
     
     
@@ -123,8 +127,7 @@ namespace internal
             layers.hud = hud;
             layers.ui = ui;
         }
-
-        ImGui::Text("Color: %u", game::get_data(game_state).ui.font_color_id);
+        
     }
 }
 }

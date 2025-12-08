@@ -44,6 +44,25 @@ namespace assets
     }
 
 
+    static void filter_convert(Span8 const& src, Span32 const& dst)
+    {
+        for (u32 i = 0; i < src.length; i++)
+        {
+            auto p = src.data[i];
+            dst.data[i] = img::to_pixel(p, p, p, p);
+        }
+    }
+
+
+    static void filter_convert(ImageGray const& src_mask, ImageView const& dst_view)
+    {
+        auto src = img::to_span(src_mask);
+        auto dst = img::to_span(dst_view);
+
+        filter_convert(src, dst);
+    }
+    
+    
     static void extend_view_x(Image const& src_view, ImageView const& dst_view)
     {
         auto src = img::make_view(src_view);
@@ -529,6 +548,35 @@ namespace assets
 
         return ok;
     }
+
+
+    static bool load_ui_icons(AssetData const& src, UIState& ui)
+    {
+        using FT = bt::FileType;
+
+        bt::UIset_Icons icons;
+
+        constexpr auto file_type_ok = icons.file_type == FT::Image1C;
+        constexpr auto table_type_ok = icons.table_type == FT::Image4C;
+
+        static_assert(file_type_ok && "*** Grayscale image expected ***");
+        static_assert(table_type_ok && "*** RGBA image expected ***");
+
+        bool ok = true;
+
+        ImageGray filter;
+
+        ok &= load_image_asset(src, filter, icons.file_info.icons);
+
+        if (ok)
+        {
+            filter_convert(filter, to_image_view(ui.data.icons));
+        }
+
+        img::destroy_image(filter);
+
+        return ok;
+    }
 }
 }
 
@@ -620,6 +668,7 @@ namespace assets
 
         ok &= load_ui_font(src, ui);
         ok &= load_ui_title(src, ui);
+        ok &= load_ui_icons(src, ui);
 
         return ok;
     }

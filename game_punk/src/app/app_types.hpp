@@ -156,6 +156,57 @@ namespace game_punk
         mask_fill(dst, color);
     }
 
+
+    static void filter_fill(Span32 const& dst, p32 primary, p32 secondary)
+    {
+        primary.alpha = 255; // no transparency allowed
+        secondary.alpha = 255;
+
+        auto blend_r = (primary.red + secondary.red) / 2;
+        auto blend_g = (primary.green + secondary.green) / 2;
+        auto blend_b = (primary.blue + secondary.blue) / 2;
+        auto blend = img::to_pixel((u8)blend_r, (u8)blend_g, (u8)blend_b);
+
+        p32 ps;
+
+        for (u32 i = 0; i < dst.length; i++)
+        {
+            ps = dst.data[i];
+
+            switch (ps.alpha)
+            {
+            case 0:
+                dst.data[i] = COLOR_TRANSPARENT;
+                break;
+
+            case 50:
+                dst.data[i] = secondary;
+                break;
+
+            case 128:
+                dst.data[i] = blend;
+                break;
+
+            case 255:
+                dst.data[i] = primary;
+                break;
+
+            default:
+                break;
+            }
+
+            dst.data[i].alpha = ps.alpha;
+        }
+    }
+
+
+    static void filter_fill(ImageView const& dst_view, p32 primary, p32 secondary)
+    {
+        auto dst = img::to_span(dst_view);
+
+        filter_fill(dst, primary, secondary);
+    }
+
 }
 
 
@@ -1088,16 +1139,17 @@ namespace game_punk
 
         struct
         {
-            ImageView title;
-            
+            ImageView title;            
             
             SpritesheetView font;
+            SpritesheetView icons;
 
             p32 colors[CTS];
         } data;
 
         u8 font_color_id;
 
+        MemoryStack<p32> pixels;
 
         CameraLayer ui;
         CameraLayer hud;
@@ -1114,6 +1166,12 @@ namespace game_punk
         u32 n_chars = 10 + 26 * 2; // 0-9, A-Z x 2
         count_view(ui.data.font, counts, font.file_info.font, n_chars);
 
+        bt::UIset_Icons icons;
+        count_view(ui.data.icons, counts, icons.file_info.icons);
+
+        auto length = cxpr::CAMERA_GAME_WIDTH_PX * cxpr::CAMERA_GAME_HEIGHT_PX;
+        count_stack(ui.pixels, counts, length);
+
         count_camera_layer(ui.ui, counts);
         count_camera_layer(ui.hud, counts);
     }
@@ -1125,10 +1183,21 @@ namespace game_punk
 
         ok &= create_view(ui.data.title, memory);
         ok &= create_view(ui.data.font, memory);
+        ok &= create_view(ui.data.icons, memory);
+        ok &= create_stack(ui.pixels, memory);
         ok &= create_camera_layer(ui.ui, memory);
         ok &= create_camera_layer(ui.hud, memory);
 
         return ok;
+    }
+
+
+    static void start_ui_frame(UIState& ui)
+    {
+        clear_camera_layer(ui.ui);
+        clear_camera_layer(ui.hud);
+        reset_stack(ui.pixels);
+        span::fill(to_span(ui.pixels), COLOR_TRANSPARENT);
     }
 
 
@@ -1139,6 +1208,9 @@ namespace game_punk
 
         auto color = ui.data.colors[color_id];
         mask_fill(to_image_view(ui.data.font), color);
+
+        // temp icon color
+        filter_fill(to_image_view(ui.data.icons), color, COLOR_BLACK);
         ui.font_color_id = color_id;
 
         return ok;
@@ -1178,6 +1250,32 @@ namespace game_punk
         SpriteView view;
         view.dims = dims;
         view.data = data;
+
+        return view;
+    }
+
+
+    static SpriteView get_ui_icon(UIState& ui)
+    {
+        auto& icons = ui.data.icons;
+        auto dims = icons.bitmap_dims;
+        auto width = dims.proc.width;
+        auto height = dims.proc.height;
+        auto length = width * height;
+
+        auto id = 29;
+
+        SpriteView view;
+        view.dims = dims;
+        view.data = push_elements(ui.pixels, length);
+
+        auto dst = to_image_view(view);
+
+        auto src = img::make_view(width, height, icons.data); // Frame
+        img::copy_if_alpha(src, dst);
+
+        src.matrix_data_ += id * length; // Icon
+        img::copy_if_alpha(src, dst);
 
         return view;
     }
@@ -1437,7 +1535,7 @@ namespace game_punk
                     ps = ui[id][su];
 
                     if (ps.alpha)
-                    {      
+                    {  
                         dst[x] = ps;
                         break;
                     }
@@ -1704,6 +1802,21 @@ namespace game_punk
             };
 
         } text;
+
+
+        union
+        {
+            b32 move = 0;
+
+            struct
+            {
+                b8 north;
+                b8 south;
+                b8 east;
+                b8 west;
+            };
+
+        } icon;
     };
 
 
@@ -1718,7 +1831,13 @@ namespace game_punk
         cmd.camera.west = input.keyboard.kbd_left.is_down;*/
 
         cmd.text.changed = 0;
-        //cmd.text.up = input.keyboard.npd_plus.pressed;
+        cmd.text.up = input.keyboard.npd_plus.pressed;
+
+        cmd.icon.move = 0;
+        cmd.icon.north = input.keyboard.kbd_up.pressed;
+        cmd.icon.south = input.keyboard.kbd_down.pressed;
+        cmd.icon.east = input.keyboard.kbd_right.pressed;
+        cmd.icon.west = input.keyboard.kbd_left.pressed;
 
         return cmd;
     }

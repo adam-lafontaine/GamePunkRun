@@ -122,7 +122,11 @@ namespace game_punk
 
         GameTick64 game_tick;
 
-        u8 camera_speed_px;        
+        u8 camera_speed_px;
+
+
+        // Temp icon
+        CtxPt2Di32 icon_pos;
     };
 
 
@@ -136,6 +140,9 @@ namespace game_punk
         reset_game_camera(data.camera);
 
         set_ui_color(data.ui, 16);
+
+        data.icon_pos.game.x = 86;
+        data.icon_pos.game.y = 59;
     }
 
 
@@ -244,8 +251,7 @@ namespace game_punk
     {
         ++data.game_tick;
         clear_render_layer(data.spritesheet.layer_sprite);
-        clear_camera_layer(data.ui.ui);
-        clear_camera_layer(data.ui.hud);
+        start_ui_frame(data.ui);
         clear_camera_layer(data.render.screen_out);
         reset_draw(data.drawq); 
     }
@@ -263,6 +269,16 @@ namespace game_punk
             delta_px.y = (i8)dy;
 
             move_camera(data.camera, delta_px);
+        }
+
+        // temp        
+        if (cmd.icon.move)
+        {            
+            auto dx = ((i32)cmd.icon.east - (i32)cmd.icon.west);
+            auto dy = ((i32)cmd.icon.north - (i32)cmd.icon.south);            
+
+            data.icon_pos.game.x += dx;
+            data.icon_pos.game.y += dy;
         }
     }
 
@@ -343,6 +359,31 @@ namespace game_punk
     }
 
 
+    static void draw_ui_title(StateData& data)
+    {
+        auto src = data.ui.data.title;
+        auto dst = to_image_view(data.ui.ui);
+
+        CtxPt2Di32 pos;
+
+        i32 x = 100;
+        i32 y = (dst.height - src.height) / 2;
+
+        Point2Di32 p = { x, y };
+        push_draw_view(data.drawq, src, dst, p);
+    }
+
+
+    static void draw_ui_icon(StateData& data)
+    {
+        // TEMP
+        auto src = get_ui_icon(data.ui);
+        auto dst = data.ui.ui;
+
+        push_draw_ui(data.drawq, src, dst, data.icon_pos);
+    }
+    
+    
     static void draw_ui(StateData& data)
     {
         auto red = img::to_pixel(255, 0, 0);
@@ -352,14 +393,8 @@ namespace game_punk
         
         if (layer_active(ui))
         {         
-            auto src = data.ui.data.title;
-            auto dst = to_image_view(ui);
-
-            i32 x = 100;
-            i32 y = (dst.height - src.height) / 2;
-
-            Point2Di32 p = { x, y };
-            push_draw_view(data.drawq, src, dst, p);
+            draw_ui_title(data);
+            draw_ui_icon(data);
         }
 
 
@@ -373,11 +408,15 @@ namespace game_punk
 
     static void render_screen(StateData& data, ImageView screen)
     {
-        //img::fill(screen, img::to_pixel(255, 0, 0));
-        //img::fill(screen, COLOR_TRANSPARENT);
         draw(data.drawq);
 
         render_to_screen(data.render, data.camera);
+
+        auto s = img::to_span(screen);
+        for (u32 i = 0; i < s.length; i++)
+        {
+            s.data[i].alpha = 255;
+        }
     }
 }
 
@@ -606,6 +645,8 @@ namespace game_punk
         draw_ui(data);
 
         render_screen(data, state.screen);
+
+
     }
 
 #endif

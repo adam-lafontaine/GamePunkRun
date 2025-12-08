@@ -297,23 +297,23 @@ namespace util
 
             if (!ps.alpha)
             {
-                d.data[i] = 0;
-                continue;
-            }
-
-            if (ps.red == color.red && ps.green == color.green && ps.blue == color.blue)
-            {
-                d.data[i] = 255;
+                d.data[i] = 0; // transparent
                 continue;
             }
 
             if (ps.red == 0 && ps.green == 0 && ps.blue == 0)
             {
-                d.data[i] = 50;
+                d.data[i] = 50; // secondary
+                continue;
+            }
+
+            if (ps.red == color.red && ps.green == color.green && ps.blue == color.blue)
+            {
+                d.data[i] = 255; // primary
                 continue;
             }
             
-            d.data[i] = 128;
+            d.data[i] = 128; // blend
         }
     }
 }

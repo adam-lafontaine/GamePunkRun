@@ -1,5 +1,5 @@
 #pragma once
-/* timestamp: 1765071867307273469 */
+/* timestamp: 1765196731971028749 */
 
 
 // bin_table_types.hpp
@@ -405,6 +405,41 @@ namespace bin_table
 		static constexpr FileInfo_Image color_table = to_file_info_image(table_type, 4, 1, "table", 825364, 82);
 
 		constexpr UIset_Title(){}
+	};
+
+}
+
+
+// auto-generated
+namespace bin_table
+{
+
+	class UIset_Icons
+	{
+	public:
+		u32 offset = 825446;
+		u32 size = 4948;
+
+		static constexpr FileType file_type = FileType::Image1C;
+		static constexpr FileType table_type = FileType::Image4C;
+
+		static constexpr u32 count = 1;
+
+		union
+		{
+			FileInfo_Image items[count] = {
+				to_file_info_image(file_type, 32, 1312, "icons", 825446, 4731),
+			};
+
+			struct
+			{
+				FileInfo_Image icons;
+			} file_info;
+		};
+
+		static constexpr FileInfo_Image color_table = to_file_info_image(table_type, 37, 1, "table", 830177, 217);
+
+		constexpr UIset_Icons(){}
 	};
 
 }
