@@ -265,7 +265,7 @@ namespace ui
             else if (name[0] == 'F') // Frame
             {
                 result.n_expected++;
-                result.frame_file == file;
+                result.frame_file = file;
             }
             else if (name[0] == 'S') // SkillIcon
             {
@@ -275,6 +275,7 @@ namespace ui
         }
 
         result.n_read += util::read_image(result.palette_file, result.palette_image);
+        result.n_read += util::read_image(result.frame_file, result.frame_image);
 
         auto sort = [](PathList& list) 
         { 
@@ -311,9 +312,55 @@ namespace ui
     }
 
 
-    static u32 count_write_convert_icon_images(IconImageResult& res, sfs::path const& out)
+    static u32 count_write_icon_filter_image(IconImageResult& res, sfs::path const& out)
     {
+        u32 count = 0;
 
+        auto w = res.frame_image.width;
+        auto h = res.frame_image.height;
+
+        auto width = w;
+        auto height = h * (1 + res.icon_images.size());
+
+        img::Image dst;
+        img::ImageGray mask;        
+
+        bool ok = true;
+        ok &= img::create_image(dst, width, height);
+        ok &= img::create_image(mask, width, height);
+
+        if (!ok)
+        {
+            img::destroy_image(dst);
+            img::destroy_image(mask);
+        }
+
+        img::fill(img::make_view(dst), img::to_pixel(0, 0, 0, 0));
+
+        auto r = img::make_rect(w, h);
+
+        img::copy(img::make_view(res.frame_image), img::sub_view(dst, r));
+        img::destroy_image(res.frame_image);
+        
+        for (auto& src : res.icon_images)
+        {
+            r.y_begin += h;
+            r.y_end += h;
+
+            img::copy(img::make_view(src), img::sub_view(dst, r));
+            img::destroy_image(src);
+        }
+
+        auto primary = img::to_pixel(255, 129, 66); // Magic!
+
+        util::transform_filter(dst, mask, primary);
+
+        count += util::write_image(mask, (out / "icons.png"));
+
+        img::destroy_image(dst);
+        img::destroy_image(mask);
+
+        return count;
     }
 }
 
@@ -393,7 +440,7 @@ namespace ui
         sfs::create_directories(out_files);
 
         auto res = get_icon_images(dir);
-        auto n_icon = 0u;
+        auto n_icon = count_write_icon_filter_image(res, out_files);
         n_icon += count_write_icon_table_image(res, out);
         print_result(res, n_icon);
     }
@@ -417,8 +464,7 @@ namespace ui
         for (auto const& dir : util::get_sub_directories(in_dir))
         {
             auto name = dir.filename();
-            auto out = out_dir / name;
-            
+            auto out = out_dir / name;            
 
             if (name == "Font")
             {
@@ -430,7 +476,7 @@ namespace ui
                 sfs::create_directories(out);
                 generate_title_images(dir, out);               
             }
-            else if (name == "Icon")
+            else if (name == "Icons")
             {
                 sfs::create_directories(out);
                 generate_icon_images(dir, out);

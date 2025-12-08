@@ -274,13 +274,46 @@ namespace util
         auto d = img::to_span(img::make_view(dst));
 
         p32 ps;
-        u8 pd;
 
         for (u32 i = 0; i < s.length; i++)
         {
             ps = s.data[i];
             
             d.data[i] = ps.alpha;
+        }
+    }
+
+
+    static void transform_filter(img::Image const& src, img::ImageGray const& dst, p32 color)
+    {
+        auto s = img::to_span(img::make_view(src));
+        auto d = img::to_span(img::make_view(dst));
+
+        p32 ps;
+
+        for (u32 i = 0; i < s.length; i++)
+        {
+            ps = s.data[i];
+
+            if (!ps.alpha)
+            {
+                d.data[i] = 0;
+                continue;
+            }
+
+            if (ps.red == color.red && ps.green == color.green && ps.blue == color.blue)
+            {
+                d.data[i] = 255;
+                continue;
+            }
+
+            if (ps.red == 0 && ps.green == 0 && ps.blue == 0)
+            {
+                d.data[i] = 50;
+                continue;
+            }
+            
+            d.data[i] = 128;
         }
     }
 }
