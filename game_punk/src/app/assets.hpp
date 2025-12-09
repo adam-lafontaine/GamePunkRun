@@ -218,8 +218,10 @@ namespace assets
             return false;
         }
 
-        ok &= part_yx.width == dst.width;
-        ok &= dst.height % part_yx.height == 0;
+        auto& dims = dst.dims.proc;
+
+        ok &= part_yx.width == dims.width;
+        ok &= dims.height % part_yx.height == 0;
         app_assert(ok && "*** Unexpected image part size ***");
 
         if (!ok)
@@ -292,8 +294,10 @@ namespace assets
             return false;
         }
 
-        ok &= mask_yx.width == dst.width;
-        ok &= mask_yx.height == dst.height;
+        auto& dims = dst.dims.proc;
+
+        ok &= mask_yx.width == dims.width;
+        ok &= mask_yx.height == dims.height;
         app_assert(ok && "*** Unexpected background size ***");
 
         if (!ok)
@@ -676,7 +680,7 @@ namespace assets
 }
 
 
-#define GAME_PUNK_WASM
+//#define GAME_PUNK_WASM
 
 
 #if defined(__EMSCRIPTEN__) || defined(GAME_PUNK_WASM)
@@ -766,6 +770,8 @@ namespace assets
     static bool load_asset_data(AssetData& dst)
     {
         em_load::fetch_bin_data_async(GAME_DATA_PATH, dst);
+
+        return true;
     }
 
 #else

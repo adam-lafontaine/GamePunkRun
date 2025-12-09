@@ -13,9 +13,9 @@ namespace game_punk
 namespace cxpr
 {
 
-    constexpr Vec2Du32 process_dimensions()
+    constexpr Vec2Du32 background_dimensions()
     {
-        bt::Background_Bg1 list;
+        constexpr bt::Background_Bg1 list;
 
         Vec2Du32 dims;
         
@@ -24,21 +24,17 @@ namespace cxpr
 
         return dims;
     }
-    
-    constexpr u32 PROCESS_WIDTH_PX = process_dimensions().x;
-    constexpr u32 PROCESS_HEIGHT_PX = process_dimensions().y;
-
 
     // rotated
-    constexpr u32 GAME_WIDTH_PX = process_dimensions().y;
-    constexpr u32 GAME_HEIGHT_PX = process_dimensions().x;
+    constexpr u32 GAME_BACKGROUND_WIDTH_PX = background_dimensions().y;
+    constexpr u32 GAME_BACKGROUND_HEIGHT_PX = background_dimensions().x;
 
 
     constexpr u32 find_4k_scale()
     {
         auto w = WIDTH_4K;
         u32 n = 2;
-        while (w >= GAME_WIDTH_PX)
+        while (w >= GAME_BACKGROUND_WIDTH_PX)
         {
             w = WIDTH_4K / n++;
         }        
@@ -48,13 +44,13 @@ namespace cxpr
 
     constexpr u32 SCALE_4K = find_4k_scale();
 
-    constexpr u32 CAMERA_GAME_WIDTH_PX = WIDTH_4K / SCALE_4K;
-    constexpr u32 CAMERA_GAME_HEIGHT_PX = HEIGHT_4K / SCALE_4K;
+    constexpr u32 GAME_CAMERA_WIDTH_PX = WIDTH_4K / SCALE_4K;
+    constexpr u32 GAME_CAMERA_HEIGHT_PX = HEIGHT_4K / SCALE_4K;
 
 
     constexpr Vec2Du32 sky_overlay_dimensions()
     {
-        bt::InfoList_Image_Sky_Overlay list;
+        constexpr bt::InfoList_Image_Sky_Overlay list;
 
         Vec2Du32 dims;
         
@@ -376,6 +372,13 @@ namespace game_punk
 
 namespace game_punk
 {
+    enum class DimCtx
+    {
+        Proc,
+        Game
+    };
+    
+    
     class ContextDims
     {
     public:
@@ -387,31 +390,24 @@ namespace game_punk
 
             u64 any = 0;
         };
+
+        constexpr ContextDims(u32 w, u32 h, DimCtx ctx)
+        {
+            if (ctx == DimCtx::Proc)
+            {
+                proc.width = w;
+                proc.height = h;
+            }
+            else
+            {
+                game.width = w;
+                game.height = h;
+            }
+        }
+
+
+        ContextDims() { any = 0; }
     };
-
-
-    static constexpr ContextDims make_dims_proc(u32 width, u32 height)
-    {
-        ContextDims dims;
-
-        auto& ctx = dims.proc;
-        ctx.width = width;
-        ctx.height = height;
-
-        return dims;
-    }
-
-
-    static constexpr ContextDims make_dims_game(u32 width, u32 height)
-    {
-        ContextDims dims;
-
-        auto& ctx = dims.game;
-        ctx.width = width;
-        ctx.height = height;
-
-        return dims;
-    }
 
 
     template <typename T>
@@ -424,7 +420,29 @@ namespace game_punk
 
             struct { T y; T x; } game;
         };
+
+
+        ContextVec2D(T x, T y, DimCtx ctx)
+        {
+            if (ctx == DimCtx::Proc)
+            {
+                proc.x = x;
+                proc.y = y;
+            }
+            else
+            {
+                game.x = x;
+                game.y = y;
+            }
+        }
+
+
+        ContextVec2D(Vec2D<T> const& vec, DimCtx ctx)
+        {
+            ContextVec2D(vec.x, vec.y, ctx);
+        }
     };
+
 
     using CtxPt2Du32 = ContextVec2D<u32>;
     using CtxPt2Di32 = ContextVec2D<i32>;
@@ -453,6 +471,9 @@ namespace game_punk
 
         return rect;
     }
+
+
+    constexpr auto BACKGROUND_DIMS = ContextDims(cxpr::GAME_BACKGROUND_WIDTH_PX, cxpr::GAME_BACKGROUND_HEIGHT_PX, DimCtx::Game);
 }
 
 
@@ -463,8 +484,7 @@ namespace game_punk
     class RenderView
     {
     public:
-        static constexpr u32 width = cxpr::PROCESS_WIDTH_PX;
-        static constexpr u32 height = cxpr::PROCESS_HEIGHT_PX;
+        static constexpr auto dims = BACKGROUND_DIMS;
 
         p32* data = 0;
     };
@@ -472,14 +492,14 @@ namespace game_punk
 
     static void count_view(RenderView& view, MemoryCounts& counts)
     {
-        auto length = view.width * view.height;
+        auto length = view.dims.proc.width * view.dims.proc.height;
         add_count<p32>(counts, length);
     }
 
 
     static bool create_view(RenderView& view, Memory& memory)
     {
-        auto length = view.width * view.height;
+        auto length = view.dims.proc.width * view.dims.proc.height;
 
         auto res = push_mem<p32>(memory, length);
         if (res.ok)
@@ -493,14 +513,15 @@ namespace game_punk
 
     static Span32 to_span(RenderView const& view)
     {
-        auto length = view.width * view.height;
+        auto length = view.dims.proc.width * view.dims.proc.height;
         return span::make_view(view.data, length);
     }
 
 
     static ImageView to_image_view(RenderView const& view)
     {
-        return img::make_view(view.width, view.height, view.data);
+        auto dims = view.dims.proc;
+        return img::make_view(dims.width, dims.height, view.data);
     }
 
 
@@ -525,7 +546,7 @@ namespace game_punk
     {
     public:
 
-        static constexpr ContextDims dims = make_dims_proc(cxpr::PROCESS_WIDTH_PX, cxpr::PROCESS_HEIGHT_PX);
+        static constexpr auto dims = BACKGROUND_DIMS;
 
         p32* data = 0;
 
@@ -602,7 +623,7 @@ namespace game_punk
     {
     public:
 
-        static constexpr ContextDims dims = make_dims_game(cxpr::CAMERA_GAME_WIDTH_PX, cxpr::CAMERA_GAME_HEIGHT_PX);
+        static constexpr auto dims = ContextDims(cxpr::GAME_CAMERA_WIDTH_PX, cxpr::GAME_CAMERA_HEIGHT_PX, DimCtx::Game);
 
         p32* data = 0;
 
@@ -764,8 +785,7 @@ namespace game_punk
     {
     public:
 
-        static constexpr ContextDims dims = make_dims_game(cxpr::GAME_WIDTH_PX, cxpr::GAME_HEIGHT_PX);
-
+        static constexpr ContextDims dims = BACKGROUND_DIMS;
         
 
         struct 
@@ -1256,7 +1276,7 @@ namespace game_punk
         bt::UIset_Icons icons;
         count_view(ui.data.icons, counts, icons.file_info.icons);
 
-        auto length = cxpr::CAMERA_GAME_WIDTH_PX * cxpr::CAMERA_GAME_HEIGHT_PX;
+        auto length = cxpr::GAME_CAMERA_WIDTH_PX * cxpr::GAME_CAMERA_HEIGHT_PX;
         count_stack(ui.pixels, counts, length);
 
         count_camera_layer(ui.ui, counts);

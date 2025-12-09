@@ -102,8 +102,8 @@ namespace game_punk
     {
     public:
 
-        static constexpr u32 game_width = cxpr::GAME_WIDTH_PX;
-        static constexpr u32 game_height = cxpr::GAME_HEIGHT_PX;
+        static constexpr u32 game_width = cxpr::GAME_BACKGROUND_WIDTH_PX;
+        static constexpr u32 game_height = cxpr::GAME_BACKGROUND_HEIGHT_PX;
 
         BackgroundState background;
         SpritesheetState spritesheet;
@@ -322,7 +322,7 @@ namespace game_punk
             return;
         }
 
-        CtxPt2Di32 pos;
+        auto pos = CtxPt2Di32(0, 0, DimCtx::Game);
         auto& gpos = pos.game;
 
         // draw floor tiles
@@ -351,16 +351,15 @@ namespace game_punk
             return;
         }
 
-        CtxPt2Di32 pos;
-        auto& gpos = pos.game;
-
         // draw sprite
         auto frame = get_animation_bitmap(data.punk_animation, data.game_tick);
         auto camera_w = data.camera.viewport_dims_px.game.width;
         auto sprite_w = frame.dims.game.width;
 
-        gpos.x = 16 + (i32)(camera_w - sprite_w) / 2;        
-        gpos.y = (i32)tile_h;
+        auto x = 16 + (i32)(camera_w - sprite_w) / 2;        
+        auto y = (i32)tile_h;
+
+        auto pos = CtxPt2Di32(x, y, DimCtx::Game);
 
         push_draw_sprite(data.drawq, frame, layer, pos);
     }
@@ -370,8 +369,6 @@ namespace game_punk
     {
         auto src = data.ui.data.title;
         auto dst = to_image_view(data.ui.ui);
-
-        CtxPt2Di32 pos;
 
         i32 x = 100;
         i32 y = (dst.height - src.height) / 2;
