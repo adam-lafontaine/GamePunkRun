@@ -676,15 +676,25 @@ namespace assets
 }
 
 
+#define GAME_PUNK_WASM
+
+
+#if defined(__EMSCRIPTEN__) || defined(GAME_PUNK_WASM)
+
+#include <emscripten/fetch.h>
+
+#endif
+
+
 /* asset data */
 
 namespace game_punk
 {
 namespace assets
 {
-#ifdef __EMSCRIPTEN__
+#if defined(__EMSCRIPTEN__) || defined(GAME_PUNK_WASM)
 
-    constexpr auto GAME_DATA_PATH = "https://TODO";
+    constexpr auto GAME_DATA_PATH = "https://raw.githubusercontent.com/adam-lafontaine/CMS/sm-current/sm/wasm/punk_run.bin";
 
     // TODO to lib
 
@@ -706,18 +716,22 @@ namespace assets
 
         static void fetch_bin_data_fail(FetchResponse* res)
         {
+            auto& data = *(AssetData*)(res->userData);
+            data.bin_file_path = 0;
+            data.status = AssetStatus::Fail;
+            
             emscripten_fetch_close(res);
         }
 
 
         static void fetch_bin_data_success(FetchResponse* res)
         {
-            auto& music = *(GameMusicList*)(res->userData);
+            auto& data = *(AssetData*)(res->userData);
 
             auto bytes = make_byte_view(res);
 
-            MemoryBuffer<u8> buffer;
-            if (!mb::create_buffer(buffer, bytes.length, get_file_name(res->url)))
+            auto& buffer = data.bytes;
+            if (!mb::create_buffer(buffer, bytes.length, fs::get_file_name(res->url)))
             {
                 emscripten_fetch_close(res);
                 return;
@@ -725,26 +739,33 @@ namespace assets
 
             span::copy(bytes, span::make_view(buffer));
 
-            set_music_data(buffer, music);
-
             emscripten_fetch_close(res);
 
-            music.ok = 1;
+            data.status = AssetStatus::Success;
         }
 
 
-        static void fetch_bin_data_async(cstr url, GameMusicList& music)
-        {
+        static void fetch_bin_data_async(cstr url, AssetData& data)
+        {            
             FetchAttr attr;
             emscripten_fetch_attr_init(&attr);
-            strcpy(attr.requestMethod, "GET");
+            stb::qsnprintf(attr.requestMethod, 4, "GET");
             attr.attributes = EMSCRIPTEN_FETCH_LOAD_TO_MEMORY;
-            attr.userData = (void*)&music;
+            attr.userData = (void*)&data;
             attr.onsuccess = fetch_bin_data_success;
             attr.onerror = fetch_bin_data_fail;
 
+            data.bin_file_path = url;
+            data.status = AssetStatus::Loading;
+
             emscripten_fetch(&attr, url);
         }
+    }
+
+
+    static bool load_asset_data(AssetData& dst)
+    {
+        em_load::fetch_bin_data_async(GAME_DATA_PATH, dst);
     }
 
 #else

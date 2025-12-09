@@ -22,5 +22,8 @@ https://itch.io/c/2053292/cyberpunk-pixel-art
 * [x] UI font
 * [x] UI icons
 * [x] Verify memory allocations
+* [x] Add RNG
+* [ ] Set application icon
+* [ ] Wasm build
 * [ ] Release files
 

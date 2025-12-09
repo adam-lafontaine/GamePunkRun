@@ -332,7 +332,7 @@ namespace game_punk
         bool operator >= (TickQty32 other) const { return value_ >= other.value_; }
 
 
-        static TickQty32 get_random(Randomf32& rng, u32 min, u32 max) { return TickQty32(next_random(rng, min, max)); }
+        static TickQty32 random(Randomf32& rng, u32 min, u32 max) { return TickQty32(next_random(rng, min, max)); }
     };
 
 
@@ -668,9 +668,19 @@ namespace game_punk
 
 namespace game_punk
 {
+    enum class AssetStatus : u8
+    {
+        None = 0,
+        Loading,
+        Success,
+        Fail        
+    };
+
+
     class AssetData
     {
     public:
+        AssetStatus status = AssetStatus::None;
 
         cstr bin_file_path = 0;
 
@@ -1371,7 +1381,7 @@ namespace game_punk
         {
             icon.is_on = !icon.is_on;
 
-            auto delta = icon.is_on ? TickQty32::get_random(rng, 3, 60) : TickQty32::make(6);
+            auto delta = icon.is_on ? TickQty32::random(rng, 3, 40) : TickQty32::random(rng, 2, 10);
             icon.end_tick = game_tick + delta;
         }
 
