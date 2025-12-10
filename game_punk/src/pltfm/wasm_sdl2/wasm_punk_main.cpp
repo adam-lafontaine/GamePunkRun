@@ -100,6 +100,10 @@ namespace mv
     EmControllerState em_controller{};
 
     game::AppState app_state;
+
+#ifdef APP_ROTATE_90
+    constexpr window::Rotate GAME_ROTATE = window::Rotate::CounterClockwise_90;
+#endif
 }
 
 
@@ -181,8 +185,8 @@ public:
 };
 
 
-bool create_window(Vec2Du32 game_dims, InitParams const& params)
-{
+static bool window_create(Vec2Du32 game_dims, InitParams const& params)
+{ 
     auto const min = [](auto a, auto b) { return a < b ? a : b; };
 
     auto game_w = game_dims.x;
@@ -196,12 +200,36 @@ bool create_window(Vec2Du32 game_dims, InitParams const& params)
 
     auto scale = min(scale_w, scale_h);
 
-    Vec2Du32 window_dims = {
-        (u32)(scale * game_w),
-        (u32)(scale * game_h)
-    };
+#ifdef APP_ROTATE_90
+
+    // rotated
+    auto w = game_dims.y;
+    auto h = game_dims.x;
+
+    Vec2Du32 window_dims = { w, h };
+
+    return window::create(mv::window, game::APP_TITLE, window_dims, game_dims, mv::GAME_ROTATE);
+
+#else
     
+    auto w = game_dims.x;
+    auto h = game_dims.y;
+
+    Vec2Du32 window_dims = { w, h };
+
     return window::create(mv::window, game::APP_TITLE, window_dims, game_dims);
+
+#endif
+}
+
+
+static void window_render(b8 window_size_changed)
+{
+#ifdef APP_ROTATE_90
+    window::render(mv::window, mv::GAME_ROTATE, window_size_changed);
+#else
+    window::render(mv::window, window_size_changed);
+#endif
 }
 
 
@@ -249,7 +277,7 @@ static bool main_init(InitParams const& params)
         return false;
     }
 
-    if (!create_window(result.app_dimensions, params))
+    if (!window_create(result.app_dimensions, params))
     {
         return false;
     }
@@ -288,7 +316,7 @@ static void main_loop()
 
     game::update(mv::app_state, input);
 
-    window::render(mv::window);
+    window_render(input.window_size_changed);
 
     mv::input.swap();
 
