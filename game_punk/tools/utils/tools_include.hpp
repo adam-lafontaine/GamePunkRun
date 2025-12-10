@@ -78,6 +78,14 @@ namespace ui
 }
 
 
+namespace icon
+{
+    constexpr auto SRC_DIR = "/home/adam/Desktop/Game Assets/game_icon";
+
+    constexpr auto OUT_DIR = "/home/adam/Repos/GamePunkRun/game_punk/res/icon";
+}
+
+
 namespace bin
 {
     constexpr auto OUT_BIN_DIR = "/home/adam/Repos/GamePunkRun/game_punk/res/xbin";
