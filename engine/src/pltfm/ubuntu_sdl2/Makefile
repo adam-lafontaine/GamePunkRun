@@ -13,7 +13,7 @@ OPENGL := -lGL -ldl
 THREAD := -lpthread -ltbb
 X11 := -lX11 -lxcb
 
-ALL_LFLAGS := $(SDL2) $(SDL_AUDIO) $(OPENGL) $(THREAD) $(X11)
+ALL_LFLAGS := $(SDL2) $(SDL_AUDIO) $(OPENGL) $(THREAD)
 
 root       := ../../../..
 
@@ -352,7 +352,7 @@ main_dep += $(ui_h)
 main_dep += $(datetime_h)
 main_dep += $(main_o_c)
 
-MAIN_LFLAGS := $(SDL2) $(OPENGL) $(X11)
+MAIN_LFLAGS := $(SDL2) $(OPENGL)
 
 #************
 

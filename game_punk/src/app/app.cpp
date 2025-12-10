@@ -98,12 +98,23 @@ namespace game_punk
 
 namespace game_punk
 {
+    enum class GameMode : int
+    {
+        Error,
+        Loading,
+        Title,
+    };
+
+
+
     class StateData
     {
     public:
 
         static constexpr u32 game_width = cxpr::GAME_BACKGROUND_WIDTH_PX;
         static constexpr u32 game_height = cxpr::GAME_BACKGROUND_HEIGHT_PX;
+
+        GameMode game_mode;
 
         BackgroundState background;
         SpritesheetState spritesheet;
@@ -134,6 +145,8 @@ namespace game_punk
 
     static void reset_state_data(StateData& data)
     {
+        data.game_mode = GameMode::Title;
+
         data.game_tick = GameTick64::zero();
         data.camera_speed_px = 2;
 
@@ -217,32 +230,14 @@ namespace game_punk
 
         auto& data = get_data(state);
 
-        if (!assets::load_asset_data(data.asset_data))
-        {
-            return AppError::Assets;
-        }
-
-        init_render_state(data.render);
-
         auto ok = create_state_data_memory(data);
         if (!ok)
         {
             destroy_state_data(state);
             return AppError::Memory;
         }
-        
-        ok &= assets::load_background_assets(data.asset_data, data.background);
-        ok &= assets::load_spritesheet_assets(data.asset_data, data.spritesheet);
-        ok &= assets::load_tile_assets(data.asset_data, data.tiles);
-        ok &= assets::load_ui_assets(data.asset_data, data.ui);
 
-        destroy_asset_data(data.asset_data);
-
-        if (!ok)
-        {
-            destroy_state_data(state);
-            return AppError::Assets;
-        }
+        init_render_state(data.render);
 
         return AppError::None;
     }
@@ -425,6 +420,70 @@ namespace game_punk
 }
 
 
+/* game modes */
+
+namespace game_punk
+{
+    static bool load_assets(StateData& data)
+    {
+        if (!assets::load_asset_data(data.asset_data))
+        {
+            return false;
+        }
+        
+        bool ok = true;
+        ok &= assets::load_background_assets(data.asset_data, data.background);
+        ok &= assets::load_spritesheet_assets(data.asset_data, data.spritesheet);
+        ok &= assets::load_tile_assets(data.asset_data, data.tiles);
+        ok &= assets::load_ui_assets(data.asset_data, data.ui);
+
+        auto& bg = data.background;
+        update_sky_overlay(bg);
+        copy(bg.data.sky_base, bg.sky);
+
+        add_pma(bg.ov, bg.sky);
+
+        copy(bg.sky, bg.layer_sky);
+
+        return ok;
+    }
+    
+    
+    
+    static void set_game_mode(StateData& data, GameMode mode)
+    {
+        switch (mode)
+        {
+        case GameMode::Error:
+            break;
+
+        case GameMode::Loading:
+            load_assets(data);
+            break;
+
+        case GameMode::Title:
+            set_animation_spritesheet(data.punk_animation, data.spritesheet.data.punk_run);
+            data.game_tick = GameTick64::zero();
+            break;
+        }
+
+        data.game_mode = mode;
+    }
+    
+    
+    static void update_title(StateData& data, InputCommand const& cmd)
+    {
+        update_game_camera(data, cmd);
+        update_text_color(data, cmd);
+
+        draw_background(data);
+        draw_tiles(data);
+        draw_sprites(data);
+        draw_ui(data);
+    }
+}
+
+
 /* api */
 
 namespace game_punk
@@ -526,9 +585,9 @@ namespace game_punk
 
         reset_state_data(data);
 
-        ok &= set_animation_spritesheet(data.punk_animation, sprite.data.punk_run);
+        app_assert(ok && "*** Error set_screen_memory ***");
 
-        app_assert(ok && "*** Error set_screen_memory ***");        
+        set_game_mode(data, GameMode::Loading);
 
         return ok;
     }
@@ -640,13 +699,26 @@ namespace game_punk
 
         auto cmd = map_input(input);
 
-        update_game_camera(data, cmd);
-        update_text_color(data, cmd);
+        using GM = GameMode;
 
-        draw_background(data);
-        draw_tiles(data);
-        draw_sprites(data);
-        draw_ui(data);
+        switch (data.game_mode)
+        {
+        case GM::Error:
+            app_crash("Error\n");
+            break;
+
+        case GM::Loading:
+            if (data.asset_data.status != AssetStatus::Loading)
+            {
+                set_game_mode(data, GM::Title);
+                destroy_asset_data(data.asset_data);                
+            }            
+            break;
+
+        case GM::Title:
+            update_title(data, cmd);
+            break;
+        }
 
         render_screen(data, state.screen);
 

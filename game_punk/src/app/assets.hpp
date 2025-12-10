@@ -698,9 +698,14 @@ namespace assets
 {
 #if defined(__EMSCRIPTEN__) || defined(GAME_PUNK_WASM)
 
-    constexpr auto GAME_DATA_PATH = "https://raw.githubusercontent.com/adam-lafontaine/CMS/sm-current/sm/wasm/punk_run.bin";
 
-    // TODO to lib
+    
+
+
+    //constexpr auto GAME_DATA_PATH = "https://raw.githubusercontent.com/adam-lafontaine/CMS/punk-run-v0.1.0/sm/wasm/punk_run.bin";
+    constexpr auto GAME_DATA_PATH = "https://raw.githubusercontent.com/adam-lafontaine/CMS/sm-current/sm/wasm/asteroids_data.bin";
+
+    //constexpr auto GAME_DATA_PATH = "./punk_run.bin";
 
     namespace em_load
     {
@@ -718,20 +723,15 @@ namespace assets
         }
 
 
-        static void fetch_bin_data_fail(FetchResponse* res)
+        static void bin_data_fail(FetchResponse* res, AssetData& data)
         {
-            auto& data = *(AssetData*)(res->userData);
             data.bin_file_path = 0;
             data.status = AssetStatus::Fail;
-            
-            emscripten_fetch_close(res);
         }
 
 
-        static void fetch_bin_data_success(FetchResponse* res)
+        static void bin_data_success(FetchResponse* res, AssetData& data)
         {
-            auto& data = *(AssetData*)(res->userData);
-
             auto bytes = make_byte_view(res);
 
             auto& buffer = data.bytes;
@@ -743,9 +743,28 @@ namespace assets
 
             span::copy(bytes, span::make_view(buffer));
 
-            emscripten_fetch_close(res);
-
             data.status = AssetStatus::Success;
+        }
+
+
+        static void fetch_bin_data_fail(FetchResponse* res)
+        {    
+            
+            auto& data = *(AssetData*)(res->userData);
+
+            bin_data_fail(res, data);
+            
+            emscripten_fetch_close(res);
+        }
+
+
+        static void fetch_bin_data_success(FetchResponse* res)
+        {
+            auto& data = *(AssetData*)(res->userData);
+
+            bin_data_success(res, data);
+
+            emscripten_fetch_close(res);
         }
 
 
@@ -753,7 +772,8 @@ namespace assets
         {            
             FetchAttr attr;
             emscripten_fetch_attr_init(&attr);
-            stb::qsnprintf(attr.requestMethod, 4, "GET");
+            //stb::qsnprintf(attr.requestMethod, 4, "GET");
+            strcpy(attr.requestMethod, "GET");
             attr.attributes = EMSCRIPTEN_FETCH_LOAD_TO_MEMORY;
             attr.userData = (void*)&data;
             attr.onsuccess = fetch_bin_data_success;
@@ -764,11 +784,47 @@ namespace assets
 
             emscripten_fetch(&attr, url);
         }
+
+
+        static void fetch_bin_data_sync(cstr url, AssetData& data)
+        {            
+            FetchAttr attr;
+            emscripten_fetch_attr_init(&attr);
+            //stb::qsnprintf(attr.requestMethod, 4, "GET");
+            strcpy(attr.requestMethod, "GET");
+            attr.attributes = EMSCRIPTEN_FETCH_LOAD_TO_MEMORY | EMSCRIPTEN_FETCH_SYNCHRONOUS;
+            //attr.timeoutMSecs = 5000;
+            //attr.userData = (void*)&data;
+            //attr.onsuccess = fetch_bin_data_success;
+            //attr.onerror = fetch_bin_data_fail;
+
+            data.bin_file_path = url;
+            data.status = AssetStatus::Loading;
+
+            auto res = emscripten_fetch(&attr, url);            
+
+            if (res->status == 200)
+            {
+                bin_data_success(res, data);
+            }
+            else
+            {
+                app_log("%s|%s: %d\n", attr.requestMethod, url, res->readyState);
+                bin_data_fail(res, data);
+            }
+
+            emscripten_fetch_close(res);
+        }
+
     }
 
 
     static bool load_asset_data(AssetData& dst)
     {
+        dst.status = AssetStatus::Loading;
+
+        app_log("Loading assets\n");
+
         em_load::fetch_bin_data_async(GAME_DATA_PATH, dst);
 
         return true;

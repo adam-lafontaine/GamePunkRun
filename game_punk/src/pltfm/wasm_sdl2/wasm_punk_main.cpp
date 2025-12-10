@@ -1,5 +1,6 @@
 #include "../../../../libs/io/window.hpp"
 #include "../../../../libs/io/input/input.hpp"
+#include "../../../../libs/datetime/datetime.hpp"
 
 #include "../../app/app.hpp"
 
@@ -9,6 +10,7 @@
 
 namespace mb = memory_buffer;
 namespace img = image;
+namespace dt = datetime;
 namespace game = game_punk;
 
 
@@ -218,6 +220,13 @@ img::ImageView make_window_view()
 
 static bool main_init(InitParams const& params)
 {
+#ifndef NDEBUG
+    auto ts = dt::current_timestamp_i64();
+    ts &= 0xFFFF;
+
+    printf("%d\n", (int)ts);
+#endif    
+    
     if (!window::init())
     {
         return false;
@@ -236,7 +245,7 @@ static bool main_init(InitParams const& params)
     auto result = game::init(mv::app_state, dims);
     if (!result.success)
     {
-        // result.error_code
+        printf("%s\n", game::decode_error(result.error));
         return false;
     }
 

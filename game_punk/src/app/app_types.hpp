@@ -941,6 +941,11 @@ namespace game_punk
     {
         constexpr u32 frame_wait = 6;
 
+        if (game_tick.value_ < frame_wait)
+        {
+            return;
+        }
+
         auto t = game_tick.value_ % frame_wait;
 
         auto const t_pma = [&]()

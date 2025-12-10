@@ -11,7 +11,6 @@ https://itch.io/c/2053292/cyberpunk-pixel-art
 ### v0.1.1 TODO
 * [ ] Refactor rendering
 * [ ] Refactor font and icons
-* [ ] Generate constants from assets
 * [ ] Name UI icons
 * [ ] Fix input single gamepad
 * [ ] Zig builds
@@ -24,7 +23,8 @@ https://itch.io/c/2053292/cyberpunk-pixel-art
 * [x] UI icons
 * [x] Verify memory allocations
 * [x] Add RNG
-* [ ] Set application icon
+* [x] Generate constants from assets
 * [ ] Wasm build
+* [ ] Set application icon
 * [ ] Release files
 
