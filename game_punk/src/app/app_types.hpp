@@ -694,7 +694,9 @@ namespace game_punk
         None = 0,
         Loading,
         Success,
-        Fail        
+
+        FailLoad,
+        FailRead
     };
 
 

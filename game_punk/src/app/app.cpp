@@ -75,7 +75,6 @@ namespace game_punk
 
 #include "memory.hpp"
 #include "app_types.hpp"
-#include "assets.hpp"
 
 
 /* constants */
@@ -242,6 +241,8 @@ namespace game_punk
         return AppError::None;
     }
 }
+
+#include "assets.hpp"
 
 
 /* update */
@@ -424,31 +425,6 @@ namespace game_punk
 
 namespace game_punk
 {
-    static bool load_assets(StateData& data)
-    {
-        if (!assets::load_asset_data(data.asset_data))
-        {
-            return false;
-        }
-        
-        bool ok = true;
-        ok &= assets::load_background_assets(data.asset_data, data.background);
-        ok &= assets::load_spritesheet_assets(data.asset_data, data.spritesheet);
-        ok &= assets::load_tile_assets(data.asset_data, data.tiles);
-        ok &= assets::load_ui_assets(data.asset_data, data.ui);
-
-        auto& bg = data.background;
-        update_sky_overlay(bg);
-        copy(bg.data.sky_base, bg.sky);
-
-        add_pma(bg.ov, bg.sky);
-
-        copy(bg.sky, bg.layer_sky);
-
-        return ok;
-    }
-    
-    
     
     static void set_game_mode(StateData& data, GameMode mode)
     {
@@ -458,7 +434,7 @@ namespace game_punk
             break;
 
         case GameMode::Loading:
-            load_assets(data);
+            assets::load_game_assets(data);
             break;
 
         case GameMode::Title:
@@ -468,6 +444,26 @@ namespace game_punk
         }
 
         data.game_mode = mode;
+    }
+
+
+    static void update_loading(StateData& data)
+    {        
+        switch (data.asset_data.status)
+        {
+        case AssetStatus::None:
+        case AssetStatus::FailLoad:
+        case AssetStatus::FailRead:
+            set_game_mode(data, GameMode::Error);
+            break;
+
+        case AssetStatus::Success:
+            set_game_mode(data, GameMode::Title);
+            destroy_asset_data(data.asset_data);
+            break;
+
+        case AssetStatus::Loading: return;
+        }
     }
     
     
@@ -531,13 +527,9 @@ namespace game_punk
         
         // reversed
         auto& dims = data.camera.viewport_dims_px.proc;
-        result.app_dimensions = { 
-            dims.width,
-            dims.height
-        };
-
-        auto w_max = available_dims.x;
-        auto h_max = available_dims.y;
+        
+        auto w_max = !available_dims.x ? dims.width : available_dims.x;
+        auto h_max = !available_dims.y ? dims.height : available_dims.y;
 
         auto bad_w = w_max < dims.width;
         auto bad_h = h_max < dims.height;
@@ -556,6 +548,14 @@ namespace game_punk
         }
 
         result.success = result.error == AppError::None;
+
+        if (result.success)
+        {
+            result.app_dimensions = { 
+                dims.width,
+                dims.height
+            };
+        }
 
         return result;
     }
@@ -704,15 +704,11 @@ namespace game_punk
         switch (data.game_mode)
         {
         case GM::Error:
-            app_crash("Error\n");
+            app_crash("GameMode::Error\n");
             break;
 
         case GM::Loading:
-            if (data.asset_data.status != AssetStatus::Loading)
-            {
-                set_game_mode(data, GM::Title);
-                destroy_asset_data(data.asset_data);                
-            }            
+            update_loading(data);   
             break;
 
         case GM::Title:
@@ -721,8 +717,6 @@ namespace game_punk
         }
 
         render_screen(data, state.screen);
-
-
     }
 
 #endif

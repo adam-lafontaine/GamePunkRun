@@ -4,7 +4,7 @@
 #include "sdl_include.hpp"
 
 
-#define LOG_ALLOC_TYPE
+//#define LOG_ALLOC_TYPE
 #define ASSERT_ALLOC_TYPE
 
 

@@ -676,7 +676,31 @@ namespace assets
 
         return ok;
     }
+
+
+    static void read_game_assets(StateData& data)
+    {
+        auto& src = data.asset_data;
+
+        bool ok = true;
+        ok &= load_background_assets(src, data.background);
+        ok &= load_spritesheet_assets(src, data.spritesheet);
+        ok &= load_tile_assets(src, data.tiles);
+        ok &= load_ui_assets(src, data.ui);
+
+        app_assert(ok && "*** Error reading asset data ***");
+
+        auto& bg = data.background;
+        update_sky_overlay(bg);
+        copy(bg.data.sky_base, bg.sky);
+        add_pma(bg.ov, bg.sky);
+        copy(bg.sky, bg.layer_sky);
+
+        src.status = ok ? AssetStatus::Success : AssetStatus::FailRead;
+    }
 }
+
+
 }
 
 
@@ -686,6 +710,7 @@ namespace assets
 #if defined(__EMSCRIPTEN__) || defined(GAME_PUNK_WASM)
 
 #include <emscripten/fetch.h>
+#include <string.h>
 
 #endif
 
@@ -702,8 +727,8 @@ namespace assets
     
 
 
-    //constexpr auto GAME_DATA_PATH = "https://raw.githubusercontent.com/adam-lafontaine/CMS/punk-run-v0.1.0/sm/wasm/punk_run.bin";
-    constexpr auto GAME_DATA_PATH = "https://raw.githubusercontent.com/adam-lafontaine/CMS/sm-current/sm/wasm/asteroids_data.bin";
+    constexpr auto GAME_DATA_PATH = "https://raw.githubusercontent.com/adam-lafontaine/CMS/punk-run-v0.1.0/sm/wasm/punk_run.bin";
+    //constexpr auto GAME_DATA_PATH = "https://raw.githubusercontent.com/adam-lafontaine/CMS/sm-current/sm/wasm/asteroids_data.bin";
 
     //constexpr auto GAME_DATA_PATH = "./punk_run.bin";
 
@@ -723,18 +748,24 @@ namespace assets
         }
 
 
-        static void bin_data_fail(FetchResponse* res, AssetData& data)
-        {
-            data.bin_file_path = 0;
-            data.status = AssetStatus::Fail;
+        static void fetch_bin_data_fail(FetchResponse* res)
+        {                
+            auto& data = *(StateData*)(res->userData);
+
+            data.asset_data.bin_file_path = 0;
+            data.asset_data.status = AssetStatus::FailLoad;
+            
+            emscripten_fetch_close(res);
         }
 
 
-        static void bin_data_success(FetchResponse* res, AssetData& data)
+        static void fetch_bin_data_success(FetchResponse* res)
         {
+            auto& data = *(StateData*)(res->userData);
+
             auto bytes = make_byte_view(res);
 
-            auto& buffer = data.bytes;
+            auto& buffer = data.asset_data.bytes;
             if (!mb::create_buffer(buffer, bytes.length, fs::get_file_name(res->url)))
             {
                 emscripten_fetch_close(res);
@@ -743,32 +774,13 @@ namespace assets
 
             span::copy(bytes, span::make_view(buffer));
 
-            data.status = AssetStatus::Success;
-        }
-
-
-        static void fetch_bin_data_fail(FetchResponse* res)
-        {    
-            
-            auto& data = *(AssetData*)(res->userData);
-
-            bin_data_fail(res, data);
-            
             emscripten_fetch_close(res);
+
+            read_game_assets(data);
         }
 
 
-        static void fetch_bin_data_success(FetchResponse* res)
-        {
-            auto& data = *(AssetData*)(res->userData);
-
-            bin_data_success(res, data);
-
-            emscripten_fetch_close(res);
-        }
-
-
-        static void fetch_bin_data_async(cstr url, AssetData& data)
+        static void fetch_bin_data_async(cstr url, StateData& data)
         {            
             FetchAttr attr;
             emscripten_fetch_attr_init(&attr);
@@ -779,14 +791,11 @@ namespace assets
             attr.onsuccess = fetch_bin_data_success;
             attr.onerror = fetch_bin_data_fail;
 
-            data.bin_file_path = url;
-            data.status = AssetStatus::Loading;
-
             emscripten_fetch(&attr, url);
         }
 
 
-        static void fetch_bin_data_sync(cstr url, AssetData& data)
+        /*static void fetch_bin_data_sync(cstr url, AssetData& data)
         {            
             FetchAttr attr;
             emscripten_fetch_attr_init(&attr);
@@ -814,20 +823,15 @@ namespace assets
             }
 
             emscripten_fetch_close(res);
-        }
+        }*/
 
     }
 
 
-    static bool load_asset_data(AssetData& dst)
-    {
-        dst.status = AssetStatus::Loading;
-
-        app_log("Loading assets\n");
-
-        em_load::fetch_bin_data_async(GAME_DATA_PATH, dst);
-
-        return true;
+    static void load_game_assets(StateData& data)
+    {   
+        data.asset_data.status = AssetStatus::Loading;
+        em_load::fetch_bin_data_async(GAME_DATA_PATH, data);
     }
 
 #else
@@ -839,8 +843,7 @@ namespace assets
     constexpr auto GAME_DATA_PATH_FALLBACK = "C:/D_Data/Repos/GamePunkRun/game_punk/res/xbin/punk_run.bin";
 #else
     constexpr auto GAME_DATA_PATH_FALLBACK = "/home/adam/Repos/GamePunkRun/game_punk/res/xbin/punk_run.bin";
-#endif
-    
+#endif   
 
 
     static bool load_asset_data(AssetData& dst)
@@ -872,10 +875,27 @@ namespace assets
             dst.bin_file_path = path;
             return true;
         }
-
-        app_assert("*** Error loading game data ***" && false);
         
         return false;
+    }
+
+
+    static void load_game_assets(StateData& data)
+    {        
+        data.asset_data.status = AssetStatus::Loading;
+
+        bool ok = true;
+        ok &= load_asset_data(data.asset_data);
+
+        app_assert(ok && "*** Error loading asset data ***");
+
+        if (!ok)
+        {
+            data.asset_data.status = AssetStatus::FailLoad;
+            return;
+        }
+
+        read_game_assets(data);
     }
 
 #endif
