@@ -621,13 +621,22 @@ namespace game_punk
 
         auto cmd = map_input(input);
 
-        update_game_camera(data, cmd);
-        update_text_color(data, cmd);
+        using GM = GameMode;
 
-        draw_background(data);
-        draw_tiles(data);
-        draw_sprites(data);
-        draw_ui(data);
+        switch (data.game_mode)
+        {
+        case GM::Error:
+            app_crash("GameMode::Error\n");
+            break;
+
+        case GM::Loading:
+            update_loading(data);   
+            break;
+
+        case GM::Title:
+            update_title(data, cmd);
+            break;
+        }
 
         render_screen(data, state.screen);
 
