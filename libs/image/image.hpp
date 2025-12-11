@@ -471,6 +471,8 @@ namespace image
     void copy_blend(SubView const& src, SubView const& dst);
 
 
+    void copy_if_alpha(ImageView const& src, ImageView const& dst);
+
     void copy_if_alpha(SubView const& src, SubView const& dst);
 }
 

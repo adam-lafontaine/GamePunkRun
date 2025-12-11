@@ -1,3 +1,13 @@
+#ifndef NDEBUG
+#define app_assert(condition) SDL_assert(condition)
+#define app_log(...) SDL_Log(__VA_ARGS__)
+#define app_crash(message) SDL_assert(false && message)
+#else
+#define app_assert(condition)
+#define app_log(...)
+#define app_crash(message)
+#endif
+
 #include "../../io_test/app/app.hpp"
 
 #include "../imgui_sdl2_dx11/imgui_include.hpp"
@@ -5,17 +15,12 @@
 #include "../../game_state/game_state.hpp"
 #include "../../../../libs/datetime/datetime.hpp"
 
-#include <thread>
-
-#define app_assert(condition) SDL_assert(condition)
-#define app_log(...) SDL_Log(__VA_ARGS__)
-
-
 namespace img = image;
 namespace iot = game_io_test;
 namespace gs = game_state;
+namespace dt = datetime;
 
-using Stopwatch = datetime::StopwatchNS;
+using Stopwatch = dt::Stopwatch;
 
 
 enum class RunState : int
@@ -30,6 +35,12 @@ enum class RunState : int
 
 namespace mv
 {
+#ifdef NDEBUG
+    constexpr auto APP_TITLE = "Engine SDL2 Windows";
+#else
+    constexpr auto APP_TITLE = "Engine SDL2 Windows (Debug)";
+#endif
+
     ui_imgui::UIState ui_state{};
     RunState run_state = RunState::Begin;
 
@@ -46,7 +57,12 @@ namespace mv
     iot::AppState io_test_state;    
     constexpr auto io_test_texture_id = dx11_imgui::to_texture_id(0);
 
-    img::Image game_screen;
+    // display zoom 2x, rotated
+    constexpr u32 GAME_ZOOM_SCALE = 2;
+    img::Buffer32 game_screen_buffer;
+    img::ImageView game_screen_1x;
+    img::ImageView game_screen_scale;
+    img::ImageView game_screen_scale_rotate;
     constexpr auto game_texture_id = dx11_imgui::to_texture_id(1);
 }
 
@@ -67,23 +83,23 @@ static void cap_framerate()
 {
     constexpr f64 fudge = 0.9;
 
-    auto ns = mv::frame_sw.get_time_nano();
+    auto ns = mv::frame_sw.get_time_nano_f64();
 
     auto sleep_ns = TARGET_NS_PER_FRAME - ns;
     if (sleep_ns > 0.0)
     {
-        std::this_thread::sleep_for(std::chrono::nanoseconds((i64)(sleep_ns * fudge)));
+        dt::delay_nano((u64)(sleep_ns * fudge));
     }
-    
-    mv::state.frame_nano = mv::frame_sw.get_time_nano();
+
+    mv::state.frame_nano = mv::frame_sw.get_time_nano_f64();
     mv::frame_sw.start();
 }
 
 
 static void add_frame_time()
 {
-    auto ratio = (f32)(mv::state.game_nano / mv::state.frame_nano);
-    mv::state.frame_times.add_time(ratio);
+    auto time = (f32)mv::state.game_milli;
+    mv::state.frame_times.add_time(time);
 }
 
 
@@ -126,11 +142,11 @@ static void render_imgui_frame()
     auto t = mv::textures.get_im_texture_id(mv::io_test_texture_id);
     auto w = mv::io_test_screen.width;
     auto h = mv::io_test_screen.height;
-    ui::io_test_window(t, w, h, mv::state);
+    mv::state.iot_active = ui::texture_window("Input", t, w, h, mv::state.iot_display_scale);
 
     t = mv::textures.get_im_texture_id(mv::game_texture_id);
-    w = mv::game_screen.width;
-    h = mv::game_screen.height;
+    w = mv::game_screen_scale_rotate.width;
+    h = mv::game_screen_scale_rotate.height;
     ui::game_window("GAME", t, w, h, mv::state);
 
     ui::diagnostics_window();
@@ -173,6 +189,7 @@ static bool game_state_init()
     Vec2Du32 dims = { 0 };
     if (!gs::init(dims))
     {
+        app_log("*** game init() failed ***\n");
         return false;
     }
 
@@ -180,31 +197,58 @@ static bool game_state_init()
     auto h = dims.y;
     if (!w ||! h)
     {
+        app_log("*** bad game dimensions ***\n");
         return false;
     }
 
-    if (!img::create_image(mv::game_screen, w, h))
+    auto ws = w * mv::GAME_ZOOM_SCALE;
+    auto hs = h * mv::GAME_ZOOM_SCALE;
+
+    auto wsr = hs;
+    auto hsr = ws;
+
+    auto count = w * h + ws * hs + wsr * hsr;
+
+    mv::game_screen_buffer = img::create_buffer32(count, "game screens");
+    if (!mv::game_screen_buffer.ok)
     {
         return false;
     }
 
-    auto& texture = mv::textures.get_dx_texture_ref(mv::game_texture_id);
-    dx11_imgui::init_texture(mv::game_screen.data_, (int)w, (int)h, texture, mv::ui_state.dx_context);
+    mv::game_screen_1x = img::make_view(w, h, mv::game_screen_buffer);
+    mv::game_screen_scale = img::make_view(ws, hs, mv::game_screen_buffer);
+    mv::game_screen_scale_rotate = img::make_view(wsr, hsr, mv::game_screen_buffer);
 
-    return gs::set_screen_memory(img::make_view(mv::game_screen));
+    auto data = mv::game_screen_scale_rotate.matrix_data_;
+
+    auto& texture = mv::textures.get_dx_texture_ref(mv::game_texture_id);
+    dx11_imgui::init_texture(data, (int)wsr, (int)hsr, texture, mv::ui_state.dx_context);
+
+    auto res = gs::set_screen_memory(mv::game_screen_1x);
+
+    return res;
+}
+
+
+static void game_state_update(input::Input& input)
+{
+    mv::game_sw.start();
+
+    gs::update(input);
+
+    mv::state.game_milli = mv::game_sw.get_time_milli_f64();
+    
+    img::scale_up(mv::game_screen_1x, mv::game_screen_scale, mv::GAME_ZOOM_SCALE);
+    img::rotate_270(mv::game_screen_scale, mv::game_screen_scale_rotate);
 }
 
 
 static bool main_init()
 {
-#ifdef NDEBUG
-    mv::ui_state.window_title = "EPC2 SDL2";
-#else
-    mv::ui_state.window_title = "EPC2 SDL2 (Debug)";
-#endif
-    
-    mv::ui_state.window_width = 1400;
-    mv::ui_state.window_height = 700;
+    mv::ui_state.window_title = mv::APP_TITLE;    
+
+    mv::ui_state.window_width = 1300;
+    mv::ui_state.window_height = 760;
     
     if (!ui_imgui::init(mv::ui_state))
     {
@@ -243,68 +287,9 @@ static void main_close()
 }
 
 
-/*static void game_loop()
-{
-    mv::game_sw.start();
-    while(is_running())
-    {
-        process_user_input();
-        auto& input = mv::inputs.curr();
-
-        if (mv::state.cmd_reset_game)
-        {
-            gs::reset();
-            mv::state.cmd_reset_game = 0;
-        }
-
-        if (mv::state.cmd_toggle_pause)
-        {
-            mv::state.cmd_toggle_pause = 0;
-            mv::state.hard_pause = !mv::state.hard_pause;
-        }
-
-        if (!mv::state.hard_pause)
-        {
-            mv::game_sw.start();
-            gs::update(input);
-            mv::state.game_nano = mv::game_sw.get_time_nano();
-        }
-
-        mv::inputs.swap();
-
-        cap_framerate();
-        add_frame_time();
-    }
-}
-
-
-static void main_loop()
-{
-    std::thread th(game_loop);
-
-    while(is_running())
-    {
-        auto input_copy = mv::inputs.curr();
-
-        iot::update(mv::io_test_state, input_copy); 
-
-        render_textures();
-
-        render_imgui_frame();
-
-        if (mv::ui_state.cmd_end_program || input_copy.cmd_end_program)
-        {
-            end_program();
-        }
-    }
-
-    th.join();
-}*/
-
-
 static void main_loop_seq()
 {
-    mv::game_sw.start();
+    mv::frame_sw.start();
 
     while(is_running())
     {
@@ -325,17 +310,18 @@ static void main_loop_seq()
 
         if (!mv::state.hard_pause)
         {
-            mv::game_sw.start();
-            gs::update(input);
-            mv::state.game_nano = mv::game_sw.get_time_nano();
+            game_state_update(input);
         }
 
         if (mv::ui_state.cmd_end_program || input.cmd_end_program)
         {
             end_program();
-        }        
+        }
 
-        iot::update(mv::io_test_state, input); 
+        if (mv::state.iot_active)
+        {
+            iot::update(mv::io_test_state, input);
+        }
 
         render_textures();
 
@@ -365,4 +351,4 @@ int main()
     return 0;
 }
 
-#include "main_o.cpp"
+#include "../main_o/main_o_sdl2.cpp"

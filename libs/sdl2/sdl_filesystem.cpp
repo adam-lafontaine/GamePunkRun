@@ -54,6 +54,9 @@ namespace fs
     {
         MemoryBuffer<u8> buffer;
         buffer.ok = 0;
+    
+    
+    #ifndef __EMSCRIPTEN__        
 
         u64 size = 0;
 
@@ -70,6 +73,11 @@ namespace fs
         buffer.ok = 1;
 
         mem::add_allocation(buffer.data_, buffer.size_, get_file_name(file_path));
+
+    #else
+
+        fs_assert(false && "*** There is no filesystem on the web ***");
+    #endif
 
         return buffer;
     }

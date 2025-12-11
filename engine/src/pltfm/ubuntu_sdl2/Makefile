@@ -13,7 +13,7 @@ OPENGL := -lGL -ldl
 THREAD := -lpthread -ltbb
 X11 := -lX11 -lxcb
 
-ALL_LFLAGS := $(SDL2) $(SDL_AUDIO) $(OPENGL) $(THREAD) $(X11)
+ALL_LFLAGS := $(SDL2) $(SDL_AUDIO) $(OPENGL) $(THREAD)
 
 root       := ../../../..
 
@@ -318,33 +318,41 @@ input_display_h += $(image_h)
 #***************
 
 
+#*** main_o ***
+
+main_o := $(src)/pltfm/main_o
+
+main_o_c := $(main_o)/main_o_sdl2.cpp
+main_o_c += $(game_state_c)
+main_o_c += $(io_test_c)
+main_o_c += $(image_c)
+main_o_c += $(ascii_image_c)
+main_o_c += $(sdl_span_c)
+main_o_c += $(sdl_alloc_c)
+main_o_c += $(sdl_input_c)
+main_o_c += $(sdl_window_c)
+main_o_c += $(sdl_audio_c)
+main_o_c += $(sdl_filesystem_c)
+main_o_c += $(sdl_stb_libs_c)
+main_o_c += $(math_c)
+main_o_c += $(datetime_c)
+
+#************
+
+
 #*** main cpp ***
 
 main_c := $(pltfm)/engine_main_ubuntu.cpp
 main_o := $(build)/main.o
 obj    := $(main_o)
 
-main_dep := $(imgui_include_h)
+main_dep := $(io_test_h)
+main_dep += $(imgui_include_h)
 main_dep += $(ui_h)
-main_dep += $(io_test_h)
+main_dep += $(datetime_h)
+main_dep += $(main_o_c)
 
-# main_o.cpp
-main_dep += $(pltfm)/main_o.cpp
-main_dep += $(game_state_c)
-main_dep += $(io_test_c)
-main_dep += $(image_c)
-main_dep += $(ascii_image_c)
-main_dep += $(sdl_span_c)
-main_dep += $(sdl_alloc_c)
-main_dep += $(sdl_input_c)
-main_dep += $(sdl_window_c)
-main_dep += $(sdl_audio_c)
-main_dep += $(sdl_filesystem_c)
-main_dep += $(sdl_stb_libs_c)
-main_dep += $(math_c)
-main_dep += $(datetime_c)
-
-MAIN_LFLAGS := $(SDL2) $(OPENGL) $(X11)
+MAIN_LFLAGS := $(SDL2) $(OPENGL)
 
 #************
 

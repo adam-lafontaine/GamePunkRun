@@ -44,6 +44,25 @@ namespace assets
     }
 
 
+    static void filter_convert(Span8 const& src, Span32 const& dst)
+    {
+        for (u32 i = 0; i < src.length; i++)
+        {
+            auto p = src.data[i];
+            dst.data[i] = img::to_pixel(p, p, p, p);
+        }
+    }
+
+
+    static void filter_convert(ImageGray const& src_mask, ImageView const& dst_view)
+    {
+        auto src = img::to_span(src_mask);
+        auto dst = img::to_span(dst_view);
+
+        filter_convert(src, dst);
+    }
+    
+    
     static void extend_view_x(Image const& src_view, ImageView const& dst_view)
     {
         auto src = img::make_view(src_view);
@@ -199,8 +218,10 @@ namespace assets
             return false;
         }
 
-        ok &= part_yx.width == dst.width;
-        ok &= dst.height % part_yx.height == 0;
+        auto& dims = dst.dims.proc;
+
+        ok &= part_yx.width == dims.width;
+        ok &= dims.height % part_yx.height == 0;
         app_assert(ok && "*** Unexpected image part size ***");
 
         if (!ok)
@@ -273,8 +294,10 @@ namespace assets
             return false;
         }
 
-        ok &= mask_yx.width == dst.width;
-        ok &= mask_yx.height == dst.height;
+        auto& dims = dst.dims.proc;
+
+        ok &= mask_yx.width == dims.width;
+        ok &= mask_yx.height == dims.height;
         app_assert(ok && "*** Unexpected background size ***");
 
         if (!ok)
@@ -504,7 +527,7 @@ namespace assets
     {
         using FT = bt::FileType;
 
-        bt::UIset_title title;
+        bt::UIset_Title title;
 
         constexpr auto file_type_ok = title.file_type == FT::Image1C;
         constexpr auto table_type_ok = title.table_type == FT::Image4C;
@@ -526,6 +549,35 @@ namespace assets
 
         img::destroy_image(table);
         img::destroy_image(mask);
+
+        return ok;
+    }
+
+
+    static bool load_ui_icons(AssetData const& src, UIState& ui)
+    {
+        using FT = bt::FileType;
+
+        bt::UIset_Icons icons;
+
+        constexpr auto file_type_ok = icons.file_type == FT::Image1C;
+        constexpr auto table_type_ok = icons.table_type == FT::Image4C;
+
+        static_assert(file_type_ok && "*** Grayscale image expected ***");
+        static_assert(table_type_ok && "*** RGBA image expected ***");
+
+        bool ok = true;
+
+        ImageGray filter;
+
+        ok &= load_image_asset(src, filter, icons.file_info.icons);
+
+        if (ok)
+        {
+            filter_convert(filter, to_image_view(ui.data.icons));
+        }
+
+        img::destroy_image(filter);
 
         return ok;
     }
@@ -620,11 +672,47 @@ namespace assets
 
         ok &= load_ui_font(src, ui);
         ok &= load_ui_title(src, ui);
+        ok &= load_ui_icons(src, ui);
 
         return ok;
     }
+
+
+    static void read_game_assets(StateData& data)
+    {
+        auto& src = data.asset_data;
+
+        bool ok = true;
+        ok &= load_background_assets(src, data.background);
+        ok &= load_spritesheet_assets(src, data.spritesheet);
+        ok &= load_tile_assets(src, data.tiles);
+        ok &= load_ui_assets(src, data.ui);
+
+        app_assert(ok && "*** Error reading asset data ***");
+
+        auto& bg = data.background;
+        update_sky_overlay(bg);
+        copy(bg.data.sky_base, bg.sky);
+        add_pma(bg.ov, bg.sky);
+        copy(bg.sky, bg.layer_sky);
+
+        src.status = ok ? AssetStatus::Success : AssetStatus::FailRead;
+    }
 }
+
+
 }
+
+
+//#define GAME_PUNK_WASM
+
+
+#if defined(__EMSCRIPTEN__) || defined(GAME_PUNK_WASM)
+
+#include <emscripten/fetch.h>
+#include <string.h>
+
+#endif
 
 
 /* asset data */
@@ -633,11 +721,12 @@ namespace game_punk
 {
 namespace assets
 {
-#ifdef __EMSCRIPTEN__
+#if defined(__EMSCRIPTEN__) || defined(GAME_PUNK_WASM)
 
-    constexpr auto GAME_DATA_PATH = "https://TODO";
 
-    // TODO to lib
+    constexpr auto GAME_DATA_PATH = "https://raw.githubusercontent.com/adam-lafontaine/CMS/punk-run-v0.1.0/sm/wasm/punk_run.bin"; // almostalwaysadam.com
+
+    //constexpr auto GAME_DATA_PATH = "./punk_run.bin"; // itch.io
 
     namespace em_load
     {
@@ -656,19 +745,24 @@ namespace assets
 
 
         static void fetch_bin_data_fail(FetchResponse* res)
-        {
+        {                
+            auto& data = *(StateData*)(res->userData);
+
+            data.asset_data.bin_file_path = 0;
+            data.asset_data.status = AssetStatus::FailLoad;
+            
             emscripten_fetch_close(res);
         }
 
 
         static void fetch_bin_data_success(FetchResponse* res)
         {
-            auto& music = *(GameMusicList*)(res->userData);
+            auto& data = *(StateData*)(res->userData);
 
             auto bytes = make_byte_view(res);
 
-            MemoryBuffer<u8> buffer;
-            if (!mb::create_buffer(buffer, bytes.length, get_file_name(res->url)))
+            auto& buffer = data.asset_data.bytes;
+            if (!mb::create_buffer(buffer, bytes.length, fs::get_file_name(res->url)))
             {
                 emscripten_fetch_close(res);
                 return;
@@ -676,32 +770,45 @@ namespace assets
 
             span::copy(bytes, span::make_view(buffer));
 
-            set_music_data(buffer, music);
-
             emscripten_fetch_close(res);
 
-            music.ok = 1;
+            read_game_assets(data);
         }
 
 
-        static void fetch_bin_data_async(cstr url, GameMusicList& music)
-        {
+        static void fetch_bin_data_async(cstr url, StateData& data)
+        {            
             FetchAttr attr;
             emscripten_fetch_attr_init(&attr);
+            //stb::qsnprintf(attr.requestMethod, 4, "GET");
             strcpy(attr.requestMethod, "GET");
             attr.attributes = EMSCRIPTEN_FETCH_LOAD_TO_MEMORY;
-            attr.userData = (void*)&music;
+            attr.userData = (void*)&data;
             attr.onsuccess = fetch_bin_data_success;
             attr.onerror = fetch_bin_data_fail;
 
             emscripten_fetch(&attr, url);
         }
+
+    }
+
+
+    static void load_game_assets(StateData& data)
+    {   
+        data.asset_data.status = AssetStatus::Loading;
+        em_load::fetch_bin_data_async(GAME_DATA_PATH, data);
     }
 
 #else
 
     constexpr auto GAME_DATA_PATH = "./punk_run.bin";
-    constexpr auto GAME_DATA_PATH_FALLBACK = "/home/adam/Repos/GameEPC2/game_punk/res/xbin/punk_run.bin";
+
+
+#ifdef _WIN32
+    constexpr auto GAME_DATA_PATH_FALLBACK = "C:/D_Data/Repos/GamePunkRun/game_punk/res/xbin/punk_run.bin";
+#else
+    constexpr auto GAME_DATA_PATH_FALLBACK = "/home/adam/Repos/GamePunkRun/game_punk/res/xbin/punk_run.bin";
+#endif   
 
 
     static bool load_asset_data(AssetData& dst)
@@ -733,10 +840,27 @@ namespace assets
             dst.bin_file_path = path;
             return true;
         }
-
-        app_assert("*** Error loading game data ***" && false);
         
         return false;
+    }
+
+
+    static void load_game_assets(StateData& data)
+    {        
+        data.asset_data.status = AssetStatus::Loading;
+
+        bool ok = true;
+        ok &= load_asset_data(data.asset_data);
+
+        app_assert(ok && "*** Error loading asset data ***");
+
+        if (!ok)
+        {
+            data.asset_data.status = AssetStatus::FailLoad;
+            return;
+        }
+
+        read_game_assets(data);
     }
 
 #endif

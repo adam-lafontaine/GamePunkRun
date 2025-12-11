@@ -31,13 +31,18 @@ using ImageList = std::vector<Matrix2D<T>>;
 using List2Du32 = std::vector<Vec2Du32>;
 
 
+#ifdef _WIN32
+#error Tools runs on the Linux machine only
+#endif
+
+
 namespace sky
 {
     constexpr auto SRC_DIR = "/home/adam/Desktop/Game Assets/image/sky";
 
-    constexpr auto OUT_SKY_BASE_DIR    = "/home/adam/Repos/GameEPC2/game_punk/tools/sky/out_files/base";
-    constexpr auto OUT_SKY_OVERLAY_DIR = "/home/adam/Repos/GameEPC2/game_punk/tools/sky/out_files/overlay";
-    constexpr auto OUT_SKY_TABLE_DIR = "/home/adam/Repos/GameEPC2/game_punk/tools/sky/out_files/table";
+    constexpr auto OUT_SKY_BASE_DIR    = "/home/adam/Repos/GamePunkRun/game_punk/tools/sky/out_files/base";
+    constexpr auto OUT_SKY_OVERLAY_DIR = "/home/adam/Repos/GamePunkRun/game_punk/tools/sky/out_files/overlay";
+    constexpr auto OUT_SKY_TABLE_DIR = "/home/adam/Repos/GamePunkRun/game_punk/tools/sky/out_files/table";
 }
 
 
@@ -45,7 +50,7 @@ namespace bg
 {
     constexpr auto SRC_DIR = "/home/adam/Desktop/Game Assets/image/backgrounds";
 
-    constexpr auto OUT_DIR = "/home/adam/Repos/GameEPC2/game_punk/tools/background/out_files/gen";
+    constexpr auto OUT_DIR = "/home/adam/Repos/GamePunkRun/game_punk/tools/background/out_files/gen";
 }
 
 
@@ -53,7 +58,7 @@ namespace sprite
 {
     constexpr auto SRC_CHARACTER_DIR = "/home/adam/Desktop/Game Assets/image/characters";
 
-    constexpr auto OUT_DIR = "/home/adam/Repos/GameEPC2/game_punk/tools/sprite/out_files/gen";
+    constexpr auto OUT_DIR = "/home/adam/Repos/GamePunkRun/game_punk/tools/sprite/out_files/gen";
 }
 
 
@@ -61,7 +66,7 @@ namespace tile
 {
     constexpr auto SRC_DIR = "/home/adam/Desktop/Game Assets/image/tiles";
 
-    constexpr auto OUT_DIR = "/home/adam/Repos/GameEPC2/game_punk/tools/tile/out_files/gen";
+    constexpr auto OUT_DIR = "/home/adam/Repos/GamePunkRun/game_punk/tools/tile/out_files/gen";
 }
 
 
@@ -69,17 +74,25 @@ namespace ui
 {
     constexpr auto SRC_DIR = "/home/adam/Desktop/Game Assets/image/ui";
 
-    constexpr auto OUT_DIR = "/home/adam/Repos/GameEPC2/game_punk/tools/ui/out_files/gen";
+    constexpr auto OUT_DIR = "/home/adam/Repos/GamePunkRun/game_punk/tools/ui/out_files/gen";
+}
+
+
+namespace icon
+{
+    constexpr auto SRC_DIR = "/home/adam/Desktop/Game Assets/game_icon";
+
+    constexpr auto OUT_DIR = "/home/adam/Repos/GamePunkRun/game_punk/res/icon";
 }
 
 
 namespace bin
 {
-    constexpr auto OUT_BIN_DIR = "/home/adam/Repos/GameEPC2/game_punk/res/xbin";
+    constexpr auto OUT_BIN_DIR = "/home/adam/Repos/GamePunkRun/game_punk/res/xbin";
     constexpr auto OUT_BIN_FILE = "punk_run.bin";
     constexpr auto OUT_BIN_TABLE_FILE = "bin_table.hpp";
 
-    constexpr auto BIN_TABLE_TYPES_PATH = "/home/adam/Repos/GameEPC2/game_punk/tools/z_make_bin/bin_table_types.hpp";
+    constexpr auto BIN_TABLE_TYPES_PATH = "/home/adam/Repos/GamePunkRun/game_punk/tools/z_make_bin/bin_table_types.hpp";
     
 }
 
@@ -234,6 +247,12 @@ namespace util
     }
 
 
+    inline bool read_image(sfs::path const& path, img::Image& dst)
+    {
+        return img::read_image_from_file(path.c_str(), dst);
+    }
+
+
     inline bool write_image(img::Image const& image, sfs::path const& path)
     {
         return img::write_image(image, path.c_str());
@@ -263,13 +282,46 @@ namespace util
         auto d = img::to_span(img::make_view(dst));
 
         p32 ps;
-        u8 pd;
 
         for (u32 i = 0; i < s.length; i++)
         {
             ps = s.data[i];
             
             d.data[i] = ps.alpha;
+        }
+    }
+
+
+    static void transform_filter(img::Image const& src, img::ImageGray const& dst, p32 color)
+    {
+        auto s = img::to_span(img::make_view(src));
+        auto d = img::to_span(img::make_view(dst));
+
+        p32 ps;
+
+        for (u32 i = 0; i < s.length; i++)
+        {
+            ps = s.data[i];
+
+            if (!ps.alpha)
+            {
+                d.data[i] = 0; // transparent
+                continue;
+            }
+
+            if (ps.red == 0 && ps.green == 0 && ps.blue == 0)
+            {
+                d.data[i] = 50; // secondary
+                continue;
+            }
+
+            if (ps.red == color.red && ps.green == color.green && ps.blue == color.blue)
+            {
+                d.data[i] = 255; // primary
+                continue;
+            }
+            
+            d.data[i] = 128; // blend
         }
     }
 }

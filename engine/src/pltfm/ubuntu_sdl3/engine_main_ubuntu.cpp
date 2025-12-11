@@ -37,13 +37,9 @@ enum class RunState : int
 namespace mv
 {
 #ifdef NDEBUG
-
-    constexpr auto APP_TITLE = "Engine SDL3";
-
+    constexpr auto APP_TITLE = "Engine SDL3 Ubuntu";
 #else
-
-    constexpr auto APP_TITLE = "Engine SDL3 (Debug)";
-
+    constexpr auto APP_TITLE = "Engine SDL3 Ubuntu (Debug)";
 #endif
 
     ui_imgui::UIState ui_state{};
@@ -69,6 +65,28 @@ namespace mv
     img::ImageView game_screen_scale;
     img::ImageView game_screen_scale_rotate;
     constexpr ogl_imgui::TextureId game_texture_id = ogl_imgui::to_texture_id(1);
+}
+
+
+void save_screenshot()
+{
+    constexpr auto root = "/home/adam/Repos/GamePunkRun/engine/src/screenshots";
+
+    mv::state.cmd_save_screenshot = 0;
+
+    auto src = img::as_image(mv::game_screen_scale_rotate);
+
+    auto timestamp = dt::current_timestamp_i64();
+
+    StackBuffer<u8, 128> str_data;
+    auto str = span::make_string_view(str_data);
+
+    span::zero_string(str);
+    span::sprintf(str, "%s/%lld.png", root, timestamp);
+
+    auto path = span::to_cstr(str);
+
+    img::write_image(src, path);
 }
 
 
@@ -333,6 +351,12 @@ static void main_loop_seq()
 
         render_imgui_frame();
 
+        if (mv::state.cmd_save_screenshot)
+        {
+            mv::state.cmd_save_screenshot = 0;
+            save_screenshot();
+        }
+
         mv::inputs.swap();
 
         cap_framerate();
@@ -357,4 +381,4 @@ int main()
     return 0;
 }
 
-#include "main_o.cpp"
+#include "../main_o/main_o_sdl3.cpp"

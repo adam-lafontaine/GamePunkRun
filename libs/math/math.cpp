@@ -568,7 +568,7 @@ namespace math
 
     f32 rand(f32 min, f32 max)
     {
-        auto r = (f32)std::rand() / RAND_MAX;
+        auto r = (f32)std::rand() / (f32)RAND_MAX;
         return min + r * (max - min);
     }
 }

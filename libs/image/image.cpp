@@ -536,6 +536,28 @@ namespace image
     }
 
 
+    void copy_if_alpha(ImageView const& src, ImageView const& dst)
+    {
+        assert(src.matrix_data_);
+        assert(dst.matrix_data_);
+        assert(dst.width == src.width);
+        assert(dst.height == src.height);
+
+        auto s = to_span(src);
+        auto d = to_span(dst);
+
+        Pixel ps;
+        Pixel pd;
+
+        for (u32 i = 0; i < s.length; i++)
+        {
+            ps = s.data[i];
+            pd = d.data[i];
+            d.data[i] = ps.alpha ? ps : pd;
+        }
+    }
+
+
     void copy_if_alpha(SubView const& src, SubView const& dst)
     {
         assert(src.matrix_data_);

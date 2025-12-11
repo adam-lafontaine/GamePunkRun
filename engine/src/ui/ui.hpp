@@ -125,7 +125,7 @@ namespace ig
 
 namespace ui
 {
-    static void game_window(cstr title, ImTextureID image_texture, u32 width, u32 height, EngineState const& state)
+    static void game_window(cstr title, ImTextureID image_texture, u32 width, u32 height, EngineState& state)
     {        
         ImGui::Begin(title, 0, ImGuiWindowFlags_HorizontalScrollbar);
 
@@ -146,6 +146,12 @@ namespace ui
         auto h = height * state.game_window_scale;
         
         ImGui::Image(image_texture, ImVec2(w, h));
+
+        if (ImGui::Button("Screenshot##BtnScreenshot"))
+        {
+            state.cmd_save_screenshot = 1;
+        }
+
         ImGui::End();
     }
 

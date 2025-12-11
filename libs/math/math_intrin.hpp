@@ -2,7 +2,9 @@
 
 #include "cxpr_math.hpp"
 
+#ifndef MATH_NO_SIMD
 #define MATH_USE_SIMD
+#endif
 
 //#define __AVX__
 

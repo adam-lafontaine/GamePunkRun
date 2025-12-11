@@ -13,9 +13,9 @@ namespace game_punk
 namespace cxpr
 {
 
-    constexpr Vec2Du32 process_dimensions()
+    constexpr Vec2Du32 background_dimensions()
     {
-        bt::Background_Bg1 list;
+        constexpr bt::Background_Bg1 list;
 
         Vec2Du32 dims;
         
@@ -24,21 +24,17 @@ namespace cxpr
 
         return dims;
     }
-    
-    constexpr u32 PROCESS_WIDTH_PX = process_dimensions().x;
-    constexpr u32 PROCESS_HEIGHT_PX = process_dimensions().y;
-
 
     // rotated
-    constexpr u32 GAME_WIDTH_PX = process_dimensions().y;
-    constexpr u32 GAME_HEIGHT_PX = process_dimensions().x;
+    constexpr u32 GAME_BACKGROUND_WIDTH_PX = background_dimensions().y;
+    constexpr u32 GAME_BACKGROUND_HEIGHT_PX = background_dimensions().x;
 
 
     constexpr u32 find_4k_scale()
     {
         auto w = WIDTH_4K;
         u32 n = 2;
-        while (w >= GAME_WIDTH_PX)
+        while (w >= GAME_BACKGROUND_WIDTH_PX)
         {
             w = WIDTH_4K / n++;
         }        
@@ -48,13 +44,13 @@ namespace cxpr
 
     constexpr u32 SCALE_4K = find_4k_scale();
 
-    constexpr u32 CAMERA_GAME_WIDTH_PX = WIDTH_4K / SCALE_4K;
-    constexpr u32 CAMERA_GAME_HEIGHT_PX = HEIGHT_4K / SCALE_4K;
+    constexpr u32 GAME_CAMERA_WIDTH_PX = WIDTH_4K / SCALE_4K;
+    constexpr u32 GAME_CAMERA_HEIGHT_PX = HEIGHT_4K / SCALE_4K;
 
 
     constexpr Vec2Du32 sky_overlay_dimensions()
     {
-        bt::InfoList_Image_Sky_Overlay list;
+        constexpr bt::InfoList_Image_Sky_Overlay list;
 
         Vec2Du32 dims;
         
@@ -156,6 +152,112 @@ namespace game_punk
         mask_fill(dst, color);
     }
 
+
+    static void filter_fill(Span32 const& dst, p32 primary, p32 secondary)
+    {
+        primary.alpha = 255; // no transparency allowed
+        secondary.alpha = 255;
+
+        auto blend_r = (primary.red + secondary.red) / 2;
+        auto blend_g = (primary.green + secondary.green) / 2;
+        auto blend_b = (primary.blue + secondary.blue) / 2;
+        auto blend = img::to_pixel((u8)blend_r, (u8)blend_g, (u8)blend_b);
+
+        p32 ps;
+
+        for (u32 i = 0; i < dst.length; i++)
+        {
+            ps = dst.data[i];
+
+            switch (ps.alpha)
+            {
+            case 0:
+                dst.data[i] = COLOR_TRANSPARENT;
+                break;
+
+            case 50:
+                dst.data[i] = secondary;
+                break;
+
+            case 128:
+                dst.data[i] = blend;
+                break;
+
+            case 255:
+                dst.data[i] = primary;
+                break;
+
+            default:
+                break;
+            }
+
+            dst.data[i].alpha = ps.alpha;
+        }
+    }
+
+
+    static void filter_fill(ImageView const& dst_view, p32 primary, p32 secondary)
+    {
+        auto dst = img::to_span(dst_view);
+
+        filter_fill(dst, primary, secondary);
+    }
+
+}
+
+
+/* random */
+
+namespace game_punk
+{
+    class Randomf32
+    {
+    public:
+        static constexpr u32 capacity = 256;
+
+        f32 values[capacity];
+
+        u8 b_cursor = 0;
+        u8 r_cursor = 0;
+
+    };
+
+
+    static void reset_random(Randomf32& rng)
+    {
+        rng.b_cursor = 0;
+        rng.r_cursor = 0;
+
+        math::rand_init();
+
+        for (u32 i = 0; i < rng.capacity; i++)
+        {
+            rng.values[i] = math::rand(0.0f, 1.0f);
+        }
+    }
+
+
+    static void start_random_frame(Randomf32& rng)
+    {
+        for (u8 i = rng.b_cursor; i < rng.r_cursor; i++)
+        {
+            rng.values[i] = math::rand(0.0f, 1.0f);
+        }
+
+        rng.b_cursor = rng.r_cursor;
+    }
+
+
+    template <typename T>
+    T next_random(Randomf32& rng, T min, T max)
+    {
+        auto val = rng.values[rng.r_cursor++];
+        app_assert(rng.r_cursor != rng.b_cursor && "*** Frame RNG exceded ***");
+
+        auto delta = val * (max - min);
+
+        return min + (T)delta;
+    }
 }
 
 
@@ -187,6 +289,11 @@ namespace game_punk
         
 
         GameTick64& operator ++ () { ++value_; return *this; }
+
+
+        bool operator == (GameTick64 other) const { return value_ == other.value_; }
+
+        bool operator >= (GameTick64 other) const { return value_ >= other.value_; }
         
     };
 
@@ -203,6 +310,8 @@ namespace game_punk
         constexpr TickQty32(u32 v) { value_ = v; }
 
 
+        static constexpr TickQty32 make(u32 v) { return TickQty32(v); }
+
         static constexpr TickQty32 zero() { return TickQty32(0u); }
 
 
@@ -217,7 +326,17 @@ namespace game_punk
         bool operator <= (TickQty32 other) const { return value_ <= other.value_; }
 
         bool operator >= (TickQty32 other) const { return value_ >= other.value_; }
+
+
+        static TickQty32 random(Randomf32& rng, u32 min, u32 max) { return TickQty32(next_random(rng, min, max)); }
     };
+
+
+    GameTick64 operator + (GameTick64 lhs, TickQty32 rhs) { return GameTick64::make(lhs.value_ + rhs.value_); }
+
+    TickQty32 operator - (GameTick64 lhs, TickQty32 rhs) { return lhs.value_ - rhs.value_; }
+
+    TickQty32 operator % (GameTick64 lhs, TickQty32 rhs) { return lhs.value_ % rhs.value_; }
 
 
     bool operator <= (TickQty32 lhs, GameTick64 rhs) { return lhs.value_ <= rhs.value_; }
@@ -227,10 +346,6 @@ namespace game_punk
     TickQty32 operator + (TickQty32 lhs, TickQty32 rhs) { return lhs.value_ + rhs.value_; }
 
     TickQty32 operator - (TickQty32 lhs, TickQty32 rhs) { return lhs.value_ - rhs.value_; }
-
-    TickQty32 operator - (GameTick64 lhs, TickQty32 rhs) { return lhs.value_ - rhs.value_; }
-
-    TickQty32 operator % (GameTick64 lhs, TickQty32 rhs) { return lhs.value_ % rhs.value_; }
 
 
     class ActiveRef
@@ -257,6 +372,13 @@ namespace game_punk
 
 namespace game_punk
 {
+    enum class DimCtx
+    {
+        Proc,
+        Game
+    };
+    
+    
     class ContextDims
     {
     public:
@@ -268,31 +390,24 @@ namespace game_punk
 
             u64 any = 0;
         };
+
+        constexpr ContextDims(u32 w, u32 h, DimCtx ctx)
+        {
+            if (ctx == DimCtx::Proc)
+            {
+                proc.width = w;
+                proc.height = h;
+            }
+            else
+            {
+                game.width = w;
+                game.height = h;
+            }
+        }
+
+
+        ContextDims() { any = 0; }
     };
-
-
-    static constexpr ContextDims make_dims_proc(u32 width, u32 height)
-    {
-        ContextDims dims;
-
-        auto& ctx = dims.proc;
-        ctx.width = width;
-        ctx.height = height;
-
-        return dims;
-    }
-
-
-    static constexpr ContextDims make_dims_game(u32 width, u32 height)
-    {
-        ContextDims dims;
-
-        auto& ctx = dims.game;
-        ctx.width = width;
-        ctx.height = height;
-
-        return dims;
-    }
 
 
     template <typename T>
@@ -305,7 +420,29 @@ namespace game_punk
 
             struct { T y; T x; } game;
         };
+
+
+        ContextVec2D(T x, T y, DimCtx ctx)
+        {
+            if (ctx == DimCtx::Proc)
+            {
+                proc.x = x;
+                proc.y = y;
+            }
+            else
+            {
+                game.x = x;
+                game.y = y;
+            }
+        }
+
+
+        ContextVec2D(Vec2D<T> const& vec, DimCtx ctx)
+        {
+            ContextVec2D(vec.x, vec.y, ctx);
+        }
     };
+
 
     using CtxPt2Du32 = ContextVec2D<u32>;
     using CtxPt2Di32 = ContextVec2D<i32>;
@@ -334,6 +471,9 @@ namespace game_punk
 
         return rect;
     }
+
+
+    constexpr auto BACKGROUND_DIMS = ContextDims(cxpr::GAME_BACKGROUND_WIDTH_PX, cxpr::GAME_BACKGROUND_HEIGHT_PX, DimCtx::Game);
 }
 
 
@@ -344,8 +484,7 @@ namespace game_punk
     class RenderView
     {
     public:
-        static constexpr u32 width = cxpr::PROCESS_WIDTH_PX;
-        static constexpr u32 height = cxpr::PROCESS_HEIGHT_PX;
+        static constexpr auto dims = BACKGROUND_DIMS;
 
         p32* data = 0;
     };
@@ -353,14 +492,14 @@ namespace game_punk
 
     static void count_view(RenderView& view, MemoryCounts& counts)
     {
-        auto length = view.width * view.height;
+        auto length = view.dims.proc.width * view.dims.proc.height;
         add_count<p32>(counts, length);
     }
 
 
     static bool create_view(RenderView& view, Memory& memory)
     {
-        auto length = view.width * view.height;
+        auto length = view.dims.proc.width * view.dims.proc.height;
 
         auto res = push_mem<p32>(memory, length);
         if (res.ok)
@@ -374,14 +513,15 @@ namespace game_punk
 
     static Span32 to_span(RenderView const& view)
     {
-        auto length = view.width * view.height;
+        auto length = view.dims.proc.width * view.dims.proc.height;
         return span::make_view(view.data, length);
     }
 
 
     static ImageView to_image_view(RenderView const& view)
     {
-        return img::make_view(view.width, view.height, view.data);
+        auto dims = view.dims.proc;
+        return img::make_view(dims.width, dims.height, view.data);
     }
 
 
@@ -406,7 +546,7 @@ namespace game_punk
     {
     public:
 
-        static constexpr ContextDims dims = make_dims_proc(cxpr::PROCESS_WIDTH_PX, cxpr::PROCESS_HEIGHT_PX);
+        static constexpr auto dims = BACKGROUND_DIMS;
 
         p32* data = 0;
 
@@ -483,7 +623,7 @@ namespace game_punk
     {
     public:
 
-        static constexpr ContextDims dims = make_dims_game(cxpr::CAMERA_GAME_WIDTH_PX, cxpr::CAMERA_GAME_HEIGHT_PX);
+        static constexpr auto dims = ContextDims(cxpr::GAME_CAMERA_WIDTH_PX, cxpr::GAME_CAMERA_HEIGHT_PX, DimCtx::Game);
 
         p32* data = 0;
 
@@ -549,9 +689,21 @@ namespace game_punk
 
 namespace game_punk
 {
+    enum class AssetStatus : u8
+    {
+        None = 0,
+        Loading,
+        Success,
+
+        FailLoad,
+        FailRead
+    };
+
+
     class AssetData
     {
     public:
+        AssetStatus status = AssetStatus::None;
 
         cstr bin_file_path = 0;
 
@@ -635,8 +787,7 @@ namespace game_punk
     {
     public:
 
-        static constexpr ContextDims dims = make_dims_game(cxpr::GAME_WIDTH_PX, cxpr::GAME_HEIGHT_PX);
-
+        static constexpr ContextDims dims = BACKGROUND_DIMS;
         
 
         struct 
@@ -791,6 +942,11 @@ namespace game_punk
     static void render_background_sky(BackgroundState& bg_state, GameTick64 game_tick)
     {
         constexpr u32 frame_wait = 6;
+
+        if (game_tick.value_ < frame_wait)
+        {
+            return;
+        }
 
         auto t = game_tick.value_ % frame_wait;
 
@@ -1088,31 +1244,47 @@ namespace game_punk
 
         struct
         {
-            ImageView title;
-            
+            ImageView title;            
             
             SpritesheetView font;
+            SpritesheetView icons;
 
             p32 colors[CTS];
         } data;
 
-        u8 font_color_id;
-
+        MemoryStack<p32> pixels;
 
         CameraLayer ui;
         CameraLayer hud;
+
+        u8 font_color_id;
+
+        struct 
+        {
+            b8 is_on;
+            GameTick64 end_tick;
+
+        } temp_icon;
+
+        
     };
 
 
     static void count_ui_state(UIState& ui, MemoryCounts& counts)
     {
-        bt::UIset_title title;
+        bt::UIset_Title title;
         auto t_info = title.file_info.title_main;
         count_view(ui.data.title, counts, t_info.width, t_info.height);        
         
         bt::UIset_Font font;
         u32 n_chars = 10 + 26 * 2; // 0-9, A-Z x 2
         count_view(ui.data.font, counts, font.file_info.font, n_chars);
+
+        bt::UIset_Icons icons;
+        count_view(ui.data.icons, counts, icons.file_info.icons);
+
+        auto length = cxpr::GAME_CAMERA_WIDTH_PX * cxpr::GAME_CAMERA_HEIGHT_PX;
+        count_stack(ui.pixels, counts, length);
 
         count_camera_layer(ui.ui, counts);
         count_camera_layer(ui.hud, counts);
@@ -1125,10 +1297,28 @@ namespace game_punk
 
         ok &= create_view(ui.data.title, memory);
         ok &= create_view(ui.data.font, memory);
+        ok &= create_view(ui.data.icons, memory);
+        ok &= create_stack(ui.pixels, memory);
         ok &= create_camera_layer(ui.ui, memory);
-        ok &= create_camera_layer(ui.hud, memory);
+        ok &= create_camera_layer(ui.hud, memory);        
 
         return ok;
+    }
+
+
+    static void reset_ui_state(UIState& ui)
+    {
+        ui.temp_icon.is_on = 0;
+        ui.temp_icon.end_tick = GameTick64::make(1);
+    }
+
+
+    static void start_ui_frame(UIState& ui)
+    {
+        clear_camera_layer(ui.ui);
+        clear_camera_layer(ui.hud);
+        reset_stack(ui.pixels);
+        span::fill(to_span(ui.pixels), COLOR_TRANSPARENT);
     }
 
 
@@ -1139,6 +1329,9 @@ namespace game_punk
 
         auto color = ui.data.colors[color_id];
         mask_fill(to_image_view(ui.data.font), color);
+
+        // temp icon color
+        filter_fill(to_image_view(ui.data.icons), color, COLOR_BLACK);
         ui.font_color_id = color_id;
 
         return ok;
@@ -1178,6 +1371,55 @@ namespace game_punk
         SpriteView view;
         view.dims = dims;
         view.data = data;
+
+        return view;
+    }
+
+
+    static SpriteView get_ui_icon(UIState& ui, Randomf32& rng, GameTick64 game_tick)
+    {
+        auto& icons = ui.data.icons;
+        auto dims = icons.bitmap_dims;
+        auto width = dims.proc.width;
+        auto height = dims.proc.height;
+        auto length = width * height;
+
+        auto id = 29;
+
+        SpriteView view;
+        view.dims = dims;
+        view.data = push_elements(ui.pixels, length);
+
+        auto dst = to_image_view(view);
+
+        auto do_icon = [&](u8 color_id)
+        {
+            set_ui_color(ui, color_id);
+            auto src = img::make_view(width, height, icons.data); // Frame
+            img::copy_if_alpha(src, dst);
+
+            src.matrix_data_ += id * length; // Icon
+            img::copy_if_alpha(src, dst);
+        };
+
+        auto& icon = ui.temp_icon;
+
+        if (game_tick >= icon.end_tick)
+        {
+            icon.is_on = !icon.is_on;
+
+            auto delta = icon.is_on ? TickQty32::random(rng, 3, 40) : TickQty32::random(rng, 2, 10);
+            icon.end_tick = game_tick + delta;
+        }
+
+        if (icon.is_on)
+        {
+            do_icon(20);
+        }
+        else
+        {
+            do_icon(7);
+        }
 
         return view;
     }
@@ -1437,7 +1679,7 @@ namespace game_punk
                     ps = ui[id][su];
 
                     if (ps.alpha)
-                    {      
+                    {  
                         dst[x] = ps;
                         break;
                     }
@@ -1704,6 +1946,21 @@ namespace game_punk
             };
 
         } text;
+
+
+        union
+        {
+            b32 move = 0;
+
+            struct
+            {
+                b8 north;
+                b8 south;
+                b8 east;
+                b8 west;
+            };
+
+        } icon;
     };
 
 
@@ -1712,13 +1969,19 @@ namespace game_punk
         InputCommand cmd;
 
         cmd.camera.move = 0;
-        cmd.camera.north = input.keyboard.kbd_up.is_down;
+        /*cmd.camera.north = input.keyboard.kbd_up.is_down;
         cmd.camera.south = input.keyboard.kbd_down.is_down;
         cmd.camera.east = input.keyboard.kbd_right.is_down;
-        cmd.camera.west = input.keyboard.kbd_left.is_down;
+        cmd.camera.west = input.keyboard.kbd_left.is_down;*/
 
         cmd.text.changed = 0;
         cmd.text.up = input.keyboard.npd_plus.pressed;
+
+        cmd.icon.move = 0;
+        cmd.icon.north = input.keyboard.kbd_up.pressed;
+        cmd.icon.south = input.keyboard.kbd_down.pressed;
+        cmd.icon.east = input.keyboard.kbd_right.pressed;
+        cmd.icon.west = input.keyboard.kbd_left.pressed;
 
         return cmd;
     }

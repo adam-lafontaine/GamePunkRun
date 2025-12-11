@@ -137,7 +137,89 @@ namespace game_punk
         write("  misc", mem.mem_misc, mc.count_misc);
         app_log("\n");
     }
+
+
+    static bool verify_allocated(Memory const& memory)
+    {
+        bool ok = true;
+
+        auto is_ok = [](auto const& buffer) { return buffer.size_ == buffer.capacity_; };
+        
+        ok &= is_ok(memory.mem_8);
+        app_assert(ok && "*** 8 bit Memory not allocated ***");
+
+        ok &= is_ok(memory.mem_16);
+        app_assert(ok && "*** 16 bit Memory not allocated ***");
+
+        ok &= is_ok(memory.mem_32);
+        app_assert(ok && "*** 32 bit Memory not allocated ***");
+
+        ok &= is_ok(memory.mem_64);        
+        app_assert(ok && "*** 64 bit Memory not allocated ***");
+
+        ok &= is_ok(memory.mem_misc);
+        app_assert(ok && "*** Misc Memory not allocated ***");
+
+        return ok;
+    }
     
+}
+
+
+/* memory stack */
+
+namespace game_punk
+{
+    template <typename T>
+    class MemoryStack
+    {
+    public:
+        T* data_ = 0;
+        u32 capacity_ = 0;
+
+        u32 size = 0;        
+    };
+
+
+    template <typename T>
+    inline void reset_stack(MemoryStack<T>& stack)
+    {
+        stack.size = 0;
+    }
+
+
+    template <typename T>
+    inline T* push_elements(MemoryStack<T>& stack, u32 n_elements)
+    {
+        app_assert(n_elements);
+
+		if (n_elements == 0)
+		{
+			return 0;
+		}
+        
+		app_assert(stack.capacity_);
+
+		auto is_valid =
+			stack.capacity_ &&
+			stack.size < stack.capacity_;
+        
+        app_assert(is_valid);
+
+		auto elements_available = (stack.capacity_ - stack.size) >= n_elements;
+		app_assert(elements_available);
+
+		if (!is_valid || !elements_available)
+		{
+			return 0;
+		}
+
+		auto data = stack.data_ + stack.size;
+
+		stack.size += n_elements;
+
+		return data;
+    }
 }
 
 
@@ -198,6 +280,46 @@ namespace game_punk
         }
 
         return res.ok;
+    }
+
+
+    template <typename T>
+    static void count_stack(MemoryStack<T>& stack, MemoryCounts& counts, u32 n_elements)
+    {
+        stack.capacity_ = n_elements;
+        stack.size = 0;
+
+        add_count<T>(counts, n_elements);
+    }
+
+
+    template <typename T>
+    static bool create_stack(MemoryStack<T>& stack, Memory& memory)
+    {
+        if (!stack.capacity_)
+        {
+            app_assert(false && "*** MemoryStack not initialized ***");
+            return false;
+        }
+
+        auto res = push_mem<T>(memory, stack.capacity_);
+        if (res.ok)
+        {
+            stack.data_ = res.data;
+        }
+
+        return res.ok;
+    }
+
+
+    template <typename T>
+    inline SpanView<T> to_span(MemoryStack<T> const& stack)
+    {
+        SpanView<T> view;
+        view.data = stack.data_;
+        view.length = stack.capacity_;
+
+        return view;
     }
     
 }

@@ -409,8 +409,6 @@ namespace bin
             out_file << define_ui_set(info);
         }
 
-        
-
         out_file.close();
     }
 

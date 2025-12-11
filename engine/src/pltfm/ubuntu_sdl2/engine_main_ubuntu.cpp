@@ -37,13 +37,9 @@ enum class RunState : int
 namespace mv
 {
 #ifdef NDEBUG
-
-    constexpr auto APP_TITLE = "Engine SDL2";
-
+    constexpr auto APP_TITLE = "Engine SDL2 Ubuntu";
 #else
-
-    constexpr auto APP_TITLE = "Engine SDL2 (Debug)";
-
+    constexpr auto APP_TITLE = "Engine SDL2 Ubuntu (Debug)";
 #endif
 
     ui_imgui::UIState ui_state{};
@@ -357,4 +353,4 @@ int main()
     return 0;
 }
 
-#include "main_o.cpp"
+#include "../main_o/main_o_sdl2.cpp"
