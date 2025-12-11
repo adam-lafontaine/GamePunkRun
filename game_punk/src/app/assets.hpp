@@ -724,9 +724,9 @@ namespace assets
 #if defined(__EMSCRIPTEN__) || defined(GAME_PUNK_WASM)
 
 
-    //constexpr auto GAME_DATA_PATH = "https://raw.githubusercontent.com/adam-lafontaine/CMS/punk-run-v0.1.0/sm/wasm/punk_run.bin";
+    constexpr auto GAME_DATA_PATH = "https://raw.githubusercontent.com/adam-lafontaine/CMS/punk-run-v0.1.0/sm/wasm/punk_run.bin"; // almostalwaysadam.com
 
-    constexpr auto GAME_DATA_PATH = "./punk_run.bin";
+    //constexpr auto GAME_DATA_PATH = "./punk_run.bin"; // itch.io
 
     namespace em_load
     {

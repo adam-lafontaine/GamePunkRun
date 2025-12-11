@@ -460,7 +460,7 @@ extern "C"
     {
         EmState state{};
 
-        state.has_console = 0;
+        state.has_console = 1;
         state.has_gamepad = 0;
         state.has_btn_up = 0;
         state.has_btn_down = 0;
