@@ -1619,8 +1619,8 @@ namespace game_punk
 
     static void render_to_screen(RenderState& render, GameCamera const& camera)
     {
-        constexpr auto NR = render.layer_count;
-        constexpr auto NU = render.ui_layer_count;
+        constexpr auto NR = RenderState::layer_count;
+        constexpr auto NU = RenderState::ui_layer_count;
 
         auto red = img::to_pixel(255, 0, 0);
 
