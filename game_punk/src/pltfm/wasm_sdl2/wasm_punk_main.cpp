@@ -1,6 +1,7 @@
 #include "../../../../libs/io/window.hpp"
 #include "../../../../libs/io/input/input.hpp"
 #include "../../../../libs/datetime/datetime.hpp"
+#include "../../../../libs/math/math.hpp"
 
 #include "../../app/app.hpp"
 
@@ -91,6 +92,8 @@ namespace mv
 {
     constexpr int MAIN_ERROR = 1;
     constexpr int MAIN_OK = 0;
+
+    constexpr u32 GAME_SCALE = 2;
 
     RunState run_state = RunState::Begin;
 
@@ -187,24 +190,22 @@ public:
 
 static bool window_create(Vec2Du32 game_dims, InitParams const& params)
 { 
-    auto const min = [](auto a, auto b) { return a < b ? a : b; };
-
     auto game_w = game_dims.x;
     auto game_h = game_dims.y;
 
-    auto max_w = params.max_width ? params.max_width : game_w;
-    auto max_h = params.max_height ? params.max_height : game_h;
+    auto max_w = params.max_width ? params.max_width : game_w * mv::GAME_SCALE;
+    auto max_h = params.max_height ? params.max_height : game_h * mv::GAME_SCALE;
 
     auto scale_w = (f32)max_w / game_w;
     auto scale_h = (f32)max_h / game_h;
 
-    auto scale = min(scale_w, scale_h);
+    auto scale = math::min(scale_w, scale_h);
 
 #ifdef APP_ROTATE_90
 
     // rotated
-    auto w = game_dims.y;
-    auto h = game_dims.x;
+    auto w = math::cxpr::round_to_unsigned<u32>(scale * game_dims.y);
+    auto h = math::cxpr::round_to_unsigned<u32>(scale * game_dims.x);
 
     Vec2Du32 window_dims = { w, h };
 
@@ -212,8 +213,8 @@ static bool window_create(Vec2Du32 game_dims, InitParams const& params)
 
 #else
     
-    auto w = game_dims.x;
-    auto h = game_dims.y;
+    auto w = math::cxpr::round_to_unsigned<u32>(scale * game_dims.x);
+    auto h = math::cxpr::round_to_unsigned<u32>(scale * game_dims.y);
 
     Vec2Du32 window_dims = { w, h };
 

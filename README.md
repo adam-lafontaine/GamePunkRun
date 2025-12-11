@@ -26,6 +26,6 @@ https://itch.io/c/2053292/cyberpunk-pixel-art
 * [x] Generate constants from assets
 * [x] Wasm build
 * [x] Set application icon
-* [ ] Release files
+* [x] Release files
 * [ ] Itch.io
 
