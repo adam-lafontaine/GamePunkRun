@@ -27,5 +27,6 @@ https://itch.io/c/2053292/cyberpunk-pixel-art
 * [x] Wasm build
 * [x] Set application icon
 * [x] Release files
-* [ ] Itch.io
+* [x] Itch.io
+* [x] CMS page
 

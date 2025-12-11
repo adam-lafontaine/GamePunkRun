@@ -50,8 +50,8 @@ namespace game_punk
     constexpr p32 COLOR_TRANSPARENT = img::to_pixel(0, 0, 0, 0);
     constexpr p32 COLOR_BLACK = img::to_pixel(0);
     constexpr p32 COLOR_WHITE = img::to_pixel(255);
-    //constexpr p32 COLOR_BG_1 = img::to_pixel(139, 171, 191);
-    //constexpr p32 COLOR_BG_2 = img::to_pixel(86, 106, 137);
+    //constexpr p32 COLOR_BG_1 = img::to_pixel(139, 171, 191); // 8babbf
+    //constexpr p32 COLOR_BG_2 = img::to_pixel(86, 106, 137); // 566a89
 
 
     enum class RenderLayerId : u32

@@ -361,19 +361,18 @@ static void print_controls()
 static void print_credits()
 {
     constexpr auto str = 
-    /*"\n----------------------------------------------------\n"
-    "Artwork (CCO)\n"
-    "https://kenney.nl/assets/space-shooter-redux\n"
-    "https://kenney.nl/assets/ui-pack-space-expansion\n"
     "\n----------------------------------------------------\n"
-    "Music (CCO)\n"
+    "Pixel art:\n"
+    "https://itch.io/c/2053292/cyberpunk-pixel-art / https://craftpix.net/\n"
+    "\n----------------------------------------------------\n"
+    /*"Music (CCO)\n"
     "https://opengameart.org/content/space-5\n" // intro
     "https://opengameart.org/content/leap-8bit\n" // 03
     "https://opengameart.org/content/boss-battle-1-8-bit-re-upload\n" // 00
     "https://opengameart.org/content/boss-battle-2-8-bit-re-upload\n" // 02
     "https://opengameart.org/content/boss-battle-3-8-bit-re-upload\n" // 01    
     "\n----------------------------------------------------\n"*/
-    "Programming\n"
+    "Programming:\n"
     "Adam Lafontaine\n"    
     ;
 
