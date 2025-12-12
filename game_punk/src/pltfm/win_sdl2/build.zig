@@ -4,15 +4,16 @@ const main_cpp = "./win_sdl2_punk_main.cpp";
 
 const app_name = "punk_run";
 
-const root_dir = "../../..";
-const res_dir = root_dir ++ "/res";
+const root_dir = "../../../..";
+const game_root = root_dir ++ "/game_punk";
+const sys_root = root_dir ++ "/sys/Win";
+
+const res_dir = game_root ++ "/res";
 const bin_data = res_dir ++ "/xbin/punk_run.bin";
 
-const lib_root = "../../../../../zLibs/Win";
-
-const inc_all = lib_root ++ "/include";
-const lib_all = lib_root ++ "/lib";
-const bin_all = lib_root ++ "/bin";
+const inc_all = sys_root ++ "/include";
+const lib_all = sys_root ++ "/lib";
+const bin_all = sys_root ++ "/bin";
 
 const icon_rc = "punk.rc";
 
