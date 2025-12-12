@@ -8,6 +8,11 @@ const root_dir = "../../..";
 const res_dir = root_dir ++ "/res";
 const bin_data = res_dir ++ "/xbin/punk_run.bin";
 
+const lib_root = "../../../../../zLibs/Win";
+
+const inc_all = lib_root ++ "/include";
+const lib_all = lib_root ++ "/lib";
+
 const icon_rc = "punk.rc";
 
 
@@ -23,6 +28,13 @@ const cpp_flags = &[_][]const u8{
     "-DIMAGE_READ",
 };
 
+const inc_paths = &[_][]const u8{
+    inc_all,
+};
+
+const lib_paths = &[_][]const u8{
+    lib_all,
+};
 
 const cpp_libs = &[_][]const u8{
     "SDL2",
@@ -52,6 +64,16 @@ pub fn build(b: *std.Build) void
         },
         .flags = cpp_flags,
     });
+
+    for (inc_paths) |p|
+    {
+        exe.addIncludePath(b.path(p));
+    }
+
+    for (lib_paths) |p|
+    {
+        exe.addLibraryPath(b.path(p));
+    }
 
     for (cpp_libs) |lib|
     {
