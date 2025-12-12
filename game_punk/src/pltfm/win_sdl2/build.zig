@@ -12,6 +12,7 @@ const lib_root = "../../../../../zLibs/Win";
 
 const inc_all = lib_root ++ "/include";
 const lib_all = lib_root ++ "/lib";
+const bin_all = lib_root ++ "/bin";
 
 const icon_rc = "punk.rc";
 
@@ -58,6 +59,8 @@ pub fn build(b: *std.Build) void
         }),
     });
 
+    exe.subsystem = .Windows;
+
     exe.addCSourceFiles(.{
         .files = &.{
             main_cpp,
@@ -90,6 +93,17 @@ pub fn build(b: *std.Build) void
 
     b.installArtifact(exe);
 
+    const copy_sdl = b.addInstallBinFile(
+        b.path(bin_all ++ "/SDL2.dll"),
+        "SDL2.dll"
+    );
+    b.getInstallStep().dependOn(&copy_sdl.step);
+
+    const copy_sdl_mixer = b.addInstallBinFile(
+        b.path(bin_all ++ "/SDL2_mixer.dll"),
+        "SDL2_mixer2.dll"
+    );
+    b.getInstallStep().dependOn(&copy_sdl_mixer.step);
 
     // Copy punk_run.bin next to the exe in zig-out/bin
     const copy_data = b.addInstallBinFile(

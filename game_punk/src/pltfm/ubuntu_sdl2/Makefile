@@ -10,10 +10,6 @@ ROOT := ../../..
 
 BUILD := $(ROOT)/build/ubuntu_sdl2
 
-RES := $(ROOT)/res
-
-BIN_DATA := $(RES)/xbin/punk_run.bin
-
 OUT := $(BUILD)/$(EXE)
 
 
