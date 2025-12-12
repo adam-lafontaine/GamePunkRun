@@ -1,12 +1,11 @@
 const std = @import("std");
 
-const main_cpp = "../ubuntu_sdl2/ubuntu_sdl2_punk_main.cpp";
+const main_cpp = "./ubuntu_sdl3_punk_main.cpp";
 
 const app_name = "punk_run";
 
 
 const root_dir = "../../..";
-const build_dir = root_dir ++ "/build/ubuntu_sdl2";
 const res_dir = root_dir ++ "/res";
 const bin_data = res_dir ++ "/xbin/punk_run.bin";
 
@@ -25,8 +24,10 @@ const cpp_flags = &[_][]const u8{
 
 
 const cpp_libs = &[_][]const u8{
-    "SDL2",
-    "SDL2_mixer"
+    "SDL3",
+    "SDL3_mixer",
+    //"pthread",
+    //"tbb"
 };
 
 
