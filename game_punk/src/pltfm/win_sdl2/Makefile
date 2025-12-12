@@ -24,7 +24,7 @@ SDL_DLL := $(SDL)/bin/SDL2.dll
 SDL_MIXER_DLL := $(SDL_MIXER)/bin/SDL2_mixer.dll
 
 ISDL := -I$(SDL)\include -I$(SDL)\include\SDL2
-ISDL_MIXER=-I$(SDL_MIXER)\include
+ISDL_MIXER := -I$(SDL_MIXER)\include
 
 LDSDL := -L$(SDL)\lib
 LDSDL_MIXER := -L$(SDL_MIXER)\lib
