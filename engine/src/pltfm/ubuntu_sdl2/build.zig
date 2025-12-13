@@ -23,7 +23,6 @@ const cpp_flags = &[_][]const u8{
     "-DIMAGE_WRITE",
     "-DALLOC_COUNT",
     //"-DNDEBUG",
-    //"-O3",
 };
 
 
@@ -40,6 +39,7 @@ const cpp_libs = &[_][]const u8{
 pub fn build(b: *std.Build) void 
 {
     const optimize = b.option(std.builtin.OptimizeMode, "optimize", "Optimization mode") orelse .Debug;
+    //const optimize = b.option(std.builtin.OptimizeMode, "optimize", "Optimization mode") orelse .ReleaseFast;
 
 
     const exe = b.addExecutable(.{
