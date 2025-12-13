@@ -14,7 +14,8 @@ https://itch.io/c/2053292/cyberpunk-pixel-art
 * [ ] Name UI icons
 * [ ] Fix input single gamepad
 * [x] Zig builds
-* [ ] Alloc count - std::vector
+* [x] Refactor alloc count
+* [ ] Automate release builds
 
 
 ### v0.1.0

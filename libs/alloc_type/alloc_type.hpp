@@ -4,7 +4,7 @@
 
 // for testing
 //#ifndef ALLOC_COUNT
-//#define ALLOC_COUNT
+#define ALLOC_COUNT
 //#endif
 
 
@@ -79,8 +79,6 @@ namespace mem
 
     struct AllocationStatus
     {
-        static constexpr u32 MAX_SLOTS = 50;
-
         cstr type_name = 0;
         u32 element_size = 0;
         u32 max_allocations = 0;
@@ -89,10 +87,9 @@ namespace mem
         u32 elements_allocated = 0;
 
         u32 n_allocations = 0;
-
-        // TODO: max allocations
-        cstr slot_tags[MAX_SLOTS] = { 0 };
-        u32 slot_sizes[MAX_SLOTS] = { 0 };
+        
+        cstr* slot_tags = 0;
+        u32* slot_sizes = 0;
     };
 
 

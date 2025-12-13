@@ -20,6 +20,8 @@ namespace counts
 {
     constexpr auto NO_TAG = "no tag";
 
+    constexpr u32 MAX_SLOTS = 50;
+
 
     static constexpr cstr bit_width_str(u32 size)
     {
@@ -38,7 +40,7 @@ namespace counts
     class AllocLog
     {
     public:
-        static constexpr u32 capacity = mem::AllocationStatus::MAX_SLOTS;
+        static constexpr u32 capacity = MAX_SLOTS;
 
         u32 size = 0;
 
@@ -55,7 +57,7 @@ namespace counts
     {
     public:
         static constexpr u32 element_size = ELE_SZ ? ELE_SZ : 1;
-        static constexpr u32 max_allocations = mem::AllocationStatus::MAX_SLOTS;
+        static constexpr u32 max_allocations = MAX_SLOTS;
 
         cstr type_name = bit_width_str(ELE_SZ);
 
@@ -70,6 +72,41 @@ namespace counts
 
         AllocLog log;
 
+
+
+    private:
+
+        i32 find_available_slot()
+        {
+            i32 i = 0; 
+            for (;i < max_allocations && keys[i]; i++)
+            { }
+
+            if (i >= max_allocations || keys[i])
+            {
+                alloc_type_assert("*** Allocation limit reached ***" && false);
+                alloc_type_log("Allocation limit reached (%u)\n", element_size);
+                return -1;
+            }
+
+            return i;
+        }
+
+
+        i32 find_slot(void* ptr)
+        {
+            // find slot
+            u32 i = 0; 
+            for (; i < max_allocations && keys[i] != ptr; i++)
+            { }
+
+            if (i >= max_allocations)
+            {
+                return -1;
+            }
+
+            return i;
+        }
 
         void update_element_counts(u32 slot)
         {
@@ -91,19 +128,15 @@ namespace counts
 
             alloc_type_log("%s<%u>(%s) | %s(%p) | %u/%u (%u)\n", action, element_size, type_name, tags[slot], ptr, n_allocations, max_allocations, bytes_allocated);
         }
+        
 
+    public:
 
         void* add_allocation(u32 n_elements, cstr tag)
         {
-            // find next available slot
-            u32 i = 0; 
-            for (;i < max_allocations && keys[i]; i++)
-            { }
-
-            if (i >= max_allocations || keys[i])
+            auto i = find_available_slot();
+            if (i < 0)
             {
-                alloc_type_assert("*** Allocation limit reached ***" && false);
-                alloc_type_log("Allocation limit reached (%u)\n", element_size);
                 return 0;
             }
 
@@ -132,15 +165,9 @@ namespace counts
 
         void add_allocated(void* data, u32 n_elements, cstr tag)
         {
-            // find next available slot
-            u32 i = 0; 
-            for (;i < max_allocations && keys[i]; i++)
-            { }
-
-            if (i >= max_allocations || keys[i])
+            auto i = find_available_slot();
+            if (i < 0)
             {
-                alloc_type_assert("*** Allocation limit reached ***" && false);
-                alloc_type_log("Allocation limit reached (%u)\n", element_size);
                 return;
             }
 
@@ -159,12 +186,9 @@ namespace counts
 
         bool remove_allocation(void* ptr)
         {
-            // find slot
-            u32 i = 0; 
-            for (; i < max_allocations && keys[i] != ptr; i++)
-            { }
+            auto i = find_slot(ptr);
 
-            if (i >= max_allocations)
+            if (i < 0)
             {
                 return false;
             }
@@ -185,26 +209,16 @@ namespace counts
 
         void tag_allocation(void* ptr, u32 n_elements, cstr tag)
         {
-            // find slot, if any
-            u32 i = 0; 
-            for (;i < max_allocations && keys[i] != ptr; i++)
-            { }
-
-            if (i >= max_allocations)
+            auto i = find_slot(ptr);
+            if (i >= 0)
             {
                 // already tagged
                 return;
             }
 
-            // find next available slot
-            i = 0; 
-            for (;i < max_allocations && keys[i]; i++)
-            { }
-
-            if (i >= max_allocations || keys[i])
+            i = find_available_slot();
+            if (i < 0)
             {
-                alloc_type_assert("*** Allocation limit reached ***" && false);
-                alloc_type_log("Allocation limit reached (%u)\n", element_size);
                 return;
             }
 
@@ -223,15 +237,9 @@ namespace counts
 
         void untag_allocation(void* ptr)
         {
-            // find slot
-            u32 i = 0; 
-            for (; i < max_allocations && keys[i] != ptr; i++)
-            { }
-
-            if (i >= max_allocations)
+            auto i = find_slot(ptr);
+            if (i < 0)
             {
-                alloc_type_assert("*** Allocation not found ***" && false);
-                alloc_type_log("Allocation not found (%u)\n", element_size);
                 return;
             }
 
