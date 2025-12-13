@@ -6,7 +6,7 @@
 #include <SDL3/SDL.h>
 
 
-//#define LOG_ALLOC_TYPE
+#define LOG_ALLOC_TYPE
 #define ASSERT_ALLOC_TYPE
 
 
@@ -34,7 +34,29 @@
 
 namespace mem
 {
-    static void* sdl_alloc(u32 n_elements, u32 element_size = 4)
+    static void* unaligned_alloc(u32 n_elements, u32 element_size)
+    {
+        void* data = 0;
+        auto n_bytes = n_elements * element_size;
+
+        data = SDL_malloc(n_bytes);
+
+        if (data)
+        {
+            SDL_memset(data, 0, n_bytes);
+        }
+
+        return data;
+    }
+
+
+    static void unaligned_free(void* ptr)
+    {
+        SDL_free(ptr);
+    }
+    
+    
+    static void* aligned_alloc(u32 n_elements, u32 element_size)
     {
         void* data = 0;
         auto n_bytes = n_elements * element_size;
@@ -46,10 +68,12 @@ namespace mem
         case 8:
         case 16:
             data = SDL_aligned_alloc(element_size, n_bytes);
+            alloc_type_log("SDL_aligned_alloc %p\n", data);
             break;
         
         default:
             data = SDL_malloc(n_bytes);
+            alloc_type_log("SDL_malloc %p\n", data);
             break;
         }
 
@@ -62,7 +86,7 @@ namespace mem
     }
 
 
-    static void sdl_free(void* ptr, u32 element_size = 1)
+    static void aligned_free(void* ptr, u32 element_size)
     {
         switch (element_size)
         {
@@ -70,10 +94,12 @@ namespace mem
         case 4:
         case 8:
         case 16:
+            alloc_type_log("SDL_aligned_free %p\n", ptr);
             SDL_aligned_free(ptr);
             break;
         
         default:
+            alloc_type_log("SDL_free %p\n", ptr);
             SDL_free(ptr);
             break;
         }
@@ -108,7 +134,7 @@ namespace mem
     {
         alloc_type_log("alloc_memory(%u, %u, %s)\n", n_elements, element_size, tag);
 
-        return sdl_alloc(n_elements, element_size);
+        return unaligned_alloc(n_elements, element_size);
     }
 
 
@@ -121,7 +147,7 @@ namespace mem
     void free_memory(void* ptr, u32 element_size)
     {
         alloc_type_log("free_memory(%p, %u)\n", ptr, element_size);
-        sdl_free(ptr, element_size);
+        unaligned_free(ptr);
     }
 
 
@@ -145,338 +171,7 @@ namespace mem
 
 #else
 
-#include "../span/span.hpp"
-
-
-namespace counts
-{
-    constexpr auto NO_TAG = "no tag";
-
-
-    static constexpr cstr bit_width_str(u32 size)
-    {
-        switch (size)
-        {
-        case 1: return "8 bit";
-        case 2: return "16 bit";
-        case 4: return "32 bit";
-        case 8: return "64 bit";
-        case 16: return "128 bit";
-        default: return "void/any";
-        }
-    }
-    
-    
-    class AllocLog
-    {
-    public:
-        static constexpr u32 capacity = mem::AllocationStatus::MAX_SLOTS;
-
-        u32 size = 0;
-
-        cstr tags[capacity] = {0};
-        cstr actions[capacity] = {0};
-        u32 sizes[capacity] = {0};
-        u32 n_allocs[capacity] = {0};
-        u32 n_bytes[capacity] = {0};
-    };
-
-
-    template <u32 ELE_SZ>
-    class AllocCounts
-    {
-    public:
-        static constexpr u32 element_size = ELE_SZ ? ELE_SZ : 1;
-        static constexpr u32 max_allocations = mem::AllocationStatus::MAX_SLOTS;
-
-        cstr type_name = bit_width_str(ELE_SZ);
-
-        void* keys[max_allocations] = { 0 };
-        u32 byte_counts[max_allocations] = { 0 };
-        u32 element_counts[max_allocations] = { 0 };
-        cstr tags[max_allocations] = { 0 };
-
-        u32 bytes_allocated = 0;
-        u32 elements_allocated = 0;
-        u32 n_allocations = 0;
-
-        AllocLog log;
-
-
-        void update_element_counts(u32 slot)
-        {
-            elements_allocated = bytes_allocated / element_size;
-            element_counts[slot] = byte_counts[slot] / element_size;
-        }
-
-
-        void log_alloc(cstr action, u32 slot, void* ptr)
-        {
-            auto i = log.size;
-            log.size++;
-
-            log.tags[i] = tags[slot];
-            log.actions[i] = action;
-            log.sizes[i] = byte_counts[slot];
-            log.n_allocs[i] = n_allocations;
-            log.n_bytes[i] = bytes_allocated;
-
-            alloc_type_log("%s<%u>(%s) | %s (%p) | %u/%u (%u)\n", action, element_size, type_name, tags[slot], ptr, n_allocations, max_allocations, bytes_allocated);
-        }
-
-
-        void* add_allocation(u32 n_elements, cstr tag)
-        {
-            // find next available slot
-            u32 i = 0; 
-            for (;i < max_allocations && keys[i]; i++)
-            { }
-
-            if (i >= max_allocations || keys[i])
-            {
-                alloc_type_assert("*** Allocation limit reached ***" && false);
-                alloc_type_log("Allocation limit reached (%u)\n", element_size);
-                return 0;
-            }
-
-            auto data = mem::sdl_alloc(n_elements, element_size);
-            if (!data)
-            {
-                alloc_type_assert("*** Allocation failed ***" && false);
-                alloc_type_log("Allocation failed");
-                return 0;
-            }            
-
-            u32 const n_bytes = n_elements * element_size;
-
-            n_allocations++;
-            bytes_allocated += n_bytes;
-            keys[i] = data;
-            byte_counts[i] = n_bytes;
-            tags[i] = tag ? tag : NO_TAG;
-
-            update_element_counts(i);
-            log_alloc("alloc", i, data);
-
-            return data;
-        }
-
-
-        void add_allocated(void* data, u32 n_elements, cstr tag)
-        {
-            // find next available slot
-            u32 i = 0; 
-            for (;i < max_allocations && keys[i]; i++)
-            { }
-
-            if (i >= max_allocations || keys[i])
-            {
-                alloc_type_assert("*** Allocation limit reached ***" && false);
-                alloc_type_log("Allocation limit reached (%u)\n", element_size);
-                return;
-            }
-
-            u32 const n_bytes = n_elements * element_size;
-
-            n_allocations++;
-            bytes_allocated += n_bytes;
-            keys[i] = data;
-            byte_counts[i] = n_bytes;
-            tags[i] = tag ? tag : NO_TAG;
-
-            update_element_counts(i);
-            log_alloc("add", i, data);
-        }
-
-
-        bool remove_allocation(void* ptr)
-        {
-            // find slot
-            u32 i = 0; 
-            for (; i < max_allocations && keys[i] != ptr; i++)
-            { }
-
-            if (i >= max_allocations)
-            {
-                return false;
-            }
-
-            mem::sdl_free(keys[i], element_size);
-            n_allocations--;
-            bytes_allocated -= byte_counts[i];
-            keys[i] = 0;
-            tags[i] = 0;
-            byte_counts[i] = 0;
-
-            update_element_counts(i);
-            log_alloc("free", i, ptr);
-
-            return true;
-        }
-
-
-        void tag_allocation(void* ptr, u32 n_elements, cstr tag)
-        {
-            // find slot, if any
-            u32 i = 0; 
-            for (;i < max_allocations && keys[i] != ptr; i++)
-            { }
-
-            if (i >= max_allocations)
-            {
-                // already tagged
-                return;
-            }
-
-            // find next available slot
-            i = 0; 
-            for (;i < max_allocations && keys[i]; i++)
-            { }
-
-            if (i >= max_allocations || keys[i])
-            {
-                alloc_type_assert("*** Allocation limit reached ***" && false);
-                alloc_type_log("Allocation limit reached (%u)\n", element_size);
-                return;
-            }
-
-            u32 const n_bytes = n_elements * element_size;
-
-            n_allocations++;
-            bytes_allocated += n_bytes;
-            keys[i] = ptr;
-            byte_counts[i] = n_bytes;
-            tags[i] = tag;
-
-            update_element_counts(i);
-            log_alloc("tagged", i, ptr);
-        }
-
-
-        void untag_allocation(void* ptr)
-        {
-            // find slot
-            u32 i = 0; 
-            for (; i < max_allocations && keys[i] != ptr; i++)
-            { }
-
-            if (i >= max_allocations)
-            {
-                alloc_type_assert("*** Allocation not found ***" && false);
-                alloc_type_log("Allocation not found (%u)\n", element_size);
-                return;
-            }
-
-            n_allocations--;
-            bytes_allocated -= byte_counts[i];
-            keys[i] = 0;
-            tags[i] = 0;
-            byte_counts[i] = 0;
-
-            update_element_counts(i);
-            log_alloc("untagged", i, ptr);
-        }
-    };
-}
-
-
-/* static data */
-
-namespace mem
-{
-    counts::AllocCounts<1> alloc_8;
-    counts::AllocCounts<2> alloc_16;
-    counts::AllocCounts<4> alloc_32;
-    counts::AllocCounts<8> alloc_64;
-    counts::AllocCounts<16> alloc_128;
-}
-
-
-/* helpers */
-
-namespace mem
-{
-    static void free_unknown(void* ptr)
-    {
-        auto free = 
-            alloc_8.remove_allocation(ptr) ||
-            alloc_16.remove_allocation(ptr) ||
-            alloc_32.remove_allocation(ptr) ||
-            alloc_64.remove_allocation(ptr) ||
-            alloc_128.remove_allocation(ptr);
-
-        if (free)
-        {
-            return;
-        }
-        
-        //alloc_type_assert("*** Allocation not found ***" && false);
-
-        alloc_type_log("Allocation not found (%p)\n", ptr);
-
-        sdl_free(ptr);
-    }
-
-
-    static bool free_allocation(void* ptr, u32 element_size)
-    {
-        switch (element_size)
-        {
-        case 1: return alloc_8.remove_allocation(ptr);
-        case 2: return alloc_16.remove_allocation(ptr);
-        case 4: return alloc_32.remove_allocation(ptr);
-        case 8: return alloc_64.remove_allocation(ptr);
-        case 16: return alloc_128.remove_allocation(ptr);
-        default: return alloc_8.remove_allocation(ptr);
-        }
-    }
-
-
-    template <u32 ELE_SZ>
-    static void set_status(counts::AllocCounts<ELE_SZ> const& src, AllocationStatus& dst)
-    {
-        dst.type_name = src.type_name;
-        dst.element_size = src.element_size;
-        dst.max_allocations = src.max_allocations;
-
-        dst.bytes_allocated = src.bytes_allocated;
-        dst.elements_allocated = src.elements_allocated;
-        dst.n_allocations = src.n_allocations;
-
-        u32 d = 0;
-        for (u32 i = 0; i < src.max_allocations; i++)
-        {
-            if (src.keys[i])
-            {
-                dst.slot_tags[d] = src.tags[i];
-                dst.slot_sizes[d] = src.byte_counts[i];
-                d++;
-            }            
-        }
-    }
-
-
-    template <u32 ELE_SZ>
-    static void set_history(counts::AllocCounts<ELE_SZ> const& src, AllocationHistory& dst)
-    {
-        dst.type_name = src.type_name;
-        dst.element_size = src.element_size;
-        dst.max_allocations = src.max_allocations;
-
-        auto& log = src.log;
-
-        dst.n_items = (u32)log.size;
-
-        if (dst.n_items)
-        {
-            dst.tags = (cstr*)log.tags;
-            dst.actions = (cstr*)log.actions;
-            dst.sizes = (u32*)log.sizes;
-            dst.n_allocs = (u32*)log.n_allocs;
-            dst.n_bytes = (u32*)log.n_bytes;
-        }
-    }
-}
+#include "../alloc_type/alloc_count.hpp"
 
 
 /* api */

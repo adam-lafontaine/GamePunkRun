@@ -65,7 +65,7 @@ namespace image
         if (image.data_)
 		{
 			mem::free(image.data_);
-			image.data_ = nullptr;
+			image.data_ = 0;
 		}
 
 		image.width = 0;
@@ -2271,7 +2271,7 @@ namespace image
 
         mem::free_any((void*)data);
 
-		image_dst.data_ = dst.data;
+		image_dst.data_ = aligned;
 		image_dst.width = width;
 		image_dst.height = height;
 
@@ -2317,7 +2317,7 @@ namespace image
 
         mem::free_any((void*)data);
 
-		image_dst.data_ = dst.data;
+		image_dst.data_ = aligned;
 		image_dst.width = width;
 		image_dst.height = height;
 
@@ -2412,7 +2412,7 @@ namespace image
 
         mem::free_any((void*)data);
 
-		image_dst.data_ = dst.data;
+		image_dst.data_ = aligned;
 		image_dst.width = width;
 		image_dst.height = height;
 
@@ -2458,7 +2458,7 @@ namespace image
 
         mem::free_any((void*)data);
 
-		image_dst.data_ = dst.data;
+		image_dst.data_ = aligned;
 		image_dst.width = width;
 		image_dst.height = height;
 
