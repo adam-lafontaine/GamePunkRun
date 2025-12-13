@@ -15,7 +15,7 @@ const pltfm_imgui = src ++ "/pltfm/imgui_sdl2_dx11";
 
 
 
-const main_cpp = "./engine_main_ubuntu.cpp";
+const main_cpp = "./engine_main_win.cpp";
 const imgui_cpp = pltfm_imgui ++ "/imgui_o.cpp";
 
 const app_name = "engine";
@@ -34,6 +34,7 @@ const cpp_flags = &[_][]const u8{
 
 const inc_paths = &[_][]const u8{
     inc_all,
+    inc_all ++ "/SDL2"
 };
 
 const lib_paths = &[_][]const u8{
@@ -43,12 +44,10 @@ const lib_paths = &[_][]const u8{
 const cpp_libs = &[_][]const u8{
     "SDL2",
     "SDL2_mixer",
-    "pthread",
-    "tbb",
-    "imm32",
+    //"imm32",
     "d3d11",
     "d3dcompiler",
-    "dxgi"
+    //"dxgi"
 };
 
 
@@ -62,7 +61,8 @@ pub fn build(b: *std.Build) void
         .name = app_name,
         .root_module = b.createModule(.{
             .root_source_file = null,
-            .target = b.resolveTargetQuery(.{ .cpu_arch = .x86_64, .os_tag = .windows }),
+            //.target = b.resolveTargetQuery(.{ .cpu_arch = .x86_64, .os_tag = .windows }),
+            .target = b.graph.host,
             .optimize = optimize,
         }),
     });
