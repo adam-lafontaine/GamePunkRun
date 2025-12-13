@@ -229,7 +229,7 @@ namespace counts
         {
             // find next available slot
             u32 i = 0; 
-            for (;keys[i] && i < max_allocations; i++)
+            for (;i < max_allocations && keys[i]; i++)
             { }
 
             if (i >= max_allocations || keys[i])
@@ -266,7 +266,7 @@ namespace counts
         {
             // find next available slot
             u32 i = 0; 
-            for (;keys[i] && i < max_allocations; i++)
+            for (;i < max_allocations && keys[i]; i++)
             { }
 
             if (i >= max_allocations || keys[i])
@@ -293,7 +293,7 @@ namespace counts
         {
             // find slot
             u32 i = 0; 
-            for (;keys[i] != ptr && i < max_allocations; i++)
+            for (; i < max_allocations && keys[i] != ptr; i++)
             { }
 
             if (i >= max_allocations)
@@ -319,7 +319,7 @@ namespace counts
         {
             // find slot, if any
             u32 i = 0; 
-            for (;keys[i] != ptr && i < max_allocations; i++)
+            for (;i < max_allocations && keys[i] != ptr; i++)
             { }
 
             if (i >= max_allocations)
@@ -330,7 +330,7 @@ namespace counts
 
             // find next available slot
             i = 0; 
-            for (;keys[i] && i < max_allocations; i++)
+            for (;i < max_allocations && keys[i]; i++)
             { }
 
             if (i >= max_allocations || keys[i])
@@ -357,7 +357,7 @@ namespace counts
         {
             // find slot
             u32 i = 0; 
-            for (;keys[i] != ptr && i < max_allocations; i++)
+            for (; i < max_allocations && keys[i] != ptr; i++)
             { }
 
             if (i >= max_allocations)

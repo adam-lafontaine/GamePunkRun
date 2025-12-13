@@ -206,7 +206,7 @@ namespace counts
 
         // find next available slot
         u32 i = 0; 
-        for (;ac.keys[i] && i < ac.max_allocations; i++)
+        for (; i < ac.max_allocations && ac.keys[i] != ptr; i++)
         { }
 
         assert(i < ac.max_allocations && "*** Allocation limit reached ***");
@@ -247,7 +247,7 @@ namespace counts
 
         // find slot
         u32 i = 0;
-        for (; ac.keys[i] != ptr && i < ac.max_allocations; i++)
+        for (; i < ac.max_allocations && ac.keys[i] != ptr; i++)
         { }
         
         if (i >= ac.max_allocations)
@@ -279,7 +279,7 @@ namespace counts
 
         // find slot, if any
         u32 i = 0;
-        for (; ac.keys[i] != ptr && i < ac.max_allocations; i++)
+        for (; i < ac.max_allocations && ac.keys[i] != ptr; i++)
         { }
 
         if (i < ac.max_allocations)
@@ -290,7 +290,7 @@ namespace counts
 
         // find next available slot
         i = 0; 
-        for (;ac.keys[i] && i < ac.max_allocations; i++)
+        for (; i < ac.max_allocations && ac.keys[i] != ptr; i++)
         { }
 
         assert(i < ac.max_allocations && "*** Allocation limit reached ***");
@@ -323,7 +323,7 @@ namespace counts
         
         // find slot
         u32 i = 0;
-        for (; ac.keys[i] != ptr && i < ac.max_allocations; i++)
+        for (; i < ac.max_allocations && ac.keys[i] != ptr; i++)
         { }
         
         if (i >= ac.max_allocations)
