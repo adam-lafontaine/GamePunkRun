@@ -1,7 +1,7 @@
 #pragma once
 
 //#define NO_GAMEPAD
-//#define SINGLE_GAMEPAD
+#define SINGLE_GAMEPAD
 
 
 #define GAMEPAD_BTN_DPAD_UP 1

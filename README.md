@@ -12,7 +12,7 @@ https://itch.io/c/2053292/cyberpunk-pixel-art
 * [ ] Refactor rendering
 * [ ] Refactor font and icons
 * [ ] Name UI icons
-* [ ] Fix input single gamepad
+* [x] Fix input single gamepad
 * [x] Zig builds
 * [x] Refactor alloc count
 * [ ] Automate release builds

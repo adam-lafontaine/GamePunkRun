@@ -4,7 +4,7 @@
 
 // for testing
 //#ifndef ALLOC_COUNT
-#define ALLOC_COUNT
+//#define ALLOC_COUNT
 //#endif
 
 

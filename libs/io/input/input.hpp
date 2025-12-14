@@ -509,6 +509,7 @@ namespace input
 		union
 		{
 			GamepadInput gamepad;
+
 			GamepadInput gamepads[MAX_GAMEPADS];
 		};		
 		
@@ -529,7 +530,7 @@ namespace input
 		JoystickInput joysticks[MAX_JOYSTICKS];
 	#endif
 
-		
+		Input(){}
 	};
 
 
