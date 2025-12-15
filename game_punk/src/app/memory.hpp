@@ -14,6 +14,8 @@ namespace game_punk
         u32 count_32 = 0;
         u32 count_64 = 0;
         u32 count_misc = 0;
+
+        u32 count_render32 = 0;
     };
 
 
@@ -33,6 +35,12 @@ namespace game_punk
     }
 
 
+    void add_render_count(MemoryCounts& mc, u32 n)
+    {
+        mc.count_render32 += n;
+    }
+
+
     class Memory
     {
     public:
@@ -43,6 +51,8 @@ namespace game_punk
         Buffer32 mem_32;
         Buffer64 mem_64;
         Buffer8 mem_misc;
+
+        Buffer32 render32;
     };
 
 
@@ -53,6 +63,8 @@ namespace game_punk
         mb::destroy_buffer(mem.mem_32);
         mb::destroy_buffer(mem.mem_64);
         mb::destroy_buffer(mem.mem_misc);
+
+        mb::destroy_buffer(mem.render32);
 
         mem.ok = false;
     }
@@ -83,6 +95,7 @@ namespace game_punk
         create(mem.mem_32, counts.count_32, "32");
         create(mem.mem_64, counts.count_64, "64");
         create(mem.mem_misc, counts.count_misc, "misc");
+        create(mem.render32, counts.count_render32, "render");
 
         if (!ok)
         {
@@ -122,6 +135,21 @@ namespace game_punk
     }
 
 
+    static Result<p32*> push_mem_render(Memory& mem, u32 n_elements)
+    {
+        Result<p32*> res{};
+        res.ok = false;
+
+        res.data = (p32*)mb::push_elements(mem.render32, n_elements);
+        if (res.data)
+        {
+            res.ok = true;
+        }
+
+        return res;
+    }
+
+
     static void log_mem(Memory const& mem, MemoryCounts const& mc)
     {
         auto const write = [](cstr name, auto const& mem, u32 count)
@@ -135,6 +163,7 @@ namespace game_punk
         write("    32", mem.mem_32, mc.count_32);
         write("    64", mem.mem_64, mc.count_64);
         write("  misc", mem.mem_misc, mc.count_misc);
+        write("render", mem.render32, mc.count_render32);
         app_log("\n");
     }
 
@@ -159,6 +188,9 @@ namespace game_punk
 
         ok &= is_ok(memory.mem_misc);
         app_assert(ok && "*** Misc Memory not allocated ***");
+
+        ok &= is_ok(memory.render32);
+        app_assert(ok && "*** Render Memory not allocated ***");
 
         return ok;
     }
