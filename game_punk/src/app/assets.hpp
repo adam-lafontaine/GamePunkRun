@@ -497,7 +497,7 @@ namespace assets
         static_assert(file_type_ok && "*** Grayscale image expected ***");
         static_assert(table_type_ok && "*** RGBA image expected ***");
 
-        static_assert(ui.CTS == font.color_table.width);
+        static_assert(UIState::CTS == font.color_table.width);
 
         bool ok = true;
 

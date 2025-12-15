@@ -3,6 +3,10 @@
 #define STB_IMAGE_RESIZE_IMPLEMENTATION
 #include "stb_image_options.hpp"
 
+#ifndef NDEBUG
+#define STB_SPRINTF_NOUNALIGNED
+#endif
+
 #define STB_SPRINTF_IMPLEMENTATION
 #include "stb_sprintf.h"
 
