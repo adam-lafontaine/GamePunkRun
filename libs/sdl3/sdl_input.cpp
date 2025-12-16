@@ -172,8 +172,8 @@ namespace input
 {
     static constexpr Uint32 subsystem_flags()
     {
-        auto gamepad = (N_GAMEPAD_BUTTONS || N_GAMEPAD_AXES) ? SDL_INIT_GAMEPAD : 0u;
-        auto joystick = (N_JOYSTICK_BUTTONS || N_JOYSTICK_AXES) ? SDL_INIT_JOYSTICK : 0u;
+        constexpr auto gamepad = (N_GAMEPAD_BUTTONS > 0 || N_GAMEPAD_AXES > 0) ? SDL_INIT_GAMEPAD : 0u;
+        constexpr auto joystick = (N_JOYSTICK_BUTTONS > 0 || N_JOYSTICK_AXES > 0) ? SDL_INIT_JOYSTICK : 0u;
 
         return gamepad | joystick;
     }

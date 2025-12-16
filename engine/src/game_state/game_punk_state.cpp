@@ -71,13 +71,10 @@ namespace internal
     {
         ImGui::SeparatorText("Camera");
 
-        auto dims = data.camera.viewport_pos_px.game;
+        auto dims = data.camera.bg_pos.game;
 
         ImGui::Text("Position: (%u, %u)", dims.x, dims.y);
         ImGui::Text("Color: %u", data.ui.font_color_id);
-
-        auto pos = data.icon_pos.game;
-        ImGui::Text("Icon: (%d, %d)", pos.x, pos.y);
     }
     
     

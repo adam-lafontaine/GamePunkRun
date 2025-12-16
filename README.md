@@ -5,6 +5,11 @@ Assets:
 https://itch.io/c/2053292/cyberpunk-pixel-art
 
 
+## Notes
+
+Position is the game tick
+
+
 ## Change Log
 
 

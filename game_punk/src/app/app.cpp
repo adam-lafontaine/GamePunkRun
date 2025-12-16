@@ -52,24 +52,6 @@ namespace game_punk
     constexpr p32 COLOR_WHITE = img::to_pixel(255);
     //constexpr p32 COLOR_BG_1 = img::to_pixel(139, 171, 191); // 8babbf
     //constexpr p32 COLOR_BG_2 = img::to_pixel(86, 106, 137); // 566a89
-
-
-    enum class RenderLayerId : u32
-    {
-        Sprites = 0,
-        Background_2,
-        Background_1,
-        Sky,
-        Count
-    };
-
-
-    enum class CameraLayerId : u32
-    {
-        UI = 0,
-        HUD,
-        Count
-    };
 }
 
 
@@ -105,6 +87,9 @@ namespace game_punk
     };
 
 
+    using FnUpdate = void (*)(StateData& data, InputCommand const& cmd);
+
+
 
     class StateData
     {
@@ -114,15 +99,14 @@ namespace game_punk
         static constexpr u32 game_height = cxpr::GAME_BACKGROUND_HEIGHT_PX;
 
         GameMode game_mode;
+        FnUpdate fn_update;
 
         BackgroundState background;
         SpritesheetState spritesheet;
         TileState tiles;
         UIState ui;
 
-        GameCamera camera;
-
-        RenderState render;       
+        ScreenCamera camera;
 
         DrawQueue drawq;
         AnimationFast punk_animation;
@@ -135,10 +119,6 @@ namespace game_punk
         u8 camera_speed_px;
 
         Randomf32 rng;
-
-
-        // Temp icon
-        CtxPt2Di32 icon_pos;
     };
 
 
@@ -149,16 +129,19 @@ namespace game_punk
         data.game_tick = GameTick64::zero();
         data.camera_speed_px = 2;
 
+        app_log("1\n");
+
         reset_background_state(data.background);
-        reset_render_state(data.render);
-        reset_game_camera(data.camera);
+        app_log("2\n");
+        reset_screen_camera(data.camera);
+        app_log("3\n");
         reset_random(data.rng);
+        app_log("4\n");
 
         reset_ui_state(data.ui);
+        app_log("5\n");
         set_ui_color(data.ui, 20);
-
-        data.icon_pos.game.x = 86;
-        data.icon_pos.game.y = 59;
+        app_log("6\n");
     }
 
 
@@ -236,8 +219,6 @@ namespace game_punk
             return AppError::Memory;
         }
 
-        init_render_state(data.render);
-
         return AppError::None;
     }
 }
@@ -249,14 +230,18 @@ namespace game_punk
 
 namespace game_punk
 {
-    static void start_new_frame(StateData& data)
+    static void begin_update(StateData& data)
     {
         ++data.game_tick;
-        clear_render_layer(data.spritesheet.layer_sprite);
-        start_ui_frame(data.ui);
-        start_random_frame(data.rng);
-        clear_camera_layer(data.render.screen_out);
+        begin_ui_frame(data.ui);
+        begin_random_frame(data.rng);
         reset_draw(data.drawq); 
+    }
+
+
+    static void end_update(StateData& data)
+    {
+
     }
 
 
@@ -272,16 +257,6 @@ namespace game_punk
             delta_px.y = (i8)dy;
 
             move_camera(data.camera, delta_px);
-        }
-
-        // temp        
-        if (cmd.icon.move)
-        {            
-            auto dx = ((i32)cmd.icon.east - (i32)cmd.icon.west);
-            auto dy = ((i32)cmd.icon.north - (i32)cmd.icon.south);            
-
-            data.icon_pos.game.x += dx;
-            data.icon_pos.game.y += dy;
         }
     }
 
@@ -302,23 +277,23 @@ namespace game_punk
     static void draw_background(StateData& data)
     {
         auto& bg = data.background;
+        auto& dq = data.drawq;
+        auto& camera = data.camera;
 
         render_background_sky(bg, data.game_tick);
-
-        copy(bg.data.bg_1, bg.layer_bg_1);
-        copy(bg.data.bg_2, bg.layer_bg_2);
+        
+        push_draw(dq, bg.sky[bg.sky_id], camera);
+        push_draw(dq, bg.data.bg_1, camera);
+        push_draw(dq, bg.data.bg_2, camera);
     }
     
     
     static void draw_tiles(StateData& data)
     {
-        auto& layer = data.spritesheet.layer_sprite;
-        if (!layer_active(layer))
-        {
-            return;
-        }
+        auto& dq = data.drawq;
+        auto& camera = data.camera;
 
-        auto pos = CtxPt2Di32(0, 0, DimCtx::Game);
+        auto pos = BackgroundPosition(0, 0, DimCtx::Game);
         auto& gpos = pos.game;
 
         // draw floor tiles
@@ -331,7 +306,7 @@ namespace game_punk
         u32 tile_id = 0;
         for (; pos.game.x < data.game_width; pos.game.x += tile_w)
         {
-            push_draw_tile(data.drawq, tiles[tile_id], layer, pos);
+            push_draw(dq, tiles[tile_id], pos, camera);
             tile_id = !tile_id;
         }
     }
@@ -341,78 +316,30 @@ namespace game_punk
     {
         constexpr auto tile_h = bt::Tileset_ex_zone().items[0].height;
 
-        auto& layer = data.spritesheet.layer_sprite;
-        if (!layer_active(layer))
-        {
-            return;
-        }
+        auto& dq = data.drawq;
+        auto& camera = data.camera;
 
         // draw sprite
         auto frame = get_animation_bitmap(data.punk_animation, data.game_tick);
-        auto camera_w = data.camera.viewport_dims_px.game.width;
+        auto camera_w = CAMERA_DIMS.game.width;
         auto sprite_w = frame.dims.game.width;
 
         auto x = 16 + (i32)(camera_w - sprite_w) / 2;        
         auto y = (i32)tile_h;
 
-        auto pos = CtxPt2Di32(x, y, DimCtx::Game);
+        auto pos = BackgroundPosition(x, y, DimCtx::Game);
 
-        push_draw_sprite(data.drawq, frame, layer, pos);
+        push_draw(dq, frame, pos, camera);
     }
 
 
-    static void draw_ui_title(StateData& data)
+    static void render_screen(StateData& data)
     {
-        auto src = data.ui.data.title;
-        auto dst = to_image_view(data.ui.ui);
+        auto s = to_span(data.camera);
+        span::fill(s, COLOR_TRANSPARENT);
 
-        i32 x = 100;
-        i32 y = (dst.height - src.height) / 2;
-
-        Point2Di32 p = { x, y };
-        push_draw_view(data.drawq, src, dst, p);
-    }
-
-
-    static void draw_ui_icon(StateData& data)
-    {
-        // TEMP
-        auto src = get_ui_icon(data.ui, data.rng, data.game_tick);
-        auto dst = data.ui.ui;
-
-        push_draw_ui(data.drawq, src, dst, data.icon_pos);
-    }
-    
-    
-    static void draw_ui(StateData& data)
-    {
-        auto red = img::to_pixel(255, 0, 0);
-        auto green = img::to_pixel(0, 255, 0);
-
-        auto& ui = data.ui.ui;
-        
-        if (layer_active(ui))
-        {         
-            draw_ui_title(data);
-            draw_ui_icon(data);
-        }
-
-
-        auto& hud = data.ui.hud;
-        if (layer_active(hud))
-        {
-            //span::fill(to_span(hud), green);
-        }
-    }
-
-
-    static void render_screen(StateData& data, ImageView screen)
-    {
         draw(data.drawq);
 
-        render_to_screen(data.render, data.camera);
-
-        auto s = img::to_span(screen);
         for (u32 i = 0; i < s.length; i++)
         {
             s.data[i].alpha = 255;
@@ -438,7 +365,7 @@ namespace game_punk
             break;
 
         case GameMode::Title:
-            set_animation_spritesheet(data.punk_animation, data.spritesheet.data.punk_run);
+            set_animation_spritesheet(data.punk_animation, data.spritesheet.punk_run);
             data.game_tick = GameTick64::zero();
             break;
         }
@@ -475,7 +402,6 @@ namespace game_punk
         draw_background(data);
         draw_tiles(data);
         draw_sprites(data);
-        draw_ui(data);
     }
 }
 
@@ -499,7 +425,7 @@ namespace game_punk
         auto& data = get_data(state);        
         
         // reversed
-        auto& dims = data.camera.viewport_dims_px.proc;
+        auto dims = CAMERA_DIMS.proc;
         result.app_dimensions = { 
             dims.width,
             dims.height
@@ -526,7 +452,7 @@ namespace game_punk
         auto& data = get_data(state);        
         
         // reversed
-        auto& dims = data.camera.viewport_dims_px.proc;
+        auto dims = CAMERA_DIMS.proc;
         
         auto w_max = !available_dims.x ? dims.width : available_dims.x;
         auto h_max = !available_dims.y ? dims.height : available_dims.y;
@@ -566,22 +492,13 @@ namespace game_punk
         state.screen = screen;
 
         auto& data = get_data(state);
+        auto& camera = data.camera;
         auto& bg = data.background;
         auto& sprite = data.spritesheet;
-        auto& render = data.render;
-        auto& ui = data.ui;
 
         bool ok = true;
-        
-        ok &= set_out_layer(render, screen);
 
-        ok &= set_render_layer(render, bg.layer_sky, RenderLayerId::Sky);
-        ok &= set_render_layer(render, bg.layer_bg_1, RenderLayerId::Background_1);
-        ok &= set_render_layer(render, bg.layer_bg_2, RenderLayerId::Background_2);
-        ok &= set_render_layer(render, sprite.layer_sprite, RenderLayerId::Sprites);
-
-        ok &= set_ui_layer(render, ui.ui, CameraLayerId::UI);
-        ok &= set_ui_layer(render, ui.hud, CameraLayerId::HUD);
+        ok &= init_screen_camera(camera, screen);
 
         reset_state_data(data);
 
@@ -609,15 +526,8 @@ namespace game_punk
     void update(AppState& state, input::Input const& input)
     {
         auto& data = get_data(state);
-
-        data.background.layer_sky.active.set_active(1);
-        data.background.layer_bg_1.active.set_active(1);
-        data.background.layer_bg_2.active.set_active(1);
-        data.spritesheet.layer_sprite.active.set_active(1);
-        data.ui.hud.active.set_active(0);
-        data.ui.ui.active.set_active(1);
-
-        start_new_frame(data);
+        
+        begin_update(data);
 
         auto cmd = map_input(input);
 
@@ -638,7 +548,9 @@ namespace game_punk
             break;
         }
 
-        render_screen(data, state.screen);
+        render_screen(data);
+
+        end_update(data);
 
         //app_crash("*** Update not implemented ***");
     }
@@ -696,15 +608,8 @@ namespace game_punk
     void update_dbg(AppState& state, input::Input const& input, DebugContext const& dbg)
     {
         auto& data = get_data(state);
-
-        data.background.layer_sky.active.set_active(dbg.layers.sky);
-        data.background.layer_bg_1.active.set_active(dbg.layers.bg1);
-        data.background.layer_bg_2.active.set_active(dbg.layers.bg2);
-        data.spritesheet.layer_sprite.active.set_active(dbg.layers.sprite);
-        data.ui.hud.active.set_active(dbg.layers.hud);
-        data.ui.ui.active.set_active(dbg.layers.ui);
-
-        start_new_frame(data);
+        
+        begin_update(data);
 
         auto cmd = map_input(input);
 
@@ -725,7 +630,9 @@ namespace game_punk
             break;
         }
 
-        render_screen(data, state.screen);
+        render_screen(data);
+
+        end_update(data);
     }
 
 #endif

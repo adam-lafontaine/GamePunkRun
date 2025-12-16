@@ -6,7 +6,7 @@
 #include <SDL3/SDL.h>
 
 
-#define LOG_ALLOC_TYPE
+//#define LOG_ALLOC_TYPE
 #define ASSERT_ALLOC_TYPE
 
 

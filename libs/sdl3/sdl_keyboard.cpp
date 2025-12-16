@@ -334,6 +334,9 @@ namespace sdl
             //record_button_input(old_keyboard.kbd_A, new_keyboard.kbd_A, is_down);
             break;
         #endif
+
+        default:
+            break;
         }
     }
 
@@ -365,6 +368,9 @@ namespace sdl
             record_keycode_input(key_code, old_keyboard, new_keyboard, is_down);
             record_scancode_input(scan_code, old_keyboard, new_keyboard, is_down);
         } break;
+
+        default:
+            break;
         }
 
     #endif

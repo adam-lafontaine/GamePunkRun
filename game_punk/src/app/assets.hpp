@@ -209,7 +209,7 @@ namespace assets
     }
 
 
-    static bool load_sky_base_image(AssetData const& src, RenderView const& dst, ImageInfo const& info)
+    static bool load_sky_base_image(AssetData const& src, BackgroundView const& dst, ImageInfo const& info)
     {
         Image part_yx;
         bool ok = load_image_asset(src, part_yx, info);
@@ -285,7 +285,7 @@ namespace assets
     }
 
 
-    static bool load_background_image(AssetData const& src, RenderView const& dst, ImageInfo const& info)
+    static bool load_background_image(AssetData const& src, BackgroundView const& dst, ImageInfo const& info)
     {
         ImageGray mask_yx;
         bool ok = load_image_asset(src, mask_yx, info);
@@ -353,7 +353,7 @@ namespace game_punk
 {
 namespace assets
 {  
-    static bool load_sky_base(AssetData const& src, RenderView const& dst)
+    static bool load_sky_base(AssetData const& src, BackgroundView const& dst)
     {
         using FT = bt::FileType;
 
@@ -400,7 +400,7 @@ namespace assets
     }
 
 
-    static bool load_background_1(AssetData const& src, RenderView const& dst)
+    static bool load_background_1(AssetData const& src, BackgroundView const& dst)
     {
         using FT = bt::FileType;
 
@@ -426,7 +426,7 @@ namespace assets
     }
 
 
-    static bool load_background_2(AssetData const& src, RenderView const& dst)
+    static bool load_background_2(AssetData const& src, BackgroundView const& dst)
     {
         using FT = bt::FileType;
 
@@ -624,7 +624,7 @@ namespace assets
         ok &= load_image_asset(src, table, list.color_table);
 
         ok &= load_image_asset(src, spritesheet, list.file_info.Punk_run);
-        apply_color_table(spritesheet, ss_state.data.punk_run, table);
+        apply_color_table(spritesheet, ss_state.punk_run, table);
         img::destroy_image(spritesheet);
 
         img::destroy_image(table);
@@ -689,12 +689,6 @@ namespace assets
         ok &= load_ui_assets(src, data.ui);
 
         app_assert(ok && "*** Error reading asset data ***");
-
-        auto& bg = data.background;
-        update_sky_overlay(bg);
-        copy(bg.data.sky_base, bg.sky);
-        add_pma(bg.ov, bg.sky);
-        copy(bg.sky, bg.layer_sky);
 
         src.status = ok ? AssetStatus::Success : AssetStatus::FailRead;
     }
