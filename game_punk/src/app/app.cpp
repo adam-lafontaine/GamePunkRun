@@ -129,19 +129,12 @@ namespace game_punk
         data.game_tick = GameTick64::zero();
         data.camera_speed_px = 2;
 
-        app_log("1\n");
-
         reset_background_state(data.background);
-        app_log("2\n");
         reset_screen_camera(data.camera);
-        app_log("3\n");
         reset_random(data.rng);
-        app_log("4\n");
 
         reset_ui_state(data.ui);
-        app_log("5\n");
         set_ui_color(data.ui, 20);
-        app_log("6\n");
     }
 
 
@@ -279,12 +272,10 @@ namespace game_punk
         auto& bg = data.background;
         auto& dq = data.drawq;
         auto& camera = data.camera;
-
-        render_background_sky(bg, data.game_tick);
         
-        push_draw(dq, bg.sky[bg.sky_id], camera);
-        push_draw(dq, bg.data.bg_1, camera);
-        push_draw(dq, bg.data.bg_2, camera);
+        push_draw(dq, get_sky_animation(bg.sky, data.game_tick), camera);
+        push_draw(dq, bg.bg_1, camera);
+        push_draw(dq, bg.bg_2, camera);
     }
     
     

@@ -595,10 +595,12 @@ namespace assets
     {
         bool ok = true;
 
-        ok &= load_sky_base(src, bg_state.data.sky_base);
-        ok &= load_sky_overlay(src, bg_state.data.sky_overlay);
-        ok &= load_background_1(src, bg_state.data.bg_1);
-        ok &= load_background_2(src, bg_state.data.bg_2);
+        ok &= load_sky_base(src, bg_state.sky.base);
+        ok &= load_sky_overlay(src, bg_state.sky.overlay_src);
+        ok &= load_background_1(src, bg_state.bg_1);
+        ok &= load_background_2(src, bg_state.bg_2);
+
+        render_front_back(bg_state.sky);
 
         return ok;
     }

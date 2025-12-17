@@ -236,6 +236,56 @@ namespace game_punk
         filter_fill(dst, primary, secondary);
     }
 
+
+    template <typename T>
+    bool has_data(T const& item)
+    {
+        return !(!item.data);
+    }
+
+
+    bool has_data(ImageView const& view)
+    {
+        return !(!view.matrix_data_);
+    }
+
+}
+
+
+/* span cxpr */
+
+namespace game_punk
+{
+    template <u32 W, u32 H>
+    class Span32_cxpr
+    {
+    public:
+        static constexpr u32 length = W * H;
+        p32* data = 0;
+
+        constexpr Span32_cxpr(p32* pixels) { data = pixels; }
+    };
+
+
+    template <u32 W, u32 H>
+    static inline Span32 to_span(Span32_cxpr<W, H> const& sp)
+    {
+        return span::make_view(sp.data, sp.length);
+    }
+
+
+    template <u32 W, u32 H>
+    static inline void copy(Span32_cxpr<W, H> const& src, Span32_cxpr<W, H> const& dst)
+    {
+        span::copy(to_span(src), to_span(dst));
+    }
+
+
+    template <u32 W, u32 H>
+    static inline Span32 sub_view(Span32_cxpr<W, H> const& src, u32 offset, u32 length)
+    {
+        return span::sub_view(to_span(src), offset, length);
+    }
 }
 
 
@@ -557,6 +607,14 @@ namespace game_punk
     }
 
 
+    static auto to_span_cx(BackgroundView const& view)
+    {      
+        constexpr auto W = cxpr::GAME_BACKGROUND_WIDTH_PX;
+        constexpr auto H = cxpr::GAME_BACKGROUND_HEIGHT_PX;
+        return Span32_cxpr<W, H>(view.data);
+    }
+
+
     static Span32 to_span(BackgroundView const& view)
     {
         auto length = view.dims.proc.width * view.dims.proc.height;
@@ -573,14 +631,9 @@ namespace game_punk
 
     static void copy(BackgroundView const& src, BackgroundView const& dst)
     {
-        span::copy(to_span(src), to_span(dst));
+        copy(to_span_cx(src), to_span_cx(dst));
     }
 
-
-    static void add_pma(BackgroundView const& src, BackgroundView const& dst)
-    {
-        add_pma(to_span(src), to_span(dst));
-    }
 }
 
 
@@ -625,9 +678,18 @@ namespace game_punk
     }
 
 
+    static auto to_span_cx(SkyOverlayView const& view)
+    {
+        constexpr auto W = cxpr::SKY_OVERLAY_WIDTH_PX;
+        constexpr auto H = cxpr::SKY_OVERLAY_HEIGHT_PX;
+        return Span32_cxpr<W, H>(view.data);
+    }
+
+    
     static Span32 to_span(SkyOverlayView const& view)
     {
         auto length = view.width * view.height;
+
         return span::make_view(view.data, length);
     }
 
@@ -745,112 +807,101 @@ namespace game_punk
 }
 
 
-/* background images */
+/* sky animation */
 
 namespace game_punk
 {
-    class BackgroundState
+    class SkyAnimation
     {
-    public:        
+    public:
+        BackgroundView base;
+        SkyOverlayView overlay_src;
 
-        struct 
-        {
-            BackgroundView sky_base;
-            SkyOverlayView sky_overlay;
-
-            BackgroundView bg_1;
-            BackgroundView bg_2;
-
-        } data;
-        
         BackgroundPosition ov_pos;
         Vec2Di32 ov_vel;
-        BackgroundView ov;
+        BackgroundView ov_bg;
 
-        BackgroundView sky[2];
-        u8 sky_id = 0;
+        BackgroundView out[2];
+        u8 out_id = 0;
+
+
+        BackgroundView& out_front() { return out[out_id]; }
+
+        BackgroundView& out_back() { return out[!out_id]; }
+
+        void out_swap() { out_id = !out_id; }
     };
 
 
-    static void reset_background_state(BackgroundState& bg_state)
+    static void count_sky_animation(SkyAnimation& sky, MemoryCounts& counts)
     {
-        bool ok = true;
-        ok &= !(!bg_state.data.sky_base.data);
-        ok &= !(!bg_state.data.sky_overlay.data);
-
-        ok &= !(!bg_state.data.bg_1.data);
-        ok &= !(!bg_state.data.bg_2.data);
-
-        ok &= !(!bg_state.ov.data);
-
-        ok &= !(!bg_state.sky[0].data);
-        ok &= !(!bg_state.sky[1].data);
-
-        app_assert(ok && "*** BackgroundState not created ***");
-
-        bg_state.ov_pos.proc = { 0, 0 };
-        bg_state.ov_vel = { 2, 1 };
-
-        auto dst_ov = to_image_view(bg_state.ov);
-        auto w = dst_ov.width;
-        auto h = dst_ov.height;
-
-        auto& pos = bg_state.ov_pos;
-        
-        auto src_ov = sub_view(bg_state.data.sky_overlay, pos);
-        img::copy(src_ov, dst_ov);
-
-        bg_state.sky_id = 0;
-        auto& sky = bg_state.sky[bg_state.sky_id];
-
-        copy(bg_state.data.sky_base, sky);
-        add_pma(bg_state.ov, sky);
+        count_view(sky.base, counts);
+        count_view(sky.overlay_src, counts);
+        count_view(sky.ov_bg, counts);
+        count_view(sky.out[0], counts);
+        count_view(sky.out[1], counts);
     }
 
 
-    static void count_background_state(BackgroundState& bg_state, MemoryCounts& counts)
-    {  
-        count_view(bg_state.data.sky_base, counts);
-        count_view(bg_state.data.sky_overlay, counts);
-        count_view(bg_state.data.bg_1, counts);
-        count_view(bg_state.data.bg_2, counts);
-
-        count_view(bg_state.ov, counts);
-        count_view(bg_state.sky[0], counts);
-        count_view(bg_state.sky[1], counts);
-    }
-
-
-    static bool create_background_state(BackgroundState& bg_state, Memory& memory)
+    static bool create_sky_animation(SkyAnimation& sky, Memory& memory)
     {
         bool ok = true;
 
-        ok &= create_view(bg_state.data.sky_base, memory);
-        ok &= create_view(bg_state.data.sky_overlay, memory);
-        ok &= create_view(bg_state.data.bg_1, memory);
-        ok &= create_view(bg_state.data.bg_2, memory);
-
-        ok &= create_view(bg_state.ov, memory);
-        ok &= create_view(bg_state.sky[0], memory);
-        ok &= create_view(bg_state.sky[1], memory);
+        ok &= create_view(sky.base, memory);
+        ok &= create_view(sky.overlay_src, memory);
+        ok &= create_view(sky.ov_bg, memory);
+        ok &= create_view(sky.out[0], memory);
+        ok &= create_view(sky.out[1], memory);
 
         return ok;
     }
+    
 
-
-    static void update_sky_overlay(BackgroundState& bg_state)
+    static void render_front_back(SkyAnimation& sky)
     {
-        auto dst_ov = to_image_view(bg_state.ov);
-        auto w = dst_ov.width;
-        auto h = dst_ov.height;
+        auto base = to_span_cx(sky.base);        
+        auto ov = to_span_cx(sky.ov_bg);
+        auto front = to_span_cx(sky.out_front());
+        auto back = to_span_cx(sky.out_back());
 
-        auto& data_ov = bg_state.data.sky_overlay;
+        img::copy(sub_view(sky.overlay_src, sky.ov_pos), to_image_view(sky.ov_bg));
+
+        copy(base, front);
+        copy(front, back);
+    }
+
+
+    static void reset_sky_animation(SkyAnimation& sky)
+    {
+        sky.ov_pos.proc = { 0, 0 };
+        sky.ov_vel = { 2, 1 };
+
+        bool ok = true;
+        ok &= has_data(sky.base);
+        ok &= has_data(sky.overlay_src);
+        ok &= has_data(sky.ov_bg);
+        ok &= has_data(sky.out[0]);
+        ok &= has_data(sky.out[1]);
+
+        app_assert(ok && "*** SkyAnimation not created ***");
+
+        render_front_back(sky);
+    }
+
+
+    static void update_overlay(SkyAnimation& sky)
+    {
+        auto ov = to_image_view(sky.ov_bg);
+        auto w = ov.width;
+        auto h = ov.height;
+
+        auto& data_ov = sky.overlay_src;
 
         i32 xm = data_ov.width - w - 1;
         i32 ym = data_ov.height - h - 1;
 
-        auto& pos = bg_state.ov_pos.proc;
-        auto& vel = bg_state.ov_vel;
+        auto& pos = sky.ov_pos.proc;
+        auto& vel = sky.ov_vel;
 
         i32 x = pos.x + vel.x;
         i32 y = pos.y + vel.y;
@@ -872,53 +923,109 @@ namespace game_punk
         {
             pos.y = (u32)y;
         }
-        
-        auto src_ov = sub_view(data_ov, pos);
 
-        img::copy(src_ov, dst_ov);        
+        img::copy(sub_view(data_ov, pos), ov);
     }
     
     
-    static void render_background_sky(BackgroundState& bg_state, GameTick64 game_tick)
+    static BackgroundView get_sky_animation(SkyAnimation& sky, GameTick64 game_tick)
     {
         constexpr u32 frame_wait = 6;
 
-        if (game_tick.value_ < frame_wait)
-        {
-            return;
-        }
-
         auto t = game_tick.value_ % frame_wait;
 
-        auto const t_pma = [&]()
+        auto const render_back_part = [&]()
         {
-            auto ov = to_span(bg_state.ov);
-            auto sky = to_span(bg_state.sky[!bg_state.sky_id]);
-            u32 length = sky.length / (frame_wait - 2);
-            u32 offset = (t - 1) * length;
-            auto src = span::sub_view(ov, offset, length);
-            auto dst = span::sub_view(sky, offset, length);
+            constexpr auto N = frame_wait - 2;
+
+            auto ov = to_span_cx(sky.ov_bg);
+            auto out = to_span_cx(sky.out_back());
+
+            constexpr auto L1 = ov.length;
+            constexpr auto L2 = out.length;
+            static_assert(L1 == L2);
+            static_assert(L1 % N == 0);
+
+            constexpr u32 length = L1 / N;
+            u32 offset = (t - 2) * length;
+            auto src = sub_view(ov, offset, length);
+            auto dst = sub_view(out, offset, length);
             add_pma(src, dst);
         };
 
         switch (t)
         {
         case 0:
-            update_sky_overlay(bg_state);
-            copy(bg_state.data.sky_base, bg_state.sky[!bg_state.sky_id]);
+            // expose for rendering
+            sky.out_swap();
+            copy(sky.base, sky.out_back());
             break;
 
-        case (frame_wait - 1):
-            // expose for rendering
-            bg_state.sky_id = !bg_state.sky_id;
+        case 1:
+            update_overlay(sky);
             break;
 
         default: 
-            t_pma();
+            render_back_part();
             break;
-        }        
+        }
+
+        return sky.out_front();
     }
+
+
     
+}
+
+
+/* background images */
+
+namespace game_punk
+{
+    class BackgroundState
+    {
+    public:
+
+        SkyAnimation sky;
+
+        BackgroundView bg_1;
+        BackgroundView bg_2;        
+    };
+
+
+    static void reset_background_state(BackgroundState& bg)
+    {
+        bool ok = true;
+
+        ok &= has_data(bg.bg_1);
+        ok &= has_data(bg.bg_2);
+
+        app_assert(ok && "*** BackgroundState not created ***");
+
+        reset_sky_animation(bg.sky);
+    }
+
+
+    static void count_background_state(BackgroundState& bg_state, MemoryCounts& counts)
+    {  
+        count_sky_animation(bg_state.sky, counts);
+        
+        count_view(bg_state.bg_1, counts);
+        count_view(bg_state.bg_2, counts);
+    }
+
+
+    static bool create_background_state(BackgroundState& bg_state, Memory& memory)
+    {
+        bool ok = true;
+
+        ok &= create_sky_animation(bg_state.sky, memory);
+
+        ok &= create_view(bg_state.bg_1, memory);
+        ok &= create_view(bg_state.bg_2, memory);
+
+        return ok;
+    }
 
 }
 
@@ -1277,7 +1384,7 @@ namespace game_punk
 
         auto dims = CAMERA_DIMS.proc;
 
-        ok &= !(!view.matrix_data_);
+        ok &= has_data(view);
         ok &= view.width == dims.width;
         ok &= view.height == dims.height;
 
