@@ -37,7 +37,7 @@ namespace mem
 
     static void* aligned_alloc(u32 n_elements, u32 element_size)
     {
-        alloc_type_log("alloc_memory(%u, %u, %s)\n", n_elements, element_size, tag);
+        alloc_type_log("alloc_memory(%u, %u, %s)\n", n_elements, element_size);
 
         auto n_bytes = n_elements * element_size;
 
@@ -211,47 +211,6 @@ namespace mem
         case 16: alloc_128.untag_allocation(ptr); break;
         default: alloc_8.untag_allocation(ptr); break;
         }
-    }
-}
-
-
-/* ALLOC_COUNT */
-
-namespace mem
-{
-    AllocationStatus query_status(u32 element_size)
-    {
-        AllocationStatus status{};
-
-        switch (element_size)
-        {
-        case 1: set_status(alloc_8, status); break;
-        case 2: set_status(alloc_16, status); break;
-        case 4: set_status(alloc_32, status); break;
-        case 8: set_status(alloc_64, status); break;
-        case 16: set_status(alloc_128, status); break;        
-        default: set_status(alloc_8, status); break;
-        }
-
-        return status;
-    }
-
-
-    AllocationHistory query_history(u32 element_size)
-    {
-        AllocationHistory history{};
-
-        switch (element_size)
-        {
-        case 1: set_history(alloc_8, history); break;
-        case 2: set_history(alloc_16, history); break;
-        case 4: set_history(alloc_32, history); break;
-        case 8: set_history(alloc_64, history); break;
-        case 16: set_history(alloc_128, history); break;        
-        default: set_history(alloc_8, history); break;
-        }
-
-        return history;
     }
 }
 

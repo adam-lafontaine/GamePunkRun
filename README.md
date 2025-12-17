@@ -12,9 +12,12 @@ Position is the game tick
 
 ## Change Log
 
+### v0.2.0
+* [ ] Release files
+* [ ] Itch.io
+* [ ] CMS page
 
-### v0.1.1 TODO
-
+### v0.1.1
 * [x] Fix input single gamepad
 * [x] Zig builds
 * [x] Refactor alloc count
@@ -23,9 +26,6 @@ Position is the game tick
 * [ ] Name UI icons
 * [ ] Asset u8 pixel codes
 * [ ] Automate release builds
-* [ ] Release files
-* [ ] Itch.io
-* [ ] CMS page
 
 ### v0.1.0
 * [x] Add project files

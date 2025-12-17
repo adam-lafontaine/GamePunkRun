@@ -394,6 +394,12 @@ namespace game_punk
         draw_tiles(data);
         draw_sprites(data);
     }
+
+
+    static void game_mode_update(StateData& data, InputCommand const& cmd)
+    {
+
+    }
 }
 
 

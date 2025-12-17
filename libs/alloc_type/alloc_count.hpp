@@ -10,7 +10,6 @@
 #define alloc_type_assert(...)
 #endif
 
-
 #ifdef ALLOC_COUNT
 
 #include "../span/span.hpp"
@@ -108,6 +107,7 @@ namespace counts
             return i;
         }
 
+
         void update_element_counts(u32 slot)
         {
             elements_allocated = bytes_allocated / element_size;
@@ -193,6 +193,8 @@ namespace counts
                 return false;
             }
 
+            log_alloc("free", i, ptr);
+
             mem::aligned_free(keys[i], element_size);
             n_allocations--;
             bytes_allocated -= byte_counts[i];
@@ -200,8 +202,7 @@ namespace counts
             tags[i] = 0;
             byte_counts[i] = 0;
 
-            update_element_counts(i);
-            log_alloc("free", i, ptr);
+            update_element_counts(i);            
 
             return true;
         }
@@ -209,6 +210,8 @@ namespace counts
 
         void tag_allocation(void* ptr, u32 n_elements, cstr tag)
         {
+            assert(tag && "*** No tag set ***");
+
             auto i = find_slot(ptr);
             if (i >= 0)
             {
@@ -265,6 +268,15 @@ namespace mem
     counts::AllocCounts<4> alloc_32;
     counts::AllocCounts<8> alloc_64;
     counts::AllocCounts<16> alloc_128;
+
+    cstr status_slot_tags[counts::MAX_SLOTS] = { 0 };
+    u32 status_slot_sizes[counts::MAX_SLOTS] = { 0 };
+
+    cstr history_tags[counts::MAX_SLOTS] = { 0 };
+    cstr history_actions[counts::MAX_SLOTS] = { 0 };
+    u32 history_sizes[counts::MAX_SLOTS] = { 0 };
+    u32 history_n_allocs[counts::MAX_SLOTS] = { 0 };
+    u32 history_n_bytes[counts::MAX_SLOTS] = { 0 };
 }
 
 
@@ -320,7 +332,7 @@ namespace mem
         dst.n_allocations = src.n_allocations;
 
         u32 d = 0;
-        for (u32 i = 0; i < src.max_allocations; i++)
+        for (u32 i = 0; i < src.n_allocations; i++)
         {
             if (src.keys[i])
             {
@@ -351,6 +363,52 @@ namespace mem
             dst.n_allocs = (u32*)log.n_allocs;
             dst.n_bytes = (u32*)log.n_bytes;
         }
+    }
+}
+
+
+namespace mem
+{
+    AllocationStatus query_status(u32 element_size)
+    {
+        AllocationStatus status{};
+        status.slot_tags = status_slot_tags;
+        status.slot_sizes = status_slot_sizes;
+
+        switch (element_size)
+        {
+        case 1: set_status(alloc_8, status); break;
+        case 2: set_status(alloc_16, status); break;
+        case 4: set_status(alloc_32, status); break;
+        case 8: set_status(alloc_64, status); break;
+        case 16: set_status(alloc_128, status); break;        
+        default: set_status(alloc_8, status); break;
+        }
+
+        return status;
+    }
+
+
+    AllocationHistory query_history(u32 element_size)
+    {
+        AllocationHistory history{};
+        history.tags = history_tags;
+        history.actions = history_actions;
+        history.sizes = history_sizes;
+        history.n_allocs = history_n_allocs;
+        history.n_bytes = history_n_bytes;
+
+        switch (element_size)
+        {
+        case 1: set_history(alloc_8, history); break;
+        case 2: set_history(alloc_16, history); break;
+        case 4: set_history(alloc_32, history); break;
+        case 8: set_history(alloc_64, history); break;
+        case 16: set_history(alloc_128, history); break;        
+        default: set_history(alloc_8, history); break;
+        }
+
+        return history;
     }
 }
 
