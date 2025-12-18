@@ -123,6 +123,13 @@ namespace mem
         alloc_type_log("free_any(%p)\n", ptr);
         SDL_free(ptr);
     }
+
+
+    void* alloc_memory(u32 n_elements, u32 element_size)
+    {
+        alloc_type_log("alloc_memory(%u, %u)\n", n_elements, element_size);
+        return aligned_alloc(n_elements, element_size);
+    }
 }
 
 
@@ -133,21 +140,20 @@ namespace mem
     void* alloc_memory(u32 n_elements, u32 element_size, cstr tag)
     {
         alloc_type_log("alloc_memory(%u, %u, %s)\n", n_elements, element_size, tag);
-
-        return unaligned_alloc(n_elements, element_size);
-    }
-
-
-    void add_memory(void* ptr, u32 n_elements, u32 element_size, cstr tag)
-    {
-        alloc_type_log("add_memory(%p, %u, %u, %s)\n", ptr, n_elements, element_size, tag);
+        return aligned_alloc(n_elements, element_size);
     }
 
 
     void free_memory(void* ptr, u32 element_size)
     {
         alloc_type_log("free_memory(%p, %u)\n", ptr, element_size);
-        unaligned_free(ptr);
+        aligned_free(ptr, element_size);
+    }
+
+
+    void add_memory(void* ptr, u32 n_elements, u32 element_size, cstr tag)
+    {
+        alloc_type_log("add_memory(%p, %u, %u, %s)\n", ptr, n_elements, element_size, tag);
     }
 
 
@@ -240,47 +246,6 @@ namespace mem
         case 16: alloc_128.untag_allocation(ptr); break;
         default: alloc_8.untag_allocation(ptr); break;
         }
-    }
-}
-
-
-/* ALLOC_COUNT */
-
-namespace mem
-{
-    AllocationStatus query_status(u32 element_size)
-    {
-        AllocationStatus status{};
-
-        switch (element_size)
-        {
-        case 1: set_status(alloc_8, status); break;
-        case 2: set_status(alloc_16, status); break;
-        case 4: set_status(alloc_32, status); break;
-        case 8: set_status(alloc_64, status); break;
-        case 16: set_status(alloc_128, status); break;        
-        default: set_status(alloc_8, status); break;
-        }
-
-        return status;
-    }
-
-
-    AllocationHistory query_history(u32 element_size)
-    {
-        AllocationHistory history{};
-
-        switch (element_size)
-        {
-        case 1: set_history(alloc_8, history); break;
-        case 2: set_history(alloc_16, history); break;
-        case 4: set_history(alloc_32, history); break;
-        case 8: set_history(alloc_64, history); break;
-        case 16: set_history(alloc_128, history); break;        
-        default: set_history(alloc_8, history); break;
-        }
-
-        return history;
     }
 }
 

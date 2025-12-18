@@ -43,6 +43,8 @@ namespace game_punk
         Buffer32 mem_32;
         Buffer64 mem_64;
         Buffer8 mem_misc;
+
+        Buffer32 render32;
     };
 
 
@@ -53,6 +55,8 @@ namespace game_punk
         mb::destroy_buffer(mem.mem_32);
         mb::destroy_buffer(mem.mem_64);
         mb::destroy_buffer(mem.mem_misc);
+
+        mb::destroy_buffer(mem.render32);
 
         mem.ok = false;
     }
@@ -122,6 +126,21 @@ namespace game_punk
     }
 
 
+    static Result<p32*> push_mem_render(Memory& mem, u32 n_elements)
+    {
+        Result<p32*> res{};
+        res.ok = false;
+
+        res.data = (p32*)mb::push_elements(mem.render32, n_elements);
+        if (res.data)
+        {
+            res.ok = true;
+        }
+
+        return res;
+    }
+
+
     static void log_mem(Memory const& mem, MemoryCounts const& mc)
     {
         auto const write = [](cstr name, auto const& mem, u32 count)
@@ -130,11 +149,11 @@ namespace game_punk
         };
 
         app_log("\n");
-        write("     8", mem.mem_8, mc.count_8);
-        write("    16", mem.mem_16, mc.count_16);
-        write("    32", mem.mem_32, mc.count_32);
-        write("    64", mem.mem_64, mc.count_64);
-        write("  misc", mem.mem_misc, mc.count_misc);
+        write("   8", mem.mem_8, mc.count_8);
+        write("  16", mem.mem_16, mc.count_16);
+        write("  32", mem.mem_32, mc.count_32);
+        write("  64", mem.mem_64, mc.count_64);
+        write("misc", mem.mem_misc, mc.count_misc);
         app_log("\n");
     }
 
@@ -159,6 +178,9 @@ namespace game_punk
 
         ok &= is_ok(memory.mem_misc);
         app_assert(ok && "*** Misc Memory not allocated ***");
+
+        ok &= is_ok(memory.render32);
+        app_assert(ok && "*** Render Memory not allocated ***");
 
         return ok;
     }

@@ -5,17 +5,33 @@ Assets:
 https://itch.io/c/2053292/cyberpunk-pixel-art
 
 
+## Notes
+
+Position is the game tick
+
+
 ## Change Log
 
+### v0.2.0
+* [ ] Moving sprites, tiles, background
+* [ ] Automate release builds
+* [ ] Release files
+* [ ] Itch.io
+* [ ] CMS page
 
-### v0.1.1 TODO
-* [ ] Refactor rendering
+
+### v0.1.2
 * [ ] Refactor font and icons
 * [ ] Name UI icons
+* [ ] Asset u8 pixel codes
+
+
+### v0.1.1
 * [x] Fix input single gamepad
 * [x] Zig builds
 * [x] Refactor alloc count
-* [ ] Automate release builds
+* [x] Refactor rendering
+* [x] Moving background
 
 
 ### v0.1.0
