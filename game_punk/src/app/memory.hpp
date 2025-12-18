@@ -14,8 +14,6 @@ namespace game_punk
         u32 count_32 = 0;
         u32 count_64 = 0;
         u32 count_misc = 0;
-
-        u32 count_render32 = 0;
     };
 
 
@@ -32,12 +30,6 @@ namespace game_punk
         case sizeof(u64): mc.count_64 += n; break;
         default: mc.count_misc += s * n; break;
         }
-    }
-
-
-    void add_render_count(MemoryCounts& mc, u32 n)
-    {
-        mc.count_render32 += n;
     }
 
 
@@ -95,7 +87,6 @@ namespace game_punk
         create(mem.mem_32, counts.count_32, "32");
         create(mem.mem_64, counts.count_64, "64");
         create(mem.mem_misc, counts.count_misc, "misc");
-        create(mem.render32, counts.count_render32, "render");
 
         if (!ok)
         {
@@ -158,12 +149,11 @@ namespace game_punk
         };
 
         app_log("\n");
-        write("     8", mem.mem_8, mc.count_8);
-        write("    16", mem.mem_16, mc.count_16);
-        write("    32", mem.mem_32, mc.count_32);
-        write("    64", mem.mem_64, mc.count_64);
-        write("  misc", mem.mem_misc, mc.count_misc);
-        write("render", mem.render32, mc.count_render32);
+        write("   8", mem.mem_8, mc.count_8);
+        write("  16", mem.mem_16, mc.count_16);
+        write("  32", mem.mem_32, mc.count_32);
+        write("  64", mem.mem_64, mc.count_64);
+        write("misc", mem.mem_misc, mc.count_misc);
         app_log("\n");
     }
 

@@ -109,7 +109,7 @@ namespace game_punk
         ScreenCamera camera;
 
         DrawQueue drawq;
-        AnimationFast punk_animation;
+        SpriteAnimation punk_animation;
 
         Memory memory;
         AssetData asset_data;
@@ -311,7 +311,7 @@ namespace game_punk
         auto& camera = data.camera;
 
         // draw sprite
-        auto frame = get_animation_bitmap(data.punk_animation, data.game_tick);
+        auto frame = get_animation_bitmap(data.punk_animation, data.game_tick.value_);
         auto camera_w = CAMERA_DIMS.game.width;
         auto sprite_w = frame.dims.game.width;
 
@@ -398,7 +398,22 @@ namespace game_punk
 
     static void game_mode_update(StateData& data, InputCommand const& cmd)
     {
+        using GM = GameMode;
 
+        switch (data.game_mode)
+        {
+        case GM::Error:
+            app_crash("GameMode::Error\n");
+            break;
+
+        case GM::Loading:
+            update_loading(data);   
+            break;
+
+        case GM::Title:
+            update_title(data, cmd);
+            break;
+        }
     }
 }
 
@@ -528,28 +543,13 @@ namespace game_punk
 
         auto cmd = map_input(input);
 
-        using GM = GameMode;
-
-        switch (data.game_mode)
-        {
-        case GM::Error:
-            app_crash("GameMode::Error\n");
-            break;
-
-        case GM::Loading:
-            update_loading(data);   
-            break;
-
-        case GM::Title:
-            update_title(data, cmd);
-            break;
-        }
+        game_mode_update(data, cmd);
 
         render_screen(data);
 
         end_update(data);
 
-        //app_crash("*** Update not implemented ***");
+        app_crash("*** Update not implemented ***");
     }
 
 
@@ -610,22 +610,7 @@ namespace game_punk
 
         auto cmd = map_input(input);
 
-        using GM = GameMode;
-
-        switch (data.game_mode)
-        {
-        case GM::Error:
-            app_crash("GameMode::Error\n");
-            break;
-
-        case GM::Loading:
-            update_loading(data);   
-            break;
-
-        case GM::Title:
-            update_title(data, cmd);
-            break;
-        }
+        game_mode_update(data, cmd);
 
         render_screen(data);
 

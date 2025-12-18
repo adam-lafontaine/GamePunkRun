@@ -13,6 +13,8 @@ Position is the game tick
 ## Change Log
 
 ### v0.2.0
+* [ ] Moving sprites, tiles, background
+* [ ] Automate release builds
 * [ ] Release files
 * [ ] Itch.io
 * [ ] CMS page
@@ -25,7 +27,6 @@ Position is the game tick
 * [ ] Refactor font and icons
 * [ ] Name UI icons
 * [ ] Asset u8 pixel codes
-* [ ] Automate release builds
 
 ### v0.1.0
 * [x] Add project files

@@ -96,13 +96,14 @@ using Vec2Du32 = Vec2D<u32>;
 //using Vec2Df64 = Vec2D<f64>;
 
 using Point2Di32 = Point2D<i32>;
-using Point2Df32 = Point2D<f32>;
+//using Point2Df32 = Point2D<f32>;
 using Point2Du32 = Point2D<u32>;
+using Point2Du64 = Point2D<u64>;
 //using Point2Di64 = Point2D<i64>;
 //using Point2Df64 = Point2D<f64>;
 
 using Rect2Di32 = Rect2D<i32>;
-using Rect2Df32 = Rect2D<f32>;
+//using Rect2Df32 = Rect2D<f32>;
 using Rect2Du32 = Rect2D<u32>;
 //using Rect2Di64 = Rect2D<i64>;
 //using Rect2Df64 = Rect2D<f64>;

@@ -505,6 +505,9 @@ namespace game_punk
         };
 
 
+        ContextVec2D() { proc.x = 0; proc.y = 0; }
+
+
         ContextVec2D(T x, T y, DimCtx ctx)
         {
             if (ctx == DimCtx::Proc)
@@ -525,9 +528,90 @@ namespace game_punk
             ContextVec2D(vec.x, vec.y, ctx);
         }
     };
-    
 
-    using BackgroundPosition = ContextVec2D<i32>;
+
+    class GamePosition
+    {
+    public:
+        union
+        {
+            Point2Du64 proc;
+
+            struct { u64 y; u64 x; } game;
+        };
+
+
+        GamePosition(u64 x, u64 y, DimCtx ctx) 
+        {
+            if (ctx == DimCtx::Proc)
+            {
+                proc.x = x;
+                proc.y = y;
+            }
+            else
+            {
+                game.x = x;
+                game.y = y;
+            }
+        }
+
+
+        static GamePosition zero() { return GamePosition(0, 0, DimCtx::Proc); }
+    };
+
+
+    class BackgroundPosition
+    {
+    public:    
+        union
+        {
+            Point2Di32 proc;
+
+            struct { i32 y; i32 x; } game;
+        };
+
+
+        BackgroundPosition(i32 x, i32 y, DimCtx ctx)
+        {
+            if (ctx == DimCtx::Proc)
+            {
+                proc.x = x;
+                proc.y = y;
+            }
+            else
+            {
+                game.x = x;
+                game.y = y;
+            }
+        }
+    };
+
+
+    class ScreenPosition
+    {
+    public:
+        union
+        {
+            Point2Di32 proc;
+
+            struct { i32 y; i32 x; } game;
+        };
+
+
+        ScreenPosition(i32 x, i32 y, DimCtx ctx)
+        {
+            if (ctx == DimCtx::Proc)
+            {
+                proc.x = x;
+                proc.y = y;
+            }
+            else
+            {
+                game.x = x;
+                game.y = y;
+            }
+        }
+    };    
 
 
     Point2Di32 delta_pos_px(BackgroundPosition a, BackgroundPosition b)
@@ -573,409 +657,8 @@ namespace game_punk
 }
 
 
-/* background view */
-
-namespace game_punk
-{    
-    class BackgroundView
-    {
-    public:
-        static constexpr auto dims = BACKGROUND_DIMS;
-
-        p32* data = 0;
-    };
-
-
-    static void count_view(BackgroundView& view, MemoryCounts& counts)
-    {
-        auto length = view.dims.proc.width * view.dims.proc.height;
-        add_count<p32>(counts, length);
-    }
-
-
-    static bool create_view(BackgroundView& view, Memory& memory)
-    {
-        auto length = view.dims.proc.width * view.dims.proc.height;
-
-        auto res = push_mem<p32>(memory, length);
-        if (res.ok)
-        {
-            view.data = res.data;
-        }
-
-        return res.ok;
-    }
-
-
-    static auto to_span_cx(BackgroundView const& view)
-    {      
-        constexpr auto W = cxpr::GAME_BACKGROUND_WIDTH_PX;
-        constexpr auto H = cxpr::GAME_BACKGROUND_HEIGHT_PX;
-        return Span32_cxpr<W, H>(view.data);
-    }
-
-
-    static Span32 to_span(BackgroundView const& view)
-    {
-        auto length = view.dims.proc.width * view.dims.proc.height;
-        return span::make_view(view.data, length);
-    }
-
-
-    static ImageView to_image_view(BackgroundView const& view)
-    {
-        auto dims = view.dims.proc;
-        return img::make_view(dims.width, dims.height, view.data);
-    }
-
-
-    static void copy(BackgroundView const& src, BackgroundView const& dst)
-    {
-        copy(to_span_cx(src), to_span_cx(dst));
-    }
-
-}
-
-
-/* sky overlay view */
-
-namespace game_punk
-{
-    class SkyOverlayView
-    {
-    public:
-        static constexpr u32 width = cxpr::SKY_OVERLAY_WIDTH_PX;
-        static constexpr u32 height = cxpr::SKY_OVERLAY_HEIGHT_PX;
-
-        p32* data = 0;
-    };
-
-
-    static void count_view(SkyOverlayView& view, MemoryCounts& counts)
-    {
-        auto length = view.width * view.height;
-        add_count<p32>(counts, length);
-    }
-
-
-    static bool create_view(SkyOverlayView& view, Memory& memory)
-    {
-        if (!view.height)
-        {
-            app_assert("SkyOverlayView not initialized" && false);
-            return false;
-        }
-
-        auto length = view.width * view.height;
-
-        auto res = push_mem<p32>(memory, length);
-        if (res.ok)
-        {
-            view.data = res.data;
-        }
-
-        return res.ok;
-    }
-
-
-    static auto to_span_cx(SkyOverlayView const& view)
-    {
-        constexpr auto W = cxpr::SKY_OVERLAY_WIDTH_PX;
-        constexpr auto H = cxpr::SKY_OVERLAY_HEIGHT_PX;
-        return Span32_cxpr<W, H>(view.data);
-    }
-
-    
-    static Span32 to_span(SkyOverlayView const& view)
-    {
-        auto length = view.width * view.height;
-
-        return span::make_view(view.data, length);
-    }
-
-
-    static ImageView to_image_view(SkyOverlayView const& view)
-    {
-        return img::make_view(view.width, view.height, view.data);
-    }
-
-
-    static SubView sub_view(SkyOverlayView const& view, Vec2Di32 pos)
-    {
-        auto x = (u32)pos.x;
-        auto y = (u32)pos.y;
-        auto w = BACKGROUND_DIMS.proc.width;
-        auto h = BACKGROUND_DIMS.proc.height;
-        return img::sub_view(to_image_view(view), img::make_rect(x, y, w, h));
-    }
-
-
-    static SubView sub_view(SkyOverlayView const& view, BackgroundPosition pos)
-    {
-        return sub_view(view, pos.proc);
-    }
-}
-
-
-/* sprite view */
-
-namespace game_punk
-{
-    class SpriteView
-    {
-    public:
-        ContextDims dims;
-
-        p32* data;
-    };
-
-
-    static ImageView to_image_view(SpriteView const& view)
-    {
-        auto ctx = view.dims.proc;
-
-        return img::make_view(ctx.width, ctx.height, view.data);
-    }
-}
-
-
-/* tile view */
-
-namespace game_punk
-{
-    class TileView
-    {
-    public:
-        ContextDims dims;
-
-        p32* data;
-    };
-
-
-    static void count_view(TileView& view, MemoryCounts& counts, bt::FileInfo_Image const& info)
-    {
-        bool ok = info.type == bt::FileType::Image1C;
-        app_assert(ok && "*** Unexpected tile image ***");
-
-        auto& ctx = view.dims.proc;
-
-        ctx.width = info.width;
-        ctx.height = info.height;
-
-        auto length = ctx.width * ctx.height;
-
-        add_count<p32>(counts, length);
-    }
-
-
-    static bool create_view(TileView& view, Memory& memory)
-    {
-        if (!view.dims.any)
-        {
-            app_assert("TileView not initialized" && false);
-            return false;
-        }
-
-        auto& ctx = view.dims.proc;
-
-        auto length = ctx.width * ctx.height;
-
-        auto res = push_mem<p32>(memory, length);
-        if (res.ok)
-        {
-            view.data = res.data;
-        }
-
-        return res.ok;
-    }
-
-
-    static Span32 to_span(TileView const& view)
-    {
-        auto length = view.dims.proc.width * view.dims.proc.height;
-
-        return span::make_view(view.data, length);
-    }
-
-
-    static ImageView to_image_view(TileView const& view)
-    {
-        auto dims = view.dims.proc;
-
-        return img::make_view(dims.width, dims.height, view.data);
-    }
-}
-
-
-/* sky animation */
-
-namespace game_punk
-{
-    class SkyAnimation
-    {
-    public:
-        BackgroundView base;
-        SkyOverlayView overlay_src;
-
-        BackgroundPosition ov_pos;
-        Vec2Di32 ov_vel;
-        BackgroundView ov_bg;
-
-        BackgroundView out[2];
-        u8 out_id = 0;
-
-
-        BackgroundView& out_front() { return out[out_id]; }
-
-        BackgroundView& out_back() { return out[!out_id]; }
-
-        void out_swap() { out_id = !out_id; }
-    };
-
-
-    static void count_sky_animation(SkyAnimation& sky, MemoryCounts& counts)
-    {
-        count_view(sky.base, counts);
-        count_view(sky.overlay_src, counts);
-        count_view(sky.ov_bg, counts);
-        count_view(sky.out[0], counts);
-        count_view(sky.out[1], counts);
-    }
-
-
-    static bool create_sky_animation(SkyAnimation& sky, Memory& memory)
-    {
-        bool ok = true;
-
-        ok &= create_view(sky.base, memory);
-        ok &= create_view(sky.overlay_src, memory);
-        ok &= create_view(sky.ov_bg, memory);
-        ok &= create_view(sky.out[0], memory);
-        ok &= create_view(sky.out[1], memory);
-
-        return ok;
-    }
-    
-
-    static void render_front_back(SkyAnimation& sky)
-    {
-        auto base = to_span_cx(sky.base);        
-        auto ov = to_span_cx(sky.ov_bg);
-        auto front = to_span_cx(sky.out_front());
-        auto back = to_span_cx(sky.out_back());
-
-        img::copy(sub_view(sky.overlay_src, sky.ov_pos), to_image_view(sky.ov_bg));
-
-        copy(base, front);
-        copy(front, back);
-    }
-
-
-    static void reset_sky_animation(SkyAnimation& sky)
-    {
-        sky.ov_pos.proc = { 0, 0 };
-        sky.ov_vel = { 2, 1 };
-
-        bool ok = true;
-        ok &= has_data(sky.base);
-        ok &= has_data(sky.overlay_src);
-        ok &= has_data(sky.ov_bg);
-        ok &= has_data(sky.out[0]);
-        ok &= has_data(sky.out[1]);
-
-        app_assert(ok && "*** SkyAnimation not created ***");
-
-        render_front_back(sky);
-    }
-
-
-    static void update_overlay(SkyAnimation& sky)
-    {
-        auto ov = to_image_view(sky.ov_bg);
-        auto w = ov.width;
-        auto h = ov.height;
-
-        auto& data_ov = sky.overlay_src;
-
-        i32 xm = data_ov.width - w - 1;
-        i32 ym = data_ov.height - h - 1;
-
-        auto& pos = sky.ov_pos.proc;
-        auto& vel = sky.ov_vel;
-
-        i32 x = pos.x + vel.x;
-        i32 y = pos.y + vel.y;
-
-        if (x < 0 || x > xm)
-        {
-            vel.x *= -1;
-        }
-        else
-        {
-            pos.x = (u32)x;
-        }
-
-        if (y < 0 || y > ym)
-        {
-            vel.y *= -1;
-        }
-        else
-        {
-            pos.y = (u32)y;
-        }
-
-        img::copy(sub_view(data_ov, pos), ov);
-    }
-    
-    
-    static BackgroundView get_sky_animation(SkyAnimation& sky, GameTick64 game_tick)
-    {
-        constexpr u32 frame_wait = 6;
-
-        auto t = game_tick.value_ % frame_wait;
-
-        auto const render_back_part = [&]()
-        {
-            constexpr auto N = frame_wait - 2;
-
-            auto ov = to_span_cx(sky.ov_bg);
-            auto out = to_span_cx(sky.out_back());
-
-            constexpr auto L1 = ov.length;
-            constexpr auto L2 = out.length;
-            static_assert(L1 == L2);
-            static_assert(L1 % N == 0);
-
-            constexpr u32 length = L1 / N;
-            u32 offset = (t - 2) * length;
-            auto src = sub_view(ov, offset, length);
-            auto dst = sub_view(out, offset, length);
-            add_pma(src, dst);
-        };
-
-        switch (t)
-        {
-        case 0:
-            // expose for rendering
-            sky.out_swap();
-            copy(sky.base, sky.out_back());
-            break;
-
-        case 1:
-            update_overlay(sky);
-            break;
-
-        default: 
-            render_back_part();
-            break;
-        }
-
-        return sky.out_front();
-    }
-
-
-    
-}
+#include "image_view.hpp"
+#include "animation.hpp"
 
 
 /* background images */
@@ -989,7 +672,9 @@ namespace game_punk
         SkyAnimation sky;
 
         BackgroundView bg_1;
-        BackgroundView bg_2;        
+        BackgroundView bg_2;
+
+        GamePosition game_pos;
     };
 
 
@@ -1003,15 +688,19 @@ namespace game_punk
         app_assert(ok && "*** BackgroundState not created ***");
 
         reset_sky_animation(bg.sky);
+
+        bg.game_pos = GamePosition::zero();
     }
 
 
-    static void count_background_state(BackgroundState& bg_state, MemoryCounts& counts)
+    static void count_background_state(BackgroundState& bg, MemoryCounts& counts)
     {  
-        count_sky_animation(bg_state.sky, counts);
+        count_sky_animation(bg.sky, counts);
         
-        count_view(bg_state.bg_1, counts);
-        count_view(bg_state.bg_2, counts);
+        count_view(bg.bg_1, counts);
+        count_view(bg.bg_2, counts);
+
+        bg.game_pos = GamePosition::zero();
     }
 
 
@@ -1027,94 +716,6 @@ namespace game_punk
         return ok;
     }
 
-}
-
-
-/* spritesheet */
-
-namespace game_punk
-{
-    class SpritesheetView
-    {
-    public:
-        ContextDims dims;
-
-        p32* data = 0;
-
-        ContextDims bitmap_dims;
-        u32 bitmap_count = 0;
-    };
-
-
-    static void count_view(SpritesheetView& view, MemoryCounts& counts, bt::FileInfo_Image const& info, u32 count_h = 0)
-    {
-        bool ok = info.type == bt::FileType::Image1C;
-        app_assert(ok && "*** Unexpected spritesheet image ***");
-
-        auto& ctx = view.dims.proc;
-
-        ctx.width = info.width;
-        ctx.height = info.height;
-
-        auto& bmp = view.bitmap_dims.proc;
-        bmp.width = ctx.width;
-
-        if (count_h == 0)
-        {
-            // assume width == height            
-            bmp.height = ctx.width;
-            view.bitmap_count = ctx.height / ctx.width;
-        }
-        else
-        {
-            // equal height
-            view.bitmap_count = count_h;
-            bmp.height = ctx.height / view.bitmap_count;
-        }
-
-        auto length = ctx.width * ctx.height;
-
-        add_count<p32>(counts, length);
-    }
-
-
-    static bool create_view(SpritesheetView& view, Memory& memory)
-    {
-        auto& ctx = view.dims.proc;
-
-        if (!view.dims.any || !view.bitmap_dims.any || !view.bitmap_count)
-        {
-            app_assert("SpritesheetView not initialized" && false);
-            return false;
-        }
-
-        auto length = ctx.width * ctx.height;
-
-        auto res = push_mem<p32>(memory, length);
-        if (res.ok)
-        {
-            view.data = res.data;
-        }
-
-        return res.ok;
-    }
-
-
-    static Span32 to_span(SpritesheetView const& view)
-    {
-        auto dims = view.dims.proc;
-
-        auto length = dims.width * dims.height;
-        
-        return span::make_view(view.data, length);
-    }
-
-
-    static ImageView to_image_view(SpritesheetView const& view)
-    {
-        auto dims = view.dims.proc;
-        return img::make_view(dims.width, dims.height, view.data);
-    }
 }
 
 
@@ -1363,7 +964,7 @@ namespace game_punk
 }
 
 
-/* game camera */
+/* screen camera */
 
 namespace game_punk
 { 
@@ -1372,25 +973,27 @@ namespace game_punk
     {
     public:
 
-        BackgroundPosition bg_pos;
+        static constexpr auto dims = CAMERA_DIMS;
 
         p32* pixels;
+
+        BackgroundPosition bg_pos;
     };
 
 
-    static bool init_screen_camera(ScreenCamera& camera, ImageView view)
+    static bool init_screen_camera(ScreenCamera& camera, ImageView screen)
     {
         bool ok = true;
 
-        auto dims = CAMERA_DIMS.proc;
+        auto dims = camera.dims.proc;
 
-        ok &= has_data(view);
-        ok &= view.width == dims.width;
-        ok &= view.height == dims.height;
+        ok &= has_data(screen);
+        ok &= screen.width == dims.width;
+        ok &= screen.height == dims.height;
 
         if (ok)
         {
-            camera.pixels = view.matrix_data_;
+            camera.pixels = screen.matrix_data_;
         }
 
         return ok;
@@ -1399,7 +1002,7 @@ namespace game_punk
 
     static void reset_screen_camera(ScreenCamera& camera)
     {
-        camera.bg_pos.proc = { 10, 16 };
+        camera.bg_pos = BackgroundPosition(10, 16, DimCtx::Game);
     }
 
 
@@ -1587,72 +1190,25 @@ namespace game_punk
 
         push_draw_view(dq, bmp, out, p);
     }
-}
 
 
-/* animation */
-
-namespace game_punk
-{
-    class AnimationFast
+    static void push_draw(DrawQueue& dq, BackgroundPartPair const& pair, ScreenCamera const& camera)
     {
-    public:
+        auto out = to_image_view(camera);
 
-        u32 bitmap_count = 0;
+        auto pos = BackgroundPosition(0, 0, DimCtx::Proc);
+        auto p = delta_pos_px(pos, camera.bg_pos);
+        auto bmp = to_image_view_first(pair);
 
-        u32 ticks_per_bitmap;
+        push_draw_view(dq, bmp, out, p);
 
-        p32* spritesheet_data = 0;
-
-        ContextDims bitmap_dims;
-    };
-
-
-    static bool set_animation_spritesheet(AnimationFast& an, SpritesheetView const& ss)
-    {
-        auto& dims = ss.dims.game;
-
-        bool ok = ss.data != 0;
-        app_assert(ok && "*** Spritesheet data not set ***");
-
-        ok &= dims.width > dims.height;
-        ok &= dims.width % dims.height == 0;
-        app_assert(ok && "*** Invalid spritesheet dimensions ***");
-
-        an.spritesheet_data = ss.data;
-
-        an.bitmap_dims = ss.bitmap_dims;
-
-        an.bitmap_count = ss.bitmap_count;
-
-        an.ticks_per_bitmap = 7; // Magic!
-
-        return ok;
-    }
-
-
-    static SpriteView get_animation_bitmap(AnimationFast& an, auto tick)
-    {
-        p32* data = 0;
-
-        auto t = tick.value_ % (an.bitmap_count * an.ticks_per_bitmap);
-
-        auto dims = an.bitmap_dims.proc;
-
-        auto b = t / an.ticks_per_bitmap;
-        if (b < an.bitmap_count)
+        pos.proc.y = pair.height1;
+        p = delta_pos_px(pos, camera.bg_pos);
+        bmp = to_image_view_second(pair);
+        if (bmp.height)
         {
-            auto offset = b * dims.width * dims.height;
-            data = an.spritesheet_data + offset;
+            push_draw_view(dq, bmp, out, p);
         }
-
-        app_assert(data);
-
-        SpriteView view;
-        view.dims = an.bitmap_dims;
-        view.data = data;
-
-        return view;
     }
 }
 

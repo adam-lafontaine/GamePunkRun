@@ -15,6 +15,8 @@ namespace mem
     void* alloc_any(u32 n_elements, u32 element_size);
     
     void free_any(void* ptr);
+
+    void* alloc_memory(u32 n_elements, u32 element_size);
 }
 
 
@@ -22,9 +24,9 @@ namespace mem
 {    
     void* alloc_memory(u32 n_elements, u32 element_size, cstr tag);
 
-    void add_memory(void* ptr, u32 n_elements, u32 element_size, cstr tag);
-
     void free_memory(void* ptr, u32 element_size);
+
+    void add_memory(void* ptr, u32 n_elements, u32 element_size, cstr tag);
 
     void tag_memory(void* ptr, u32 n_elements, u32 element_size, cstr tag);
 

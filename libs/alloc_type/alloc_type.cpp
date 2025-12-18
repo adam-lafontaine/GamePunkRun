@@ -94,6 +94,13 @@ namespace mem
         alloc_type_log("free_any(%p)\n", ptr);
         std::free(ptr);
     }
+
+
+    void* alloc_memory(u32 n_elements, u32 element_size)
+    {
+        alloc_type_log("alloc_memory(%u, %u)\n", n_elements, element_size);
+        return aligned_alloc(n_elements, element_size);
+    }
 }
 
 
@@ -109,16 +116,16 @@ namespace mem
     }
 
 
-    void add_memory(void* ptr, u32 n_elements, u32 element_size, cstr tag)
-    {
-        alloc_type_log("add_memory(%p, %u, %u, %s)\n", ptr, n_elements, element_size, tag);
-    }
-
-
     void free_memory(void* ptr, u32 element_size)
     {
         alloc_type_log("free_memory(%p, %u)\n", ptr, element_size);
         unaligned_free(ptr);
+    }
+
+
+    void add_memory(void* ptr, u32 n_elements, u32 element_size, cstr tag)
+    {
+        alloc_type_log("add_memory(%p, %u, %u, %s)\n", ptr, n_elements, element_size, tag);
     }
 
 
