@@ -671,25 +671,18 @@ namespace game_punk
 
         SkyAnimation sky;
 
-        BackgroundView bg_1;
-        BackgroundView bg_2;
-
-        GamePosition game_pos;
+        BackgroundAnimation bg_1;
+        BackgroundAnimation bg_2;
     };
 
 
     static void reset_background_state(BackgroundState& bg)
-    {
-        bool ok = true;
-
-        ok &= has_data(bg.bg_1);
-        ok &= has_data(bg.bg_2);
-
-        app_assert(ok && "*** BackgroundState not created ***");
-
+    {   
         reset_sky_animation(bg.sky);
+        reset_background_animation(bg.bg_1);
+        reset_background_animation(bg.bg_2);
 
-        bg.game_pos = GamePosition::zero();
+        bg.bg_2.shift = 1;
     }
 
 
@@ -697,10 +690,8 @@ namespace game_punk
     {  
         count_sky_animation(bg.sky, counts);
         
-        count_view(bg.bg_1, counts);
-        count_view(bg.bg_2, counts);
-
-        bg.game_pos = GamePosition::zero();
+        count_background_animation(bg.bg_1, counts);
+        count_background_animation(bg.bg_2, counts);
     }
 
 
@@ -710,8 +701,8 @@ namespace game_punk
 
         ok &= create_sky_animation(bg_state.sky, memory);
 
-        ok &= create_view(bg_state.bg_1, memory);
-        ok &= create_view(bg_state.bg_2, memory);
+        ok &= create_background_animation(bg_state.bg_1, memory);
+        ok &= create_background_animation(bg_state.bg_2, memory);
 
         return ok;
     }

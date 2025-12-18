@@ -165,9 +165,116 @@ namespace game_punk
 
         return sky.out_front();
     }
-
-
     
+}
+
+
+/* background animation */
+
+namespace game_punk
+{
+    class BackgroundPartPair
+    {
+    public:
+
+        u32 height1 = 0;
+        u32 height2 = 0;
+
+        p32* data1 = 0;
+        p32* data2 = 0;
+    };
+
+
+    static ImageView to_image_view_first(BackgroundPartPair const& bp)
+    {
+        ImageView view;
+
+        view.width = BACKGROUND_DIMS.proc.width;
+        view.height = bp.height1;
+        view.matrix_data_ = bp.data1;
+
+        return view;
+    }
+
+
+    static ImageView to_image_view_second(BackgroundPartPair const& bp)
+    {
+        ImageView view;
+
+        view.width = BACKGROUND_DIMS.proc.width;
+        view.height = bp.height2;
+        view.matrix_data_ = bp.data2;
+
+        return view;
+    }
+
+
+    class BackgroundAnimation
+    {
+    public:
+
+        BackgroundView data[1];
+
+        p32* list[4] = { 0 };
+
+        u32 shift = 0;        
+    };
+
+
+    static void reset_background_animation(BackgroundAnimation& an)
+    {
+        bool ok = has_data(an.data[0]);
+
+        app_assert(ok && "*** BackgroundAnimation not created ***");
+
+        an.shift = 0;
+
+        for (u32 i = 0; i < 4; i++)
+        {
+            an.list[i] = an.data[0].data;
+        }
+    }
+
+
+    static void count_background_animation(BackgroundAnimation& an, MemoryCounts& counts)
+    {
+        count_view(an.data[0], counts);
+    }
+
+
+    static bool create_background_animation(BackgroundAnimation& an, Memory& memory)
+    {
+        bool ok = true;
+
+        ok &= create_view(an.data[0], memory);
+
+        return ok;
+    }
+
+
+    static BackgroundPartPair get_animation_pair(BackgroundAnimation const& an, u64 pos)
+    {
+        BackgroundPartPair bp;
+
+        auto W = BACKGROUND_DIMS.proc.width;
+        auto H = BACKGROUND_DIMS.proc.height;
+
+        pos <<= an.shift; // speed
+        pos %= (4 * H);
+
+        auto list_id1 = pos / H;
+        auto list_id2 = (list_id1 + 1) & (4 - 1);
+
+        pos %= H;
+        
+        bp.height2 = pos;
+        bp.height1 = H - bp.height2;
+
+        bp.data1 = an.list[list_id1] + bp.height2 * W;
+        bp.data2 = an.list[list_id2];
+
+        return bp;
+    }
 }
 
 
@@ -234,80 +341,5 @@ namespace game_punk
         view.data = data;
 
         return view;
-    }
-}
-
-
-/* background animation */
-
-namespace game_punk
-{
-    class BackgroundPartPair
-    {
-    public:
-
-        u32 height1 = 0;
-        u32 height2 = 0;
-
-        p32* data1 = 0;
-        p32* data2 = 0;
-    };
-
-
-    static ImageView to_image_view_first(BackgroundPartPair const& bp)
-    {
-        ImageView view;
-
-        view.width = BACKGROUND_DIMS.proc.width;
-        view.height = bp.height1;
-        view.matrix_data_ = bp.data1;
-
-        return view;
-    }
-
-
-    static ImageView to_image_view_second(BackgroundPartPair const& bp)
-    {
-        ImageView view;
-
-        view.width = BACKGROUND_DIMS.proc.width;
-        view.height = bp.height2;
-        view.matrix_data_ = bp.data2;
-
-        return view;
-    }
-
-
-    class BackgroundAnimation
-    {
-    public:
-
-        p32* list[4];
-
-        u32 shift = 0;        
-    };
-
-
-    static BackgroundPartPair get_animation_pair(BackgroundAnimation const& an, u64 pos)
-    {
-        BackgroundPartPair bp;
-
-        auto H = BACKGROUND_DIMS.proc.height;
-
-        pos <<= an.shift; // speed
-        pos %= (4 * H);
-
-        auto list_id1 = pos / H;
-        auto list_id2 = (list_id1 + 1) & (4 - 1);
-
-        pos %= H;
-        
-        bp.height2 = pos;
-        bp.height1 = H - bp.height2;
-
-        bp.data1 = an.list[list_id1] + bp.height2;
-        bp.data2 = an.list[list_id2] + bp.height1;
-
-        return bp;
     }
 }
