@@ -19,14 +19,20 @@ Position is the game tick
 * [ ] Itch.io
 * [ ] CMS page
 
+
+### v0.1.2
+* [ ] Refactor font and icons
+* [ ] Name UI icons
+* [ ] Asset u8 pixel codes
+
+
 ### v0.1.1
 * [x] Fix input single gamepad
 * [x] Zig builds
 * [x] Refactor alloc count
-* [ ] Refactor rendering
-* [ ] Refactor font and icons
-* [ ] Name UI icons
-* [ ] Asset u8 pixel codes
+* [x] Refactor rendering
+* [x] Moving background
+
 
 ### v0.1.0
 * [x] Add project files
