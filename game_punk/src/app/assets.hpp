@@ -9,7 +9,8 @@ namespace game_punk
 {
 namespace assets
 {
-    using ImageInfo = bt::FileInfo_Image;
+    template <u8 FT>
+    using ImageInfo = bt::FileInfo_Image<FT>;
 
 
     constexpr f32 SKY_OVERLAY_ALPHA = 0.22f;
@@ -24,44 +25,7 @@ namespace assets
 namespace game_punk
 {
 namespace assets
-{
-
-    static void mask_convert(Span8 const& src, Span32 const& dst)
-    {
-        for (u32 i = 0; i < src.length; i++)
-        {
-            dst.data[i] = src.data[i] ? COLOR_WHITE : COLOR_TRANSPARENT;
-        }
-    }
-    
-    
-    static void mask_convert(ImageGray const& src_mask, ImageView const& dst_view)
-    {
-        auto src = img::to_span(src_mask);
-        auto dst = img::to_span(dst_view);
-
-        mask_convert(src, dst);
-    }
-
-
-    static void filter_convert(Span8 const& src, Span32 const& dst)
-    {
-        for (u32 i = 0; i < src.length; i++)
-        {
-            auto p = src.data[i];
-            dst.data[i] = img::to_pixel(p, p, p, p);
-        }
-    }
-
-
-    static void filter_convert(ImageGray const& src_mask, ImageView const& dst_view)
-    {
-        auto src = img::to_span(src_mask);
-        auto dst = img::to_span(dst_view);
-
-        filter_convert(src, dst);
-    }
-    
+{   
     
     static void extend_view_x(Image const& src_view, ImageView const& dst_view)
     {
@@ -120,24 +84,7 @@ namespace assets
 
         span::transform(src, dst, do_pma);
     } 
-    
-    
-    static void apply_color_table(Span8 const& src, Span32 const& dst, Span32 const& table)
-    {
-        p32 ps;
-
-        for (u32 i = 0; i < src.length; i++)
-        {
-            dst.data[i] = table.data[src.data[i]];
-        }
-    }
-
-
-    static void apply_color_table(ImageGray const& src, auto const& dst, Image const& table)
-    {
-        apply_color_table(img::to_span(src), to_span(dst), img::to_span(table));
-    }
-    
+        
     
     static void apply_color_table_pma(Span8 const& src, Span32 const& dst, Span32 const& table, f32 alpha)
     {
@@ -160,7 +107,8 @@ namespace assets
     }
     
     
-    static ByteView make_byte_view(MemoryBuffer<u8> const& buffer, ImageInfo const& info)
+    template <u8 FT>
+    static ByteView make_byte_view(MemoryBuffer<u8> const& buffer, ImageInfo<FT> const& info)
     {
         ByteView view{};
 
@@ -171,7 +119,8 @@ namespace assets
     }
 
 
-    static bool load_image_asset(AssetData const& src, Image& dst, ImageInfo const& info)
+    template <u8 FT>
+    static bool load_image_asset(AssetData const& src, Image& dst, ImageInfo<FT> const& info)
     {
         using FT = bt::FileType;
 
@@ -313,7 +262,7 @@ namespace assets
     }
 
 
-    static bool load_spritesheet_image(AssetData const& src, SpritesheetView const& dst, ImageInfo const& info)
+    /*static bool load_spritesheet_image(AssetData const& src, SpritesheetView const& dst, ImageInfo const& info)
     {
         bool ok = true;
         auto dims = dst.dims.proc;
@@ -342,7 +291,7 @@ namespace assets
         img::destroy_image(ss_image);
 
         return ok;
-    }
+    }*/
 }
 }
 
@@ -627,8 +576,8 @@ namespace assets
 
         ok &= load_image_asset(src, spritesheet, list.file_info.Punk_run);
         apply_color_table(spritesheet, ss_state.punk_run, table);
-        img::destroy_image(spritesheet);
 
+        img::destroy_image(spritesheet);
         img::destroy_image(table);
 
         return ok;

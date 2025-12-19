@@ -3,6 +3,7 @@
 #include "../../../libs/io/filesystem.hpp"
 #include "../../../libs/image/image.hpp"
 #include "../../../libs/datetime/datetime.hpp"
+#include "bin_table_types.hpp"
 
 #include <filesystem>
 #include <vector>
@@ -16,11 +17,9 @@
 #include <algorithm>
 
 
-
 #ifdef _WIN32
 #error Tools runs on the Linux machine only
 #endif
-
 
 
 namespace sfs = std::filesystem;
@@ -93,53 +92,26 @@ namespace bin
     constexpr auto OUT_BIN_FILE = "punk_run.bin";
     constexpr auto OUT_BIN_TABLE_FILE = "bin_table.hpp";
 
-    constexpr auto BIN_TABLE_TYPES_PATH = "/home/adam/Repos/GamePunkRun/game_punk/tools/z_make_bin/bin_table_types.hpp";
+    constexpr auto BIN_TABLE_TYPES_PATH = "/home/adam/Repos/GamePunkRun/game_punk/tools/utils/bin_table_types.hpp";
     
 }
 
 
-enum class FilterKey : u8
-{
-    Transparent = 0,
-    Secondary = 50,
-    Blend = 128,
-    Primary = 255
-};
+using FilterKey = bin_table::FilterKey;
+using MaskImage = bin_table::MaskImage1C;
+using FilterImage = bin_table::FilterImage1C;
+using ColorTable = bin_table::ColorTable4C;
+using TableImage = bin_table::TableImage1C;
 
 
-class FilterImage
-{
-public:
-    u32 width = 0;
-    u32 height = 0;
-
-    u8* keys = 0;
-};
-
-
-class ColorTable
-{
-public:
-    u32 length = 0;
-
-    p32* data = 0;
-};
-
-
-class TableImage
-{
-public:
-    u32 width = 0;
-    u32 height = 0;
-
-    u8* keys = 0;
-};
-
+/* internal */
 
 namespace util
 {
-
-    static bool create_filter_image(FilterImage& image, u32 width, u32 height)
+namespace internal
+{
+    template <typename IMG>
+    static bool create_image_gray(IMG& image, u32 width, u32 height)
     {
         img::ImageGray gray;
         if (!img::create_image(gray, width, height))
@@ -149,26 +121,28 @@ namespace util
 
         image.width = width;
         image.height = height;
-        image.keys = gray.data_;
+        image.data = gray.data_;
 
         return true;
     }
-
-
-    static void destroy_filter_image(FilterImage& image)
+    
+    
+    template <typename IMG>
+    static void destroy_image_gray(IMG& image)
     {
         img::ImageGray gray;
-        gray.data_ = image.keys;
+        gray.data_ = image.data;
 
         img::destroy_image(gray);
-        image.keys = 0;
+        image.data = 0;
     }
 
 
-    inline bool write_filter_image(FilterImage const& image, sfs::path const& path)
+    template <typename IMG>
+    inline bool write_image_gray(IMG const& image, sfs::path const& path)
     {
         img::ImageGray gray;
-        gray.data_ = image.keys;
+        gray.data_ = image.data;
         gray.width = image.width;
         gray.height = image.height;
 
@@ -176,16 +150,80 @@ namespace util
     }
 
 
-    static void transform_mask(img::Image const& src, FilterImage const& dst)
+    template <typename IMG>
+    inline bool create_image_rgba(IMG& image, u32 width, u32 height)
+    {
+        img::Image rgba;
+        if (!img::create_image(rgba, width, height))
+        {
+            return false;
+        }
+
+        image.width = rgba.width;
+        image.height = rgba.height;
+        image.data = rgba.data_;
+
+        return true;
+    }
+
+
+    template <typename IMG>
+    inline void destroy_image_rgba(IMG& image)
+    {
+        img::Image rgba;
+        rgba.data_ = image.data;
+        img::destroy_image(rgba);
+        image.data = 0;
+    }
+
+
+    template <typename IMG>
+    inline bool write_image_rgba(IMG const& image, sfs::path const& path)
+    {
+        img::Image rgba;
+        rgba.data_ = image.data;
+        rgba.width = image.width;
+        rgba.height = image.height;
+
+        return img::write_image(rgba, path.c_str());
+    }
+}
+}
+
+
+/* mask image */
+
+namespace util
+{
+
+    inline bool create_image(MaskImage& image, u32 width, u32 height)
+    {
+        return internal::create_image_gray(image, width, height);
+    }
+
+
+    inline void destroy_image(MaskImage& image)
+    {
+        internal::destroy_image_gray(image);
+    }
+
+
+    inline bool write_image(MaskImage const& image, sfs::path const& path)
+    {
+        return internal::write_image_gray(image, path);
+    }    
+
+
+    static void transform_mask(img::Image const& src, MaskImage const& dst)
     {
         assert(src.data_);
-        assert(dst.keys);
+        assert(dst.data);
         assert(src.width == dst.width);
         assert(src.height == dst.height);
 
         auto length = src.width * src.height;
         auto s = src.data_;
-        auto d = dst.keys;
+        auto d = dst.data;
 
         auto on = (u8)FilterKey::Primary;
         auto off = (u8)FilterKey::Transparent;
@@ -195,18 +233,42 @@ namespace util
             d[i] = s[i].alpha ? on : off;
         }
     }
+    
+}
+
+
+/* filter image */
+
+namespace util
+{
+    static bool create_image(FilterImage& image, u32 width, u32 height)
+    {
+        return internal::create_image_gray(image, width, height);
+    }
+
+
+    static void destroy_image(FilterImage& image)
+    {
+        internal::destroy_image_gray(image);
+    }
+
+
+    inline bool write_image(FilterImage const& image, sfs::path const& path)
+    {
+        return internal::write_image_gray(image, path);
+    }
 
 
     static void transform_filter(img::Image const& src, FilterImage const& dst, p32 primary, p32 secondary)
     {
         assert(src.data_);
-        assert(dst.keys);
+        assert(dst.data);
         assert(src.width == dst.width);
         assert(src.height == dst.height);
 
         auto length = src.width * src.height;
         auto s = src.data_;
-        auto d = dst.keys;
+        auto d = dst.data;
 
         auto equals = [](p32 a, p32 b)
         {
@@ -240,18 +302,47 @@ namespace util
 }
 
 
+/* table image */
+
 namespace util
 {
-    static bool create_color_table(ColorTable& table, u32 length)
+    static bool create_image(TableImage& image, u32 width, u32 height)
     {
-        img::Image image;
-        if (!img::create_image(image, length, 1))
+        return internal::create_image_gray(image, width, height);
+    }
+
+
+    static void destroy_image(TableImage& image)
+    {
+        internal::destroy_image_gray(image);
+    }
+
+
+    inline bool write_image(TableImage const& image, sfs::path const& path)
+    {
+        return internal::write_image_gray(image, path);
+    }
+}
+
+
+/* color table */
+
+namespace util
+{
+    static bool create_color_table(ColorTable& table)
+    {
+        img::Image rgba;
+        if (!img::create_image(rgba, 256, 1))
         {
             return false;
         }
 
-        table.length = length;
-        table.data = image.data_;
+        constexpr auto none = img::to_pixel(0, 0, 0, 0);
+
+        img::fill(img::make_view(rgba), none);
+
+        table.length = rgba.width;
+        table.data = rgba.data_;
 
         return true;
     }
@@ -259,59 +350,25 @@ namespace util
 
     static void destroy_color_table(ColorTable& table)
     {
-        img::Image image;
-        image.data_ = table.data;
-        img::destroy_image(image);
+        img::Image rgba;
+        rgba.data_ = table.data;
+        img::destroy_image(rgba);
         table.data = 0;
     }
 
 
     static bool write_color_table(ColorTable& table, sfs::path const& path)
     {
-        img::Image image;
-        image.width = table.length;
-        image.height = 1;
-        image.data_ = table.data;
+        img::Image rgba;
+        rgba.data_ = table.data;
+        rgba.width = table.length;
+        rgba.height = 1;
 
-        return img::write_image(image, path.c_str());
+        return img::write_image(rgba, path.c_str());
     }
 
 
-    static bool create_table_image(TableImage& image, u32 width, u32 height)
-    {
-        img::ImageGray gray;
-        if (!img::create_image(gray, width, height))
-        {
-            return false;
-        }
-
-        image.width = width;
-        image.height = height;
-        image.keys = gray.data_;
-
-        return true;
-    }
-
-
-    static void destroy_table_image(TableImage& image)
-    {
-        img::ImageGray gray;
-        gray.data_ = image.keys;
-
-        img::destroy_image(gray);
-        image.keys = 0;
-    }
-
-
-    static bool write_table_image(TableImage& image, sfs::path const& path)
-    {
-        img::ImageGray gray;
-        gray.data_ = image.keys;
-        gray.width = image.width;
-        gray.height = image.height;
-
-        return img::write_image(gray, path.c_str());
-    }
+    
 }
 
 
@@ -383,7 +440,7 @@ namespace util
         assert(N <= 256);
 
         ColorTable table;
-        if (!create_color_table(table, N))
+        if (!create_color_table(table))
         {
             assert("*** Image error - color table ***" && false);
             return table;
@@ -421,7 +478,7 @@ namespace util
         assert(N <= 256);
 
         ColorTable table;
-        if (!create_color_table(table, N))
+        if (!create_color_table(table))
         {
             assert("*** Image error - color table ***" && false);
             return table;
@@ -441,7 +498,7 @@ namespace util
     {
         TableImage dst;
 
-        if (!create_table_image(dst, src.width, src.height))
+        if (!create_image(dst, src.width, src.height))
         {
             assert("*** Image error - convert image ***" && false);
             return dst;
@@ -453,7 +510,7 @@ namespace util
         };
 
         auto s = img::to_span(src);
-        auto d = dst.keys;
+        auto d = dst.data;
         auto t = table.data;
 
         for (u32 i = 0; i < s.length; i++)
@@ -662,13 +719,19 @@ namespace util
             auto dst = util::convert_image(src, table);
 
             auto path = dst_dir / file.filename();
-            write_table_image(dst, path);
+            write_image(dst, path);
 
             img::destroy_image(src);
-            destroy_table_image(dst);
+            destroy_image(dst);
             count++;
         }
 
         return count;
     }
+}
+
+
+namespace util
+{
+
 }

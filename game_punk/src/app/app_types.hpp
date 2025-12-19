@@ -164,7 +164,7 @@ namespace game_punk
     }
 
 
-    static void mask_fill(Span32 const& dst, p32 color)
+    /*static void mask_fill(Span32 const& dst, p32 color)
     {
         color.alpha = 255; // no transparency allowed
 
@@ -180,7 +180,7 @@ namespace game_punk
         auto dst = img::to_span(dst_view);
 
         mask_fill(dst, color);
-    }
+    }*/
 
 
     static void filter_fill(Span32 const& dst, p32 primary, p32 secondary)

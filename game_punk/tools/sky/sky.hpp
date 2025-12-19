@@ -234,11 +234,11 @@ namespace sky
             auto name = file.filename();
             
             util::write_color_table(table, (table_dir / name));
-            util::write_table_image(dst, (ov_dir / name));
+            util::write_image(dst, (ov_dir / name));
 
             img::destroy_image(src);
             util::destroy_color_table(table);
-            util::destroy_table_image(dst);
+            util::destroy_image(dst);
             count++;
         }
 

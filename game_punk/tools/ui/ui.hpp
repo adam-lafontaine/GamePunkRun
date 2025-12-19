@@ -175,17 +175,17 @@ namespace ui
         u32 height = h * n;
 
         img::Image dst;
-        FilterImage mask;
+        MaskImage mask;
 
         bool ok = true;
 
         ok &= img::create_image(dst, width, height);
-        ok &= util::create_filter_image(mask, width, height);
+        ok &= util::create_image(mask, width, height);
 
         if (!ok)
         {
             img::destroy_image(dst);
-            util::destroy_filter_image(mask);
+            util::destroy_image(mask);
         }
 
         img::fill(img::make_view(dst), img::to_pixel(0, 0, 0, 0));
@@ -212,10 +212,10 @@ namespace ui
 
         util::transform_mask(dst, mask);
 
-        count += util::write_filter_image(mask, (out / "font.png"));
+        count += util::write_image(mask, (out / "font.png"));
 
         img::destroy_image(dst);
-        util::destroy_filter_image(mask);
+        util::destroy_image(mask);
 
         return count;
     }
@@ -327,12 +327,12 @@ namespace ui
 
         bool ok = true;
         ok &= img::create_image(dst, width, height);
-        ok &= util::create_filter_image(mask, width, height);
+        ok &= util::create_image(mask, width, height);
 
         if (!ok)
         {
             img::destroy_image(dst);
-            util::destroy_filter_image(mask);
+            util::destroy_image(mask);
         }
 
         img::fill(img::make_view(dst), img::to_pixel(0, 0, 0, 0));
@@ -356,10 +356,10 @@ namespace ui
 
         util::transform_filter(dst, mask, primary, secondary);
 
-        count += util::write_filter_image(mask, (out / "icons.png"));
+        count += util::write_image(mask, (out / "icons.png"));
 
         img::destroy_image(dst);
-        util::destroy_filter_image(mask);
+        util::destroy_image(mask);
 
         return count;
     }

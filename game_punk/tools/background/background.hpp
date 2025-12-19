@@ -78,14 +78,14 @@ namespace bg
         u32 count = 0;
 
         u32 N = res.files.size();
-        FilterImage dst;
+        MaskImage dst;
 
         for (u32 i = 0; i < N; i++)
         {
             auto& file = res.files[i];
             auto& src = res.images[i];
 
-            if (!util::create_filter_image(dst, src.width, src.height))
+            if (!util::create_image(dst, src.width, src.height))
             {
                 img::destroy_image(src);
                 continue;
@@ -94,9 +94,9 @@ namespace bg
             util::transform_mask(src, dst);
 
             auto path = out_dir / file.filename();
-            bool ok = util::write_filter_image(dst, path);
+            bool ok = util::write_image(dst, path);
 
-            util::destroy_filter_image(dst);
+            util::destroy_image(dst);
             img::destroy_image(src);
             count += ok;
         }

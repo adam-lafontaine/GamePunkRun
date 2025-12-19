@@ -1,5 +1,5 @@
 #pragma once
-/* timestamp: 1766156321447610749 */
+/* timestamp: 1766180191006054084 */
 
 
 // bin_table_types.hpp
@@ -17,23 +17,80 @@ namespace bin_table
     using GrayView = img::GrayView;
 
 
+	enum class FilterKey : u8
+	{
+		Transparent = 0,
+		Secondary = 50,
+		Blend = 128,
+		Primary = 255
+	};
+
+
+	class FilterImage1C
+	{
+	public:
+		u32 width = 0;
+		u32 height = 0;
+
+		u8* data = 0;
+	};
+
+
+	class TableImage1C
+	{
+	public:
+		u32 width = 0;
+		u32 height = 0;
+
+		u8* data = 0;
+	};
+
+
+	class MaskImage1C
+	{
+	public:
+		u32 width = 0;
+		u32 height = 0;
+
+		u8* data = 0;
+	};
+
+
+	class ColorTable4C
+	{
+	public:
+		u32 length = 0;
+
+		p32* data = 0;
+	};
+
+
     enum class FileType : u8
     {
         Unknown = 0,
+
         Image4C,             // 4 channel image
+		Image4C_Table,
+
 		Image4C_Spritesheet, // 4 channel spritesheet
 		Image4C_Tile,        // 4 channel tile
 
         Image1C,      // 1 channel image
+		Image1C_Mask,
+		Image1C_Filter,
+		Image1C_Table,
+
         Music,
         SFX
     };
 
 
+	template <u8 FT>
     class FileInfo_Image
 	{
 	public:
-		FileType type = FileType::Unknown;
+		static constexpr FileType type = (FileType)FT;
+
 		u32 width = 0;
 		u32 height = 0;
 		cstr name = 0;
@@ -42,10 +99,10 @@ namespace bin_table
 	};
 
 
-	inline constexpr FileInfo_Image to_file_info_image(FileType type, u32 width, u32 height, cstr name, u32 offset, u32 size)
+	template <u8 FT>
+	inline constexpr FileInfo_Image<FT> to_file_info_image(u32 width, u32 height, cstr name, u32 offset, u32 size)
 	{
-		FileInfo_Image f;
-		f.type = type;
+		FileInfo_Image<FT> f;
 		f.width = width;
 		f.height = height;
 		f.name = name;
@@ -54,6 +111,308 @@ namespace bin_table
 
 		return f;
 	}
+
+
+	using ColorTableInfo = FileInfo_Image<(u8)FileType::Image4C_Table>;
+	using TableImageInfo = FileInfo_Image<(u8)FileType::Image1C_Table>;
+	using FilterImageInfo = FileInfo_Image<(u8)FileType::Image1C_Filter>;
+	using MaskImageInfo = FileInfo_Image<(u8)FileType::Image1C_Mask>;
+
+
+	inline void destroy_image(auto& item, FileType type)
+	{
+		switch (type)
+		{
+		case FileType::Image4C:
+		case FileType::Image4C_Table:
+		{
+			Image image;
+			image.data_ = item.data;
+			img::destroy_image(image);
+		} break;
+
+		case FileType::Image1C:
+		case FileType::Image1C_Mask:
+		case FileType::Image1C_Filter:
+		case FileType::Image1C_Table:
+		{
+			ImageGray image;
+			image.data_ = item.data;
+			img::destroy_image(image);
+		} break;
+
+		default:
+			break;
+		}
+	}
+}
+
+
+/* read */
+
+namespace bin_table
+{
+	enum class ReadResult : u8
+	{
+		OK = 0,
+		Unsupported,
+		ReadError,
+		SizeError
+	};
+
+
+	inline ReadResult read_image(ByteView const& src, FileType type, ImageGray& dst)
+	{
+		switch (type)
+		{
+		case FileType::Image1C:
+		case FileType::Image1C_Mask:
+		case FileType::Image1C_Filter:
+		case FileType::Image1C_Table:
+			return img::read_image_from_memory(src, dst) ? ReadResult::OK : ReadResult::ReadError;
+
+		default: return ReadResult::Unsupported;
+		}
+	}
+
+
+	inline ReadResult read_image(ByteView const& src, FileType type, Image& dst)
+	{
+		switch (type)
+		{
+		case FileType::Image4C:
+		case FileType::Image4C_Table:
+			return img::read_image_from_memory(src, dst) ? ReadResult::OK : ReadResult::ReadError;
+
+		default: return ReadResult::Unsupported;
+		}
+	}
+
+
+	inline ReadResult read_color_table(ByteView const& src, ColorTableInfo info, ColorTable4C& out)
+	{
+		Image dst;
+		auto res = read_image(src, info.type, dst);
+		if (res != ReadResult::OK)
+		{
+			return res;
+		}
+
+		if (dst.width != info.width || dst.height != info.height || info.height != 1)
+		{
+			return ReadResult::SizeError;
+		}
+
+		out.length = dst.width;
+		out.data = dst.data_;
+
+		return ReadResult::OK;
+	}
+
+
+	inline ReadResult read_table_image(ByteView const& src, TableImageInfo info, TableImage1C& out)
+	{
+		ImageGray dst;
+		auto res = read_image(src, info.type, dst);
+		if (res != ReadResult::OK)
+		{
+			return res;
+		}
+
+		if (dst.width != info.width || dst.height != info.height)
+		{
+			return ReadResult::SizeError;
+		}
+
+		out.width = dst.width;
+		out.height = dst.height;
+		out.data = dst.data_;
+
+		return ReadResult::OK;
+	}
+
+
+	inline ReadResult read_filter_image(ByteView const& src, FilterImageInfo info, FilterImage1C& out)
+	{
+		ImageGray dst;
+		auto res = read_image(src, info.type, dst);
+		if (res != ReadResult::OK)
+		{
+			return res;
+		}
+
+		if (dst.width != info.width || dst.height != info.height)
+		{
+			return ReadResult::SizeError;
+		}
+
+		out.width = dst.width;
+		out.height = dst.height;
+		out.data = dst.data_;
+		
+		return ReadResult::OK;
+	}
+
+
+	inline ReadResult read_mask_image(ByteView const& src, MaskImageInfo info, MaskImage1C& out)
+	{
+		ImageGray dst;
+		auto res = read_image(src, info.type, dst);
+		if (res != ReadResult::OK)
+		{
+			return res;
+		}
+
+		if (dst.width != info.width || dst.height != info.height)
+		{
+			return ReadResult::SizeError;
+		}
+
+		out.width = dst.width;
+		out.height = dst.height;
+		out.data = dst.data_;
+		
+		return ReadResult::OK;
+	}
+}
+
+
+/* process */
+
+namespace bin_table
+{
+	inline bool mask_convert(MaskImage1C const& src, ImageView const& dst)
+	{
+		if (src.width != dst.width || src.height != dst.height)
+		{
+			return false;
+		}
+		
+		constexpr auto on = img::to_pixel(255);
+		constexpr auto off = img::to_pixel(0, 0, 0, 0);
+
+		auto length = src.width * src.height;
+		auto s = src.data;
+		auto d = dst.matrix_data_;
+
+		// mask/filter preserved in alpha channel
+
+		for (u32 i = 0; i < length; i++)
+		{
+			d[i] = s[i] == (u8)FilterKey::Primary ? on : off;
+		}
+
+		return true;
+	}
+
+
+	inline void mask_update(ImageView const& dst, p32 color)
+	{
+		constexpr auto off = img::to_pixel(0, 0, 0, 0);
+
+		auto length = dst.width * dst.height;
+		auto d = dst.matrix_data_;
+
+		p32 p;
+
+		for (u32 i = 0; i < length; i++)
+		{
+			p = d[i];
+			d[i] = p.alpha == (u8)FilterKey::Primary ? color : off;
+		}
+	}
+
+
+	inline bool filter_convert(FilterImage1C const& src, ImageView const& dst)
+	{
+		if (src.width != dst.width || src.height != dst.height)
+		{
+			return false;
+		}
+
+		constexpr auto white = img::to_pixel(255);
+
+		auto length = src.width * src.height;
+		auto s = src.data;
+		auto d = dst.matrix_data_;
+
+		// mask/filter preserved in alpha channel
+
+		for (u32 i = 0; i < length; i++)
+		{
+			d[i] = white;
+			d[i].alpha = s[i];
+		}
+
+		return true;
+	}
+
+
+	inline void filter_update(ImageView const& dst, p32 primary, p32 secondary)
+	{
+		constexpr auto off = img::to_pixel(0, 0, 0, 0);
+
+		primary.alpha = 255; // no transparency allowed
+        secondary.alpha = 255;
+
+        auto blend_r = (primary.red + secondary.red) / 2;
+        auto blend_g = (primary.green + secondary.green) / 2;
+        auto blend_b = (primary.blue + secondary.blue) / 2;
+        auto blend = img::to_pixel((u8)blend_r, (u8)blend_g, (u8)blend_b);
+
+		auto length = dst.width * dst.height;
+		auto d = dst.matrix_data_;
+
+		p32 p;
+
+		for (u32 i = 0; i < length; i++)
+		{
+			p = d[i];
+			switch ((FilterKey)p.alpha)
+			{
+			case FilterKey::Transparent:
+                d[i] = off;
+                break;
+
+            case FilterKey::Secondary:
+                d[i] = secondary;
+                break;
+
+            case FilterKey::Blend:
+                d[i] = blend;
+                break;
+
+            case FilterKey::Primary:
+                d[i] = primary;
+                break;
+
+            default:
+                break;
+			}
+
+			d[i].alpha = p.alpha;
+		}
+	}
+
+
+	inline bool color_table_convert(TableImage1C const& src, ColorTable4C const& table, ImageView const& dst)
+	{
+		if (src.width != dst.width || src.height != dst.height)
+		{
+			return false;
+		}
+
+		auto length = src.width * src.height;
+		auto s = src.data;
+		auto d = dst.matrix_data_;
+
+		for (u32 i = 0; i < length; i++)
+		{
+			d[i] = table.data[s[i]];
+		}
+
+		return true;
+	}
 }
 
 
@@ -61,6 +420,7 @@ namespace bin_table
 namespace bin_table
 {
 
+	// define_info_list_image()
 	class InfoList_Image_Sky_Base
 	{
 	public:
@@ -68,19 +428,21 @@ namespace bin_table
 		u32 size = 466;
 
 		static constexpr FileType file_type = FileType::Image4C;
+		static constexpr auto uFT = (u8)file_type;
+		using ImageInfo = FileInfo_Image<uFT>;
 
 		static constexpr u32 count = 2;
 		union
 		{
-			FileInfo_Image items[count] = {
-				to_file_info_image(file_type, 324, 1, "base_day_png", 0, 264),
-				to_file_info_image(file_type, 324, 1, "base_night_png", 264, 202),
+			ImageInfo items[count] = {
+				to_file_info_image<uFT>(324, 1, "base_day_png", 0, 264),
+				to_file_info_image<uFT>(324, 1, "base_night_png", 264, 202),
 			};
 
 			struct
 			{
-				FileInfo_Image base_day_png;
-				FileInfo_Image base_night_png;
+				ImageInfo base_day_png;
+				ImageInfo base_night_png;
 			} file_info;
 		};
 
@@ -94,6 +456,7 @@ namespace bin_table
 namespace bin_table
 {
 
+	// define_info_list_image()
 	class InfoList_Image_Sky_Overlay
 	{
 	public:
@@ -101,17 +464,19 @@ namespace bin_table
 		u32 size = 725104;
 
 		static constexpr FileType file_type = FileType::Image1C;
+		static constexpr auto uFT = (u8)file_type;
+		using ImageInfo = FileInfo_Image<uFT>;
 
 		static constexpr u32 count = 1;
 		union
 		{
-			FileInfo_Image items[count] = {
-				to_file_info_image(file_type, 1200, 1800, "ov_13_png", 466, 725104),
+			ImageInfo items[count] = {
+				to_file_info_image<uFT>(1200, 1800, "ov_13_png", 466, 725104),
 			};
 
 			struct
 			{
-				FileInfo_Image ov_13_png;
+				ImageInfo ov_13_png;
 			} file_info;
 		};
 
@@ -125,24 +490,27 @@ namespace bin_table
 namespace bin_table
 {
 
+	// define_info_list_image()
 	class InfoList_Image_Sky_ColorTable
 	{
 	public:
 		u32 offset = 725570;
 		u32 size = 850;
 
-		static constexpr FileType file_type = FileType::Image4C;
+		static constexpr FileType file_type = FileType::Image4C_Table;
+		static constexpr auto uFT = (u8)file_type;
+		using ImageInfo = FileInfo_Image<uFT>;
 
 		static constexpr u32 count = 1;
 		union
 		{
-			FileInfo_Image items[count] = {
-				to_file_info_image(file_type, 256, 1, "ct_13_png", 725570, 850),
+			ImageInfo items[count] = {
+				to_file_info_image<uFT>(256, 1, "ct_13_png", 725570, 850),
 			};
 
 			struct
 			{
-				FileInfo_Image ct_13_png;
+				ImageInfo ct_13_png;
 			} file_info;
 		};
 
@@ -156,44 +524,51 @@ namespace bin_table
 namespace bin_table
 {
 
+	// define_image_set()
 	class Background_Bg1
 	{
 	public:
 		u32 offset = 726420;
 		u32 size = 27113;
 
-		static constexpr FileType file_type = FileType::Image1C;
-		static constexpr FileType table_type = FileType::Image4C;
+		static constexpr FileType file_type = FileType::Image1C_Mask;
+		static constexpr FileType table_type = FileType::Image4C_Table;
+
+		static constexpr auto uFT = (u8)file_type;
+		static constexpr auto uTT = (u8)table_type;
+
+		using ImageInfo = FileInfo_Image<uFT>;
+		using TableInfo = FileInfo_Image<uTT>;
 
 		static constexpr u32 count = 8;
 
 		union
 		{
-			FileInfo_Image items[count] = {
-				to_file_info_image(file_type, 324, 576, "A", 726420, 3189),
-				to_file_info_image(file_type, 324, 576, "B", 729609, 3457),
-				to_file_info_image(file_type, 324, 576, "C", 733066, 4126),
-				to_file_info_image(file_type, 324, 576, "D", 737192, 2991),
-				to_file_info_image(file_type, 324, 576, "E", 740183, 3561),
-				to_file_info_image(file_type, 324, 576, "F", 743744, 3289),
-				to_file_info_image(file_type, 324, 576, "G", 747033, 3391),
-				to_file_info_image(file_type, 324, 576, "H", 750424, 3109),
+			ImageInfo items[count] = {
+				to_file_info_image<uFT>(324, 576, "A", 726420, 3189),
+				to_file_info_image<uFT>(324, 576, "B", 729609, 3457),
+				to_file_info_image<uFT>(324, 576, "C", 733066, 4126),
+				to_file_info_image<uFT>(324, 576, "D", 737192, 2991),
+				to_file_info_image<uFT>(324, 576, "E", 740183, 3561),
+				to_file_info_image<uFT>(324, 576, "F", 743744, 3289),
+				to_file_info_image<uFT>(324, 576, "G", 747033, 3391),
+				to_file_info_image<uFT>(324, 576, "H", 750424, 3109),
 			};
 
 			struct
 			{
-				FileInfo_Image A;
-				FileInfo_Image B;
-				FileInfo_Image C;
-				FileInfo_Image D;
-				FileInfo_Image E;
-				FileInfo_Image F;
-				FileInfo_Image G;
-				FileInfo_Image H;
+				ImageInfo A;
+				ImageInfo B;
+				ImageInfo C;
+				ImageInfo D;
+				ImageInfo E;
+				ImageInfo F;
+				ImageInfo G;
+				ImageInfo H;
 			} file_info;
 		};
 
-		static constexpr FileInfo_Image color_table = to_file_info_image(table_type, 9, 1, "table", 753533, 98);
+		static constexpr TableInfo color_table = to_file_info_image<uTT>(256, 1, "table", 753533, 114);
 
 		constexpr Background_Bg1(){}
 	};
@@ -205,60 +580,67 @@ namespace bin_table
 namespace bin_table
 {
 
+	// define_image_set()
 	class Background_Bg2
 	{
 	public:
-		u32 offset = 753631;
+		u32 offset = 753647;
 		u32 size = 64972;
 
-		static constexpr FileType file_type = FileType::Image1C;
-		static constexpr FileType table_type = FileType::Image4C;
+		static constexpr FileType file_type = FileType::Image1C_Mask;
+		static constexpr FileType table_type = FileType::Image4C_Table;
+
+		static constexpr auto uFT = (u8)file_type;
+		static constexpr auto uTT = (u8)table_type;
+
+		using ImageInfo = FileInfo_Image<uFT>;
+		using TableInfo = FileInfo_Image<uTT>;
 
 		static constexpr u32 count = 16;
 
 		union
 		{
-			FileInfo_Image items[count] = {
-				to_file_info_image(file_type, 324, 576, "A", 753631, 4922),
-				to_file_info_image(file_type, 324, 576, "B", 758553, 3407),
-				to_file_info_image(file_type, 324, 576, "C", 761960, 3977),
-				to_file_info_image(file_type, 324, 576, "D", 765937, 4429),
-				to_file_info_image(file_type, 324, 576, "E", 770366, 3323),
-				to_file_info_image(file_type, 324, 576, "F", 773689, 4035),
-				to_file_info_image(file_type, 324, 576, "G", 777724, 3399),
-				to_file_info_image(file_type, 324, 576, "H", 781123, 3313),
-				to_file_info_image(file_type, 324, 576, "I", 784436, 3597),
-				to_file_info_image(file_type, 324, 576, "J", 788033, 3161),
-				to_file_info_image(file_type, 324, 576, "K", 791194, 3912),
-				to_file_info_image(file_type, 324, 576, "L", 795106, 4395),
-				to_file_info_image(file_type, 324, 576, "M", 799501, 3962),
-				to_file_info_image(file_type, 324, 576, "N", 803463, 6221),
-				to_file_info_image(file_type, 324, 576, "O", 809684, 3651),
-				to_file_info_image(file_type, 324, 576, "P", 813335, 5268),
+			ImageInfo items[count] = {
+				to_file_info_image<uFT>(324, 576, "A", 753647, 4922),
+				to_file_info_image<uFT>(324, 576, "B", 758569, 3407),
+				to_file_info_image<uFT>(324, 576, "C", 761976, 3977),
+				to_file_info_image<uFT>(324, 576, "D", 765953, 4429),
+				to_file_info_image<uFT>(324, 576, "E", 770382, 3323),
+				to_file_info_image<uFT>(324, 576, "F", 773705, 4035),
+				to_file_info_image<uFT>(324, 576, "G", 777740, 3399),
+				to_file_info_image<uFT>(324, 576, "H", 781139, 3313),
+				to_file_info_image<uFT>(324, 576, "I", 784452, 3597),
+				to_file_info_image<uFT>(324, 576, "J", 788049, 3161),
+				to_file_info_image<uFT>(324, 576, "K", 791210, 3912),
+				to_file_info_image<uFT>(324, 576, "L", 795122, 4395),
+				to_file_info_image<uFT>(324, 576, "M", 799517, 3962),
+				to_file_info_image<uFT>(324, 576, "N", 803479, 6221),
+				to_file_info_image<uFT>(324, 576, "O", 809700, 3651),
+				to_file_info_image<uFT>(324, 576, "P", 813351, 5268),
 			};
 
 			struct
 			{
-				FileInfo_Image A;
-				FileInfo_Image B;
-				FileInfo_Image C;
-				FileInfo_Image D;
-				FileInfo_Image E;
-				FileInfo_Image F;
-				FileInfo_Image G;
-				FileInfo_Image H;
-				FileInfo_Image I;
-				FileInfo_Image J;
-				FileInfo_Image K;
-				FileInfo_Image L;
-				FileInfo_Image M;
-				FileInfo_Image N;
-				FileInfo_Image O;
-				FileInfo_Image P;
+				ImageInfo A;
+				ImageInfo B;
+				ImageInfo C;
+				ImageInfo D;
+				ImageInfo E;
+				ImageInfo F;
+				ImageInfo G;
+				ImageInfo H;
+				ImageInfo I;
+				ImageInfo J;
+				ImageInfo K;
+				ImageInfo L;
+				ImageInfo M;
+				ImageInfo N;
+				ImageInfo O;
+				ImageInfo P;
 			} file_info;
 		};
 
-		static constexpr FileInfo_Image color_table = to_file_info_image(table_type, 9, 1, "table", 818603, 98);
+		static constexpr TableInfo color_table = to_file_info_image<uTT>(256, 1, "table", 818619, 114);
 
 		constexpr Background_Bg2(){}
 	};
@@ -270,32 +652,39 @@ namespace bin_table
 namespace bin_table
 {
 
+	// define_image_set()
 	class Spriteset_Punk
 	{
 	public:
-		u32 offset = 818701;
+		u32 offset = 818733;
 		u32 size = 2064;
 
-		static constexpr FileType file_type = FileType::Image1C;
-		static constexpr FileType table_type = FileType::Image4C;
+		static constexpr FileType file_type = FileType::Image1C_Table;
+		static constexpr FileType table_type = FileType::Image4C_Table;
+
+		static constexpr auto uFT = (u8)file_type;
+		static constexpr auto uTT = (u8)table_type;
+
+		using ImageInfo = FileInfo_Image<uFT>;
+		using TableInfo = FileInfo_Image<uTT>;
 
 		static constexpr u32 count = 2;
 
 		union
 		{
-			FileInfo_Image items[count] = {
-				to_file_info_image(file_type, 48, 192, "Punk_idle", 818701, 617),
-				to_file_info_image(file_type, 48, 288, "Punk_run", 819318, 1447),
+			ImageInfo items[count] = {
+				to_file_info_image<uFT>(48, 192, "Punk_idle", 818733, 617),
+				to_file_info_image<uFT>(48, 288, "Punk_run", 819350, 1447),
 			};
 
 			struct
 			{
-				FileInfo_Image Punk_idle;
-				FileInfo_Image Punk_run;
+				ImageInfo Punk_idle;
+				ImageInfo Punk_run;
 			} file_info;
 		};
 
-		static constexpr FileInfo_Image color_table = to_file_info_image(table_type, 14, 1, "table", 820765, 119);
+		static constexpr TableInfo color_table = to_file_info_image<uTT>(256, 1, "table", 820797, 134);
 
 		constexpr Spriteset_Punk(){}
 	};
@@ -307,32 +696,39 @@ namespace bin_table
 namespace bin_table
 {
 
+	// define_image_set()
 	class Tileset_ex_zone
 	{
 	public:
-		u32 offset = 820884;
-		u32 size = 832;
+		u32 offset = 820931;
+		u32 size = 848;
 
-		static constexpr FileType file_type = FileType::Image1C;
-		static constexpr FileType table_type = FileType::Image4C;
+		static constexpr FileType file_type = FileType::Image1C_Table;
+		static constexpr FileType table_type = FileType::Image4C_Table;
+
+		static constexpr auto uFT = (u8)file_type;
+		static constexpr auto uTT = (u8)table_type;
+
+		using ImageInfo = FileInfo_Image<uFT>;
+		using TableInfo = FileInfo_Image<uTT>;
 
 		static constexpr u32 count = 2;
 
 		union
 		{
-			FileInfo_Image items[count] = {
-				to_file_info_image(file_type, 32, 32, "floor_02", 820884, 377),
-				to_file_info_image(file_type, 32, 32, "floor_03", 821261, 369),
+			ImageInfo items[count] = {
+				to_file_info_image<uFT>(32, 32, "floor_02", 820931, 377),
+				to_file_info_image<uFT>(32, 32, "floor_03", 821308, 369),
 			};
 
 			struct
 			{
-				FileInfo_Image floor_02;
-				FileInfo_Image floor_03;
+				ImageInfo floor_02;
+				ImageInfo floor_03;
 			} file_info;
 		};
 
-		static constexpr FileInfo_Image color_table = to_file_info_image(table_type, 5, 1, "table", 821630, 86);
+		static constexpr TableInfo color_table = to_file_info_image<uTT>(256, 1, "table", 821677, 102);
 
 		constexpr Tileset_ex_zone(){}
 	};
@@ -344,30 +740,37 @@ namespace bin_table
 namespace bin_table
 {
 
+	// define_image_set()
 	class UIset_Font
 	{
 	public:
-		u32 offset = 821716;
-		u32 size = 3000;
+		u32 offset = 821779;
+		u32 size = 3014;
 
-		static constexpr FileType file_type = FileType::Image1C;
-		static constexpr FileType table_type = FileType::Image4C;
+		static constexpr FileType file_type = FileType::Image1C_Filter;
+		static constexpr FileType table_type = FileType::Image4C_Table;
+
+		static constexpr auto uFT = (u8)file_type;
+		static constexpr auto uTT = (u8)table_type;
+
+		using ImageInfo = FileInfo_Image<uFT>;
+		using TableInfo = FileInfo_Image<uTT>;
 
 		static constexpr u32 count = 1;
 
 		union
 		{
-			FileInfo_Image items[count] = {
-				to_file_info_image(file_type, 16, 806, "font", 821716, 2783),
+			ImageInfo items[count] = {
+				to_file_info_image<uFT>(16, 806, "font", 821779, 2783),
 			};
 
 			struct
 			{
-				FileInfo_Image font;
+				ImageInfo font;
 			} file_info;
 		};
 
-		static constexpr FileInfo_Image color_table = to_file_info_image(table_type, 37, 1, "table", 824499, 217);
+		static constexpr TableInfo color_table = to_file_info_image<uTT>(256, 1, "table", 824562, 231);
 
 		constexpr UIset_Font(){}
 	};
@@ -379,30 +782,37 @@ namespace bin_table
 namespace bin_table
 {
 
+	// define_image_set()
 	class UIset_Title
 	{
 	public:
-		u32 offset = 824716;
-		u32 size = 1403;
+		u32 offset = 824793;
+		u32 size = 1413;
 
-		static constexpr FileType file_type = FileType::Image1C;
-		static constexpr FileType table_type = FileType::Image4C;
+		static constexpr FileType file_type = FileType::Image1C_Filter;
+		static constexpr FileType table_type = FileType::Image4C_Table;
+
+		static constexpr auto uFT = (u8)file_type;
+		static constexpr auto uTT = (u8)table_type;
+
+		using ImageInfo = FileInfo_Image<uFT>;
+		using TableInfo = FileInfo_Image<uTT>;
 
 		static constexpr u32 count = 1;
 
 		union
 		{
-			FileInfo_Image items[count] = {
-				to_file_info_image(file_type, 74, 96, "title_main", 824716, 1321),
+			ImageInfo items[count] = {
+				to_file_info_image<uFT>(74, 96, "title_main", 824793, 1321),
 			};
 
 			struct
 			{
-				FileInfo_Image title_main;
+				ImageInfo title_main;
 			} file_info;
 		};
 
-		static constexpr FileInfo_Image color_table = to_file_info_image(table_type, 4, 1, "table", 826037, 82);
+		static constexpr TableInfo color_table = to_file_info_image<uTT>(256, 1, "table", 826114, 92);
 
 		constexpr UIset_Title(){}
 	};
@@ -414,30 +824,37 @@ namespace bin_table
 namespace bin_table
 {
 
+	// define_image_set()
 	class UIset_Icons
 	{
 	public:
-		u32 offset = 826119;
-		u32 size = 4948;
+		u32 offset = 826206;
+		u32 size = 4962;
 
-		static constexpr FileType file_type = FileType::Image1C;
-		static constexpr FileType table_type = FileType::Image4C;
+		static constexpr FileType file_type = FileType::Image1C_Filter;
+		static constexpr FileType table_type = FileType::Image4C_Table;
+
+		static constexpr auto uFT = (u8)file_type;
+		static constexpr auto uTT = (u8)table_type;
+
+		using ImageInfo = FileInfo_Image<uFT>;
+		using TableInfo = FileInfo_Image<uTT>;
 
 		static constexpr u32 count = 1;
 
 		union
 		{
-			FileInfo_Image items[count] = {
-				to_file_info_image(file_type, 32, 1312, "icons", 826119, 4731),
+			ImageInfo items[count] = {
+				to_file_info_image<uFT>(32, 1312, "icons", 826206, 4731),
 			};
 
 			struct
 			{
-				FileInfo_Image icons;
+				ImageInfo icons;
 			} file_info;
 		};
 
-		static constexpr FileInfo_Image color_table = to_file_info_image(table_type, 37, 1, "table", 830850, 217);
+		static constexpr TableInfo color_table = to_file_info_image<uTT>(256, 1, "table", 830937, 231);
 
 		constexpr UIset_Icons(){}
 	};

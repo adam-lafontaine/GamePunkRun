@@ -33,7 +33,6 @@ SRC := $(APP)/make_bin_main.cpp
 
 DEP := $(SRC)
 DEP += $(APP)/make_bin.hpp
-DEP += $(APP)/bin_table_types.hpp
 DEP += $(APP)/bin_def.hpp
 DEP += $(APP)/bin_table_str.hpp
 DEP += $(UTILS)/tools_include.hpp
