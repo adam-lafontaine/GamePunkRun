@@ -151,18 +151,15 @@ namespace game_punk
     static void add_pma(Span32 const& src, Span32 const& dst)
     {
         p32 ps;
-        p32 pd;
 
         for (u32 i = 0; i < src.length; i++)
         {
             ps = src.data[i];
-            pd = dst.data[i];
+            auto& pd = dst.data[i];
 
             pd.red += ps.red;
             pd.green += ps.green;
             pd.blue += ps.blue;
-
-            dst.data[i] = pd;
         }
     }
 

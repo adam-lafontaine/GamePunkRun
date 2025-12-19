@@ -17,6 +17,12 @@
 
 
 
+#ifdef _WIN32
+#error Tools runs on the Linux machine only
+#endif
+
+
+
 namespace sfs = std::filesystem;
 namespace img = image;
 namespace mb = memory_buffer;
@@ -29,11 +35,6 @@ template <typename T>
 using ImageList = std::vector<Matrix2D<T>>;
 
 using List2Du32 = std::vector<Vec2Du32>;
-
-
-#ifdef _WIN32
-#error Tools runs on the Linux machine only
-#endif
 
 
 namespace sky
@@ -97,6 +98,385 @@ namespace bin
 }
 
 
+enum class FilterKey : u8
+{
+    Transparent = 0,
+    Secondary = 50,
+    Blend = 128,
+    Primary = 255
+};
+
+
+class FilterImage
+{
+public:
+    u32 width = 0;
+    u32 height = 0;
+
+    u8* keys = 0;
+};
+
+
+class ColorTable
+{
+public:
+    u32 length = 0;
+
+    p32* data = 0;
+};
+
+
+class TableImage
+{
+public:
+    u32 width = 0;
+    u32 height = 0;
+
+    u8* keys = 0;
+};
+
+
+namespace util
+{
+
+    static bool create_filter_image(FilterImage& image, u32 width, u32 height)
+    {
+        img::ImageGray gray;
+        if (!img::create_image(gray, width, height))
+        {
+            return false;
+        }
+
+        image.width = width;
+        image.height = height;
+        image.keys = gray.data_;
+
+        return true;
+    }
+
+
+    static void destroy_filter_image(FilterImage& image)
+    {
+        img::ImageGray gray;
+        gray.data_ = image.keys;
+
+        img::destroy_image(gray);
+        image.keys = 0;
+    }
+
+
+    inline bool write_filter_image(FilterImage const& image, sfs::path const& path)
+    {
+        img::ImageGray gray;
+        gray.data_ = image.keys;
+        gray.width = image.width;
+        gray.height = image.height;
+
+        return img::write_image(gray, path.c_str());
+    }
+
+
+    static void transform_mask(img::Image const& src, FilterImage const& dst)
+    {
+        assert(src.data_);
+        assert(dst.keys);
+        assert(src.width == dst.width);
+        assert(src.height == dst.height);
+
+        auto length = src.width * src.height;
+        auto s = src.data_;
+        auto d = dst.keys;
+
+        auto on = (u8)FilterKey::Primary;
+        auto off = (u8)FilterKey::Transparent;
+
+        for (u32 i = 0; i < length; i++)
+        {
+            d[i] = s[i].alpha ? on : off;
+        }
+    }
+
+
+    static void transform_filter(img::Image const& src, FilterImage const& dst, p32 primary, p32 secondary)
+    {
+        assert(src.data_);
+        assert(dst.keys);
+        assert(src.width == dst.width);
+        assert(src.height == dst.height);
+
+        auto length = src.width * src.height;
+        auto s = src.data_;
+        auto d = dst.keys;
+
+        auto equals = [](p32 a, p32 b)
+        {
+            return a.red == b.red && a.green == b.green && a.blue == b.blue;
+        };
+
+        p32 ps;
+
+        for (u32 i = 0; i < length; i++)
+        {
+            ps = s[i];
+
+            if (!ps.alpha)
+            {
+                d[i] = (u8)FilterKey::Transparent;                
+            }
+            else if (equals(ps, primary))
+            {
+                d[i] = (u8)FilterKey::Primary;
+            }
+            else if (equals(ps, secondary))
+            {
+                d[i] = (u8)FilterKey::Secondary;
+            }
+            else
+            {
+                d[i] = (u8)FilterKey::Blend;
+            }
+        }
+    }
+}
+
+
+namespace util
+{
+    static bool create_color_table(ColorTable& table, u32 length)
+    {
+        img::Image image;
+        if (!img::create_image(image, length, 1))
+        {
+            return false;
+        }
+
+        table.length = length;
+        table.data = image.data_;
+
+        return true;
+    }
+
+
+    static void destroy_color_table(ColorTable& table)
+    {
+        img::Image image;
+        image.data_ = table.data;
+        img::destroy_image(image);
+        table.data = 0;
+    }
+
+
+    static bool write_color_table(ColorTable& table, sfs::path const& path)
+    {
+        img::Image image;
+        image.width = table.length;
+        image.height = 1;
+        image.data_ = table.data;
+
+        return img::write_image(image, path.c_str());
+    }
+
+
+    static bool create_table_image(TableImage& image, u32 width, u32 height)
+    {
+        img::ImageGray gray;
+        if (!img::create_image(gray, width, height))
+        {
+            return false;
+        }
+
+        image.width = width;
+        image.height = height;
+        image.keys = gray.data_;
+
+        return true;
+    }
+
+
+    static void destroy_table_image(TableImage& image)
+    {
+        img::ImageGray gray;
+        gray.data_ = image.keys;
+
+        img::destroy_image(gray);
+        image.keys = 0;
+    }
+
+
+    static bool write_table_image(TableImage& image, sfs::path const& path)
+    {
+        img::ImageGray gray;
+        gray.data_ = image.keys;
+        gray.width = image.width;
+        gray.height = image.height;
+
+        return img::write_image(gray, path.c_str());
+    }
+}
+
+
+namespace util
+{
+    constexpr f32 COEFF_RED = 0.2126f; // 0.299f;
+    constexpr f32 COEFF_GREEN = 0.7152f; // 0.587f;
+    constexpr f32 COEFF_BLUE = 0.0722f; // 0.114f;
+
+
+    inline constexpr f32 rgb_to_gray(u8 r, u8 g, u8 b)
+    {
+        return COEFF_RED * r + COEFF_GREEN * g + COEFF_BLUE * b;
+    }
+
+
+    class TableColor
+    {
+    public:
+        u8 red = 0;
+        u8 green = 0;
+        u8 blue = 0;
+        u8 alpha = 0;
+        
+        f32 gray = 0.0f;
+
+        TableColor() {};
+
+        TableColor(p32 p)
+        {
+            red = p.red;
+            green = p.green;
+            blue = p.blue;
+            alpha = p.alpha;
+            gray = (p.alpha == 255 ? 1 : -1) * rgb_to_gray(red, green, blue);
+        }
+
+        TableColor(u32 n)
+        {
+            auto p = *((p32*)&n);
+
+            red = p.red;
+            green = p.green;
+            blue = p.blue;
+            alpha = p.alpha;
+            gray = (p.alpha == 255 ? 1 : -1) * rgb_to_gray(red, green, blue);
+        }
+
+        bool operator < (TableColor const& other) { return gray < other.gray; }
+    };
+    
+
+    inline ColorTable generate_color_table(img::Image const& src)
+    {
+        std::set<u32> unique;
+
+        auto const insert = [&](p32 p)
+        {
+            unique.insert(img::as_u32(p));
+        };
+
+        img::for_each_pixel(img::make_view(src), insert);
+
+        std::vector<TableColor> colors(unique.begin(), unique.end());
+        std::sort(colors.begin(), colors.end());
+
+        u32 N = colors.size();
+
+        assert(N <= 256);
+
+        ColorTable table;
+        if (!create_color_table(table, N))
+        {
+            assert("*** Image error - color table ***" && false);
+            return table;
+        }
+
+        for (u32 i = 0; i < N; i++)
+        {
+            auto& color = colors[i];
+            table.data[i] = img::to_pixel(color.red, color.green, color.blue, color.alpha);
+        }
+
+        return table;
+    }
+
+
+    inline ColorTable generate_color_table(ImageList<p32> const& list)
+    {
+        std::set<u32> unique;
+
+        auto const insert = [&](p32 p)
+        {
+            unique.insert(img::as_u32(p));
+        };
+
+        for (auto const& item : list)
+        {
+            img::for_each_pixel(img::make_view(item), insert);
+        }
+
+        std::vector<TableColor> colors(unique.begin(), unique.end());
+        std::sort(colors.begin(), colors.end());
+
+        u32 N = colors.size();
+
+        assert(N <= 256);
+
+        ColorTable table;
+        if (!create_color_table(table, N))
+        {
+            assert("*** Image error - color table ***" && false);
+            return table;
+        }
+
+        for (u32 i = 0; i < N; i++)
+        {
+            auto& color = colors[i];
+            table.data[i] = img::to_pixel(color.red, color.green, color.blue, color.alpha);
+        }
+
+        return table;
+    }
+
+
+    inline TableImage convert_image(img::Image const& src, ColorTable const& table)
+    {
+        TableImage dst;
+
+        if (!create_table_image(dst, src.width, src.height))
+        {
+            assert("*** Image error - convert image ***" && false);
+            return dst;
+        }
+
+        auto equals = [](p32 a, p32 b)
+        {
+            return a.red == b.red && a.green == b.green && a.blue == b.blue;
+        };
+
+        auto s = img::to_span(src);
+        auto d = dst.keys;
+        auto t = table.data;
+
+        for (u32 i = 0; i < s.length; i++)
+        {
+            auto ps = s.data[i];
+            d[i] = 0;
+            
+            for (u32 c = 0; c < table.length; c++)
+            {
+                auto pt = t[c];
+                if (equals(pt, ps))
+                {
+                    d[i] = (u8)c;
+                    break;
+                }
+            }
+        }
+
+        return dst;
+    }
+}
+
+
 namespace util
 {
     inline PathList get_png_files(sfs::path const& dir)
@@ -108,7 +488,7 @@ namespace util
             return list;
         }
         
-        for (auto const& entry :sfs::directory_iterator(dir))
+        for (auto const& entry : sfs::directory_iterator(dir))
         {
             auto& path = entry.path();
 
@@ -144,8 +524,56 @@ namespace util
 
         return list;
     }
+        
     
-    
+    inline std::string get_variable_name(cstr path, cstr prefix)
+    {
+        StackBuffer<u8, 32> name_data;
+        auto name_sv = span::make_string_view(name_data);
+
+        fs::copy_file_name(path, name_sv);
+
+        // replace '.' with '_'
+        auto& name = name_sv;
+        for (u32 i = 0; i < name.length; i++)
+        {
+            if (name.data[i] == '.')
+            {
+                name.data[i] = '_';
+            }
+        }
+
+        return std::string(prefix) + "_" + span::to_cstr(name_sv);
+    }
+
+
+    inline void write_buffer(MemoryBuffer<u8>& buffer, std::ofstream& bin_file)
+    {
+        bin_file.write((char*)buffer.data_, buffer.size_);
+    }
+
+
+    inline bool read_image(sfs::path const& path, img::Image& dst)
+    {
+        return img::read_image_from_file(path.c_str(), dst);
+    }
+
+
+    inline bool write_image(img::Image const& image, sfs::path const& path)
+    {
+        return img::write_image(image, path.c_str());
+    }
+
+
+    inline bool write_image(img::ImageView const& view, sfs::path const& path)
+    {
+        return img::write_image(img::as_image(view), path.c_str());
+    }
+}
+
+
+namespace util
+{
     template <typename P>
     inline u32 count_read_image_files(PathList const& files, ImageList<P>& dst)
     {
@@ -217,280 +645,30 @@ namespace util
         }
 
         return count;
-    }
-    
-    
-    inline std::string get_varialbe_name(cstr path, cstr prefix)
-    {
-        StackBuffer<u8, 32> name_data;
-        auto name_sv = span::make_string_view(name_data);
+    }    
 
-        fs::copy_file_name(path, name_sv);
 
-        // replace '.' with '_'
-        auto& name = name_sv;
-        for (u32 i = 0; i < name.length; i++)
+    static u32 count_write_convert_image_files(PathList const& files, ImageList<p32>& list, ColorTable const& table, sfs::path const& dst_dir)
+    {  
+        assert(files.size() == list.size());
+
+        u32 count = 0;
+
+        for (u32 i = 0; i < files.size(); i++)
         {
-            if (name.data[i] == '.')
-            {
-                name.data[i] = '_';
-            }
+            auto& file = files[i];
+            auto& src = list[i];
+
+            auto dst = util::convert_image(src, table);
+
+            auto path = dst_dir / file.filename();
+            write_table_image(dst, path);
+
+            img::destroy_image(src);
+            destroy_table_image(dst);
+            count++;
         }
 
-        return std::string(prefix) + "_" + span::to_cstr(name_sv);
-    }
-
-
-    inline void write_buffer(MemoryBuffer<u8>& buffer, std::ofstream& bin_file)
-    {
-        bin_file.write((char*)buffer.data_, buffer.size_);
-    }
-
-
-    inline bool read_image(sfs::path const& path, img::Image& dst)
-    {
-        return img::read_image_from_file(path.c_str(), dst);
-    }
-
-
-    inline bool write_image(img::Image const& image, sfs::path const& path)
-    {
-        return img::write_image(image, path.c_str());
-    }
-
-
-    inline bool write_image(img::ImageGray const& image, sfs::path const& path)
-    {
-        return img::write_image(image, path.c_str());
-    }
-
-
-    inline bool write_image(img::ImageView const& view, sfs::path const& path)
-    {
-        return img::write_image(img::as_image(view), path.c_str());
-    }
-}
-
-
-/* image transforms */
-
-namespace util
-{
-    static void transform_mask(img::Image const& src, img::ImageGray const& dst)
-    {
-        auto s = img::to_span(img::make_view(src));
-        auto d = img::to_span(img::make_view(dst));
-
-        p32 ps;
-
-        for (u32 i = 0; i < s.length; i++)
-        {
-            ps = s.data[i];
-            
-            d.data[i] = ps.alpha;
-        }
-    }
-
-
-    static void transform_filter(img::Image const& src, img::ImageGray const& dst, p32 color)
-    {
-        auto s = img::to_span(img::make_view(src));
-        auto d = img::to_span(img::make_view(dst));
-
-        p32 ps;
-
-        for (u32 i = 0; i < s.length; i++)
-        {
-            ps = s.data[i];
-
-            if (!ps.alpha)
-            {
-                d.data[i] = 0; // transparent
-                continue;
-            }
-
-            if (ps.red == 0 && ps.green == 0 && ps.blue == 0)
-            {
-                d.data[i] = 50; // secondary
-                continue;
-            }
-
-            if (ps.red == color.red && ps.green == color.green && ps.blue == color.blue)
-            {
-                d.data[i] = 255; // primary
-                continue;
-            }
-            
-            d.data[i] = 128; // blend
-        }
-    }
-}
-
-
-/* classes, types */
-
-namespace util
-{
-    constexpr f32 COEFF_RED = 0.299f;
-    constexpr f32 COEFF_GREEN = 0.587f;
-    constexpr f32 COEFF_BLUE = 0.114f;
-
-
-    inline constexpr f32 rgb_to_gray(u8 r, u8 g, u8 b)
-    {
-        return COEFF_RED * r + COEFF_GREEN * g + COEFF_BLUE * b;
-    }
-
-
-    class TableColor
-    {
-    public:
-        u8 red = 0;
-        u8 green = 0;
-        u8 blue = 0;
-        u8 alpha = 0;
-        
-        f32 gray = 0.0f;
-
-        TableColor() {};
-
-        TableColor(p32 p)
-        {
-            red = p.red;
-            green = p.green;
-            blue = p.blue;
-            alpha = p.alpha;
-            gray = (p.alpha == 255 ? 1 : -1) * rgb_to_gray(red, green, blue);
-        }
-
-        TableColor(u32 n)
-        {
-            auto p = *((p32*)&n);
-
-            red = p.red;
-            green = p.green;
-            blue = p.blue;
-            alpha = p.alpha;
-            gray = (p.alpha == 255 ? 1 : -1) * rgb_to_gray(red, green, blue);
-        }
-
-        bool operator < (TableColor const& other) { return gray < other.gray; }
-    };
-}
-
-
-namespace util
-{
-    
-
-    inline img::Image create_color_table_image(img::Image const& src)
-    {
-        std::set<u32> unique;
-
-        auto const insert = [&](p32 p)
-        {
-            unique.insert(img::as_u32(p));
-        };
-
-        img::for_each_pixel(img::make_view(src), insert);
-
-        std::vector<TableColor> colors(unique.begin(), unique.end());
-        std::sort(colors.begin(), colors.end());
-
-        u32 N = colors.size();
-
-        assert(N <= 256);
-
-        img::Image dst;
-        dst.data_ = 0;
-
-        if (!img::create_image(dst, N, 1))
-        {
-            assert("*** Image error - color table ***" && false);
-            return dst;
-        }
-
-        for (u32 i = 0; i < N; i++)
-        {
-            auto& color = colors[i];
-            dst.data_[i] = img::to_pixel(color.red, color.green, color.blue, color.alpha);
-        }
-
-        return dst;
-    }
-
-
-    inline img::Image create_color_table_image(ImageList<p32> const& list)
-    {
-        std::set<u32> unique;
-
-        auto const insert = [&](p32 p)
-        {
-            unique.insert(img::as_u32(p));
-        };
-
-        for (auto const& item : list)
-        {
-            img::for_each_pixel(img::make_view(item), insert);
-        }
-
-        std::vector<TableColor> colors(unique.begin(), unique.end());
-        std::sort(colors.begin(), colors.end());
-
-        u32 N = colors.size();
-
-        assert(N <= 256);
-
-        img::Image dst;
-        dst.data_ = 0;
-
-        if (!img::create_image(dst, N, 1))
-        {
-            assert("*** Image error - color table ***" && false);
-            return dst;
-        }
-
-        for (u32 i = 0; i < N; i++)
-        {
-            auto& color = colors[i];
-            dst.data_[i] = img::to_pixel(color.red, color.green, color.blue, color.alpha);
-        }
-
-        return dst;
-    }
-
-
-    inline img::ImageGray convert_image(img::Image const& src, img::Image const& table)
-    {
-        img::ImageGray dst;
-        dst.data_ = 0;
-
-        if (!img::create_image(dst, src.width, src.height))
-        {
-            assert("*** Image error - convert image ***" && false);
-            return dst;
-        }
-
-        auto s = img::to_span(src);
-        auto d = img::to_span(dst);
-        auto t = img::to_span(table);
-
-        for (u32 i = 0; i < s.length; i++)
-        {
-            auto ps = img::as_u32(s.data[i]);
-            d.data[i] = 0;
-            
-            for (u32 c = 0; c < 256; c++)
-            {
-                auto pt = img::as_u32(t.data[c]);
-                if (pt == ps)
-                {
-                    d.data[i] = (u8)c;
-                    break;
-                }
-            }
-        }
-
-        return dst;
+        return count;
     }
 }

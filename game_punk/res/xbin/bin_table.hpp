@@ -1,5 +1,5 @@
 #pragma once
-/* timestamp: 1765196731971028749 */
+/* timestamp: 1766156321447610749 */
 
 
 // bin_table_types.hpp
@@ -98,7 +98,7 @@ namespace bin_table
 	{
 	public:
 		u32 offset = 466;
-		u32 size = 723893;
+		u32 size = 725104;
 
 		static constexpr FileType file_type = FileType::Image1C;
 
@@ -106,7 +106,7 @@ namespace bin_table
 		union
 		{
 			FileInfo_Image items[count] = {
-				to_file_info_image(file_type, 1200, 1800, "ov_13_png", 466, 723893),
+				to_file_info_image(file_type, 1200, 1800, "ov_13_png", 466, 725104),
 			};
 
 			struct
@@ -128,8 +128,8 @@ namespace bin_table
 	class InfoList_Image_Sky_ColorTable
 	{
 	public:
-		u32 offset = 724359;
-		u32 size = 866;
+		u32 offset = 725570;
+		u32 size = 850;
 
 		static constexpr FileType file_type = FileType::Image4C;
 
@@ -137,7 +137,7 @@ namespace bin_table
 		union
 		{
 			FileInfo_Image items[count] = {
-				to_file_info_image(file_type, 256, 1, "ct_13_png", 724359, 866),
+				to_file_info_image(file_type, 256, 1, "ct_13_png", 725570, 850),
 			};
 
 			struct
@@ -159,7 +159,7 @@ namespace bin_table
 	class Background_Bg1
 	{
 	public:
-		u32 offset = 725225;
+		u32 offset = 726420;
 		u32 size = 27113;
 
 		static constexpr FileType file_type = FileType::Image1C;
@@ -170,14 +170,14 @@ namespace bin_table
 		union
 		{
 			FileInfo_Image items[count] = {
-				to_file_info_image(file_type, 324, 576, "A", 725225, 3189),
-				to_file_info_image(file_type, 324, 576, "B", 728414, 3457),
-				to_file_info_image(file_type, 324, 576, "C", 731871, 4126),
-				to_file_info_image(file_type, 324, 576, "D", 735997, 2991),
-				to_file_info_image(file_type, 324, 576, "E", 738988, 3561),
-				to_file_info_image(file_type, 324, 576, "F", 742549, 3289),
-				to_file_info_image(file_type, 324, 576, "G", 745838, 3391),
-				to_file_info_image(file_type, 324, 576, "H", 749229, 3109),
+				to_file_info_image(file_type, 324, 576, "A", 726420, 3189),
+				to_file_info_image(file_type, 324, 576, "B", 729609, 3457),
+				to_file_info_image(file_type, 324, 576, "C", 733066, 4126),
+				to_file_info_image(file_type, 324, 576, "D", 737192, 2991),
+				to_file_info_image(file_type, 324, 576, "E", 740183, 3561),
+				to_file_info_image(file_type, 324, 576, "F", 743744, 3289),
+				to_file_info_image(file_type, 324, 576, "G", 747033, 3391),
+				to_file_info_image(file_type, 324, 576, "H", 750424, 3109),
 			};
 
 			struct
@@ -193,7 +193,7 @@ namespace bin_table
 			} file_info;
 		};
 
-		static constexpr FileInfo_Image color_table = to_file_info_image(table_type, 9, 1, "table", 752338, 98);
+		static constexpr FileInfo_Image color_table = to_file_info_image(table_type, 9, 1, "table", 753533, 98);
 
 		constexpr Background_Bg1(){}
 	};
@@ -208,7 +208,7 @@ namespace bin_table
 	class Background_Bg2
 	{
 	public:
-		u32 offset = 752436;
+		u32 offset = 753631;
 		u32 size = 64972;
 
 		static constexpr FileType file_type = FileType::Image1C;
@@ -219,22 +219,22 @@ namespace bin_table
 		union
 		{
 			FileInfo_Image items[count] = {
-				to_file_info_image(file_type, 324, 576, "A", 752436, 4922),
-				to_file_info_image(file_type, 324, 576, "B", 757358, 3407),
-				to_file_info_image(file_type, 324, 576, "C", 760765, 3977),
-				to_file_info_image(file_type, 324, 576, "D", 764742, 4429),
-				to_file_info_image(file_type, 324, 576, "E", 769171, 3323),
-				to_file_info_image(file_type, 324, 576, "F", 772494, 4035),
-				to_file_info_image(file_type, 324, 576, "G", 776529, 3399),
-				to_file_info_image(file_type, 324, 576, "H", 779928, 3313),
-				to_file_info_image(file_type, 324, 576, "I", 783241, 3597),
-				to_file_info_image(file_type, 324, 576, "J", 786838, 3161),
-				to_file_info_image(file_type, 324, 576, "K", 789999, 3912),
-				to_file_info_image(file_type, 324, 576, "L", 793911, 4395),
-				to_file_info_image(file_type, 324, 576, "M", 798306, 3962),
-				to_file_info_image(file_type, 324, 576, "N", 802268, 6221),
-				to_file_info_image(file_type, 324, 576, "O", 808489, 3651),
-				to_file_info_image(file_type, 324, 576, "P", 812140, 5268),
+				to_file_info_image(file_type, 324, 576, "A", 753631, 4922),
+				to_file_info_image(file_type, 324, 576, "B", 758553, 3407),
+				to_file_info_image(file_type, 324, 576, "C", 761960, 3977),
+				to_file_info_image(file_type, 324, 576, "D", 765937, 4429),
+				to_file_info_image(file_type, 324, 576, "E", 770366, 3323),
+				to_file_info_image(file_type, 324, 576, "F", 773689, 4035),
+				to_file_info_image(file_type, 324, 576, "G", 777724, 3399),
+				to_file_info_image(file_type, 324, 576, "H", 781123, 3313),
+				to_file_info_image(file_type, 324, 576, "I", 784436, 3597),
+				to_file_info_image(file_type, 324, 576, "J", 788033, 3161),
+				to_file_info_image(file_type, 324, 576, "K", 791194, 3912),
+				to_file_info_image(file_type, 324, 576, "L", 795106, 4395),
+				to_file_info_image(file_type, 324, 576, "M", 799501, 3962),
+				to_file_info_image(file_type, 324, 576, "N", 803463, 6221),
+				to_file_info_image(file_type, 324, 576, "O", 809684, 3651),
+				to_file_info_image(file_type, 324, 576, "P", 813335, 5268),
 			};
 
 			struct
@@ -258,7 +258,7 @@ namespace bin_table
 			} file_info;
 		};
 
-		static constexpr FileInfo_Image color_table = to_file_info_image(table_type, 9, 1, "table", 817408, 98);
+		static constexpr FileInfo_Image color_table = to_file_info_image(table_type, 9, 1, "table", 818603, 98);
 
 		constexpr Background_Bg2(){}
 	};
@@ -273,8 +273,8 @@ namespace bin_table
 	class Spriteset_Punk
 	{
 	public:
-		u32 offset = 817506;
-		u32 size = 2586;
+		u32 offset = 818701;
+		u32 size = 2064;
 
 		static constexpr FileType file_type = FileType::Image1C;
 		static constexpr FileType table_type = FileType::Image4C;
@@ -284,8 +284,8 @@ namespace bin_table
 		union
 		{
 			FileInfo_Image items[count] = {
-				to_file_info_image(file_type, 48, 192, "Punk_idle", 817506, 858),
-				to_file_info_image(file_type, 48, 288, "Punk_run", 818364, 1728),
+				to_file_info_image(file_type, 48, 192, "Punk_idle", 818701, 617),
+				to_file_info_image(file_type, 48, 288, "Punk_run", 819318, 1447),
 			};
 
 			struct
@@ -295,7 +295,7 @@ namespace bin_table
 			} file_info;
 		};
 
-		static constexpr FileInfo_Image color_table = to_file_info_image(table_type, 14, 1, "table", 820092, 119);
+		static constexpr FileInfo_Image color_table = to_file_info_image(table_type, 14, 1, "table", 820765, 119);
 
 		constexpr Spriteset_Punk(){}
 	};
@@ -310,7 +310,7 @@ namespace bin_table
 	class Tileset_ex_zone
 	{
 	public:
-		u32 offset = 820211;
+		u32 offset = 820884;
 		u32 size = 832;
 
 		static constexpr FileType file_type = FileType::Image1C;
@@ -321,8 +321,8 @@ namespace bin_table
 		union
 		{
 			FileInfo_Image items[count] = {
-				to_file_info_image(file_type, 32, 32, "floor_02", 820211, 377),
-				to_file_info_image(file_type, 32, 32, "floor_03", 820588, 369),
+				to_file_info_image(file_type, 32, 32, "floor_02", 820884, 377),
+				to_file_info_image(file_type, 32, 32, "floor_03", 821261, 369),
 			};
 
 			struct
@@ -332,7 +332,7 @@ namespace bin_table
 			} file_info;
 		};
 
-		static constexpr FileInfo_Image color_table = to_file_info_image(table_type, 5, 1, "table", 820957, 86);
+		static constexpr FileInfo_Image color_table = to_file_info_image(table_type, 5, 1, "table", 821630, 86);
 
 		constexpr Tileset_ex_zone(){}
 	};
@@ -347,7 +347,7 @@ namespace bin_table
 	class UIset_Font
 	{
 	public:
-		u32 offset = 821043;
+		u32 offset = 821716;
 		u32 size = 3000;
 
 		static constexpr FileType file_type = FileType::Image1C;
@@ -358,7 +358,7 @@ namespace bin_table
 		union
 		{
 			FileInfo_Image items[count] = {
-				to_file_info_image(file_type, 16, 806, "font", 821043, 2783),
+				to_file_info_image(file_type, 16, 806, "font", 821716, 2783),
 			};
 
 			struct
@@ -367,7 +367,7 @@ namespace bin_table
 			} file_info;
 		};
 
-		static constexpr FileInfo_Image color_table = to_file_info_image(table_type, 37, 1, "table", 823826, 217);
+		static constexpr FileInfo_Image color_table = to_file_info_image(table_type, 37, 1, "table", 824499, 217);
 
 		constexpr UIset_Font(){}
 	};
@@ -382,7 +382,7 @@ namespace bin_table
 	class UIset_Title
 	{
 	public:
-		u32 offset = 824043;
+		u32 offset = 824716;
 		u32 size = 1403;
 
 		static constexpr FileType file_type = FileType::Image1C;
@@ -393,7 +393,7 @@ namespace bin_table
 		union
 		{
 			FileInfo_Image items[count] = {
-				to_file_info_image(file_type, 74, 96, "title_main", 824043, 1321),
+				to_file_info_image(file_type, 74, 96, "title_main", 824716, 1321),
 			};
 
 			struct
@@ -402,7 +402,7 @@ namespace bin_table
 			} file_info;
 		};
 
-		static constexpr FileInfo_Image color_table = to_file_info_image(table_type, 4, 1, "table", 825364, 82);
+		static constexpr FileInfo_Image color_table = to_file_info_image(table_type, 4, 1, "table", 826037, 82);
 
 		constexpr UIset_Title(){}
 	};
@@ -417,7 +417,7 @@ namespace bin_table
 	class UIset_Icons
 	{
 	public:
-		u32 offset = 825446;
+		u32 offset = 826119;
 		u32 size = 4948;
 
 		static constexpr FileType file_type = FileType::Image1C;
@@ -428,7 +428,7 @@ namespace bin_table
 		union
 		{
 			FileInfo_Image items[count] = {
-				to_file_info_image(file_type, 32, 1312, "icons", 825446, 4731),
+				to_file_info_image(file_type, 32, 1312, "icons", 826119, 4731),
 			};
 
 			struct
@@ -437,7 +437,7 @@ namespace bin_table
 			} file_info;
 		};
 
-		static constexpr FileInfo_Image color_table = to_file_info_image(table_type, 37, 1, "table", 830177, 217);
+		static constexpr FileInfo_Image color_table = to_file_info_image(table_type, 37, 1, "table", 830850, 217);
 
 		constexpr UIset_Icons(){}
 	};

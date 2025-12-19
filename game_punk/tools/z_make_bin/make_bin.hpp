@@ -52,7 +52,7 @@ namespace bin
 
             FileInfo_Image item;
             item.path = path;
-            item.name = util::get_varialbe_name(path.string().c_str(), prefix);
+            item.name = util::get_variable_name(path.string().c_str(), prefix);
             item.size = 0;
             item.offset = 0;
 
