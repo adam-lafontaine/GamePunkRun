@@ -253,16 +253,37 @@ namespace game_punk
     }
 
 
-    template <typename T>
-    T next_random(Randomf32& rng, T min, T max)
+    u32 next_random_u32(Randomf32& rng, u32 min, u32 max)
     {
         auto val = rng.values[rng.r_cursor++];
         app_assert(rng.r_cursor != rng.b_cursor && "*** Frame RNG exceded ***");
 
-        auto delta = val * (max - min);
+        auto delta = val * (max - min) + 0.5f;
 
-        return min + (T)delta;
+        return min + (u32)delta;
     }
+
+
+    /*class PickRandom
+    {
+    public:
+        u8 excluded[4] = { 0, 1, 2, 3 };
+        u8 included[10 - 4] = { 4, 5, 6, 7, 8, 9 };
+
+        u32 exc = 0;
+
+        u8 pick(Randomf32& rng)
+        {
+            auto inc = next_random_u32(rng, 0, 5);
+            auto val = included[inc];
+
+            included[inc] = excluded[exc];
+            excluded[exc] = val;
+            exc = (exc + 1) & (4 - 1);
+
+            return val;
+        }
+    };*/
 }
 
 
@@ -333,7 +354,7 @@ namespace game_punk
         bool operator >= (TickQty32 other) const { return value_ >= other.value_; }
 
 
-        static TickQty32 random(Randomf32& rng, u32 min, u32 max) { return TickQty32(next_random(rng, min, max)); }
+        static TickQty32 random(Randomf32& rng, u32 min, u32 max) { return TickQty32(next_random_u32(rng, min, max)); }
     };
 
 

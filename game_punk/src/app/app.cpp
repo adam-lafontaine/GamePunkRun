@@ -272,10 +272,11 @@ namespace game_punk
         auto& bg = data.background;
         auto& dq = data.drawq;
         auto& camera = data.camera;
+        auto& rng = data.rng;
 
         auto sky = get_sky_animation(bg.sky, data.game_tick);
-        auto bg1 = get_animation_pair(bg.bg_1, data.game_tick.value_);
-        auto bg2 = get_animation_pair(bg.bg_2, data.game_tick.value_);
+        auto bg1 = get_animation_pair(bg.bg_1, rng, data.game_tick.value_);
+        auto bg2 = get_animation_pair(bg.bg_2, rng, data.game_tick.value_);
         
         push_draw(dq, sky, camera);
         push_draw(dq, bg1, camera);

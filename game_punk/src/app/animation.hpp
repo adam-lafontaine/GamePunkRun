@@ -212,13 +212,16 @@ namespace game_punk
     class BackgroundAnimation
     {
     public:
+
         u32 count = 0;
+        u32 speed_shift = 0;
 
         BackgroundView data[cxpr::BACKGROUND_COUNT_MAX];
 
-        p32* list[4] = { 0 };
+        u8 working_ids[4] = {0};
+        u8 select_ids[cxpr::BACKGROUND_COUNT_MAX - 4] = {0};        
 
-        u32 speed_shift = 0;        
+        u32 work_next = 0;
     };
 
 
@@ -232,7 +235,12 @@ namespace game_punk
 
         for (u32 i = 0; i < 4; i++)
         {
-            an.list[i] = an.data[i].data; // TODO: random
+            an.working_ids[i] = i;
+        }
+
+        for (u32 i = 4; i < an.count; i++)
+        {
+            an.select_ids[i - 4] = i;
         }
     }
 
@@ -263,7 +271,7 @@ namespace game_punk
     }
 
 
-    static BackgroundPartPair get_animation_pair(BackgroundAnimation const& an, u64 pos)
+    static BackgroundPartPair get_animation_pair(BackgroundAnimation& an, Randomf32& rng, u64 pos)
     {
         BackgroundPartPair bp;
 
@@ -273,16 +281,27 @@ namespace game_punk
         pos <<= an.speed_shift; // speed
         pos %= (4 * H);
 
-        auto list_id1 = pos / H;
-        auto list_id2 = (list_id1 + 1) & (4 - 1);
+        u32 work_1 = pos / H;
+        u32 work_2 = (work_1 + 1) & (4 - 1);
 
         pos %= H;
         
         bp.height2 = pos;
         bp.height1 = H - bp.height2;
 
-        bp.data1 = an.list[list_id1] + bp.height2 * W;
-        bp.data2 = an.list[list_id2];
+        bp.data1 = an.data[an.working_ids[work_1]].data + bp.height2 * W;
+        bp.data2 = an.data[an.working_ids[work_2]].data;
+
+        if (work_1 != an.work_next)
+        { 
+            auto select = next_random_u32(rng, 0, an.count - 4);
+            auto bg_id = an.select_ids[select];
+
+            an.select_ids[select] = an.working_ids[an.work_next];
+            an.working_ids[an.work_next] = bg_id;
+
+            an.work_next = work_1;
+        }
 
         return bp;
     }
