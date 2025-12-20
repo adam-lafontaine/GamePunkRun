@@ -40,15 +40,15 @@ namespace bg
 
     static u32 count_write_palette_image(ImageResult const& res, sfs::path const& out_dir)
     {
-        auto table = util::create_color_table_image(res.images);
+        auto table = util::generate_color_table(res.images);
 
         auto path = out_dir / "table.png";
 
-        auto ok = img::write_image(table, path.c_str());
+        auto ok = util::write_color_table(table, path);
 
         u32 count = ok;
 
-        img::destroy_image(table);
+        util::destroy_color_table(table);
 
         return count;
     }
@@ -78,14 +78,14 @@ namespace bg
         u32 count = 0;
 
         u32 N = res.files.size();
-        img::ImageGray dst;
+        MaskImage dst;
 
         for (u32 i = 0; i < N; i++)
         {
             auto& file = res.files[i];
             auto& src = res.images[i];
 
-            if (!img::create_image(dst, src.width, src.height))
+            if (!util::create_image(dst, src.width, src.height))
             {
                 img::destroy_image(src);
                 continue;
@@ -94,9 +94,9 @@ namespace bg
             util::transform_mask(src, dst);
 
             auto path = out_dir / file.filename();
-            auto ok = img::write_image(dst, path.c_str());
+            bool ok = util::write_image(dst, path);
 
-            img::destroy_image(dst);
+            util::destroy_image(dst);
             img::destroy_image(src);
             count += ok;
         }

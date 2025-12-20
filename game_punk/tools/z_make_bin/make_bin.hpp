@@ -7,7 +7,6 @@
 #include "../tile/tile.hpp"
 #include "../ui/ui.hpp"
 
-#include "bin_table_types.hpp"
 #include "bin_def.hpp"
 #include "bin_table_str.hpp"
 
@@ -52,7 +51,7 @@ namespace bin
 
             FileInfo_Image item;
             item.path = path;
-            item.name = util::get_varialbe_name(path.string().c_str(), prefix);
+            item.name = util::get_variable_name(path.string().c_str(), prefix);
             item.size = 0;
             item.offset = 0;
 
@@ -386,8 +385,8 @@ namespace bin
         out_file << file_top();
         out_file << define_types();
         out_file << define_info_list_image(table.sky.sky_base, FT::Image4C, "Sky_Base");
-        out_file << define_info_list_image(table.sky.sky_overlay, FT::Image1C, "Sky_Overlay");
-        out_file << define_info_list_image(table.sky.sky_table, FT::Image4C, "Sky_ColorTable");
+        out_file << define_info_list_image(table.sky.sky_overlay, FT::Image1C_Table, "Sky_Overlay");
+        out_file << define_info_list_image(table.sky.sky_table, FT::Image4C_Table, "Sky_ColorTable");
 
         for (auto const& info : table.backgrounds)
         {

@@ -141,12 +141,9 @@ namespace sky
     }
 
     
-    inline u32 count_write_image_sub_view_files(PathList const& files, ImageList<p32>& list, Rect2Du32 rect, cstr dst_dir)
+    inline u32 count_write_image_sub_view_files(PathList const& files, ImageList<p32>& list, Rect2Du32 rect, sfs::path const& dst_dir)
     {
         assert(files.size() == list.size());
-
-        StackBuffer<u8, 128> path_data;
-        auto path_sv = span::make_string_view(path_data);
 
         u32 w = rect.x_end - rect.x_begin;
         u32 h = 1;
@@ -154,19 +151,6 @@ namespace sky
         auto buffer = img::create_buffer32(w * h, "sky blend");
 
         auto blend = img::make_view(w, h, buffer);
-
-        auto write_view = [&](img::ImageView const& view, cstr name)
-        {
-            img::Image dst;
-            dst.data_ = view.matrix_data_;
-            dst.width = view.width;
-            dst.height = view.height;
-
-            span::zero_string(path_sv);
-            span::sprintf(path_sv, "%s/%s", dst_dir, name);
-
-            img::write_image(dst, span::to_cstr(path_sv));
-        };
 
         u32 count = 0;
 
@@ -178,9 +162,9 @@ namespace sky
             auto sub = img::sub_view(src, rect);
 
             blend_sky(sub, blend);
-            auto name = file.filename().c_str();
+            auto path = dst_dir / file.filename();
 
-            write_view(blend, name);
+            util::write_image(blend, path);
 
             img::destroy_image(src);
             count++;
@@ -235,27 +219,8 @@ namespace sky
 
 namespace sky
 {    
-    static u32 count_write_convert_images(PathList const& files, ImageList<p32>& list, cstr ov_dir, cstr table_dir)
-    {
-        StackBuffer<u8, 128> path_data;
-        auto path_sv = span::make_string_view(path_data);
-
-        auto write_ov = [&](auto const& dst, cstr name)
-        {
-            span::zero_string(path_sv);
-            span::sprintf(path_sv, "%s/%s", ov_dir, name);
-
-            img::write_image(dst, span::to_cstr(path_sv));
-        };
-
-        auto write_table = [&](auto const& dst, cstr name)
-        {
-            span::zero_string(path_sv);
-            span::sprintf(path_sv, "%s/%s", table_dir, name);
-
-            img::write_image(dst, span::to_cstr(path_sv));
-        };
-
+    static u32 count_write_convert_images(PathList const& files, ImageList<p32>& list, sfs::path const& ov_dir, sfs::path const& table_dir)
+    {        
         u32 count = 0;
 
         for (u32 i = 0; i < files.size(); i++)
@@ -263,18 +228,17 @@ namespace sky
             auto& file = files[i];
             auto& src = list[i];
 
-            auto table = util::create_color_table_image(src);
-            auto gray = util::convert_image(src, table);
-            
+            auto table = util::generate_color_table(src);
+            auto dst = util::convert_image(src, table);            
 
-            auto name = file.filename().c_str();
+            auto name = file.filename();
             
-            write_ov(gray, name);
-            write_table(table, name);
+            util::write_color_table(table, (table_dir / name));
+            util::write_image(dst, (ov_dir / name));
 
             img::destroy_image(src);
-            img::destroy_image(table);
-            img::destroy_image(gray);
+            util::destroy_color_table(table);
+            util::destroy_image(dst);
             count++;
         }
 
@@ -293,9 +257,9 @@ namespace sky
 
     void generate_sky()
     {
-        constexpr auto base_dir = OUT_SKY_BASE_DIR;
-        constexpr auto ov_dir = OUT_SKY_OVERLAY_DIR;
-        constexpr auto table_dir = OUT_SKY_TABLE_DIR;
+        auto base_dir = sfs::path(OUT_SKY_BASE_DIR);
+        auto ov_dir = sfs::path(OUT_SKY_OVERLAY_DIR);
+        auto table_dir = sfs::path(OUT_SKY_TABLE_DIR);
 
         sfs::create_directories(base_dir);
         sfs::create_directories(ov_dir);

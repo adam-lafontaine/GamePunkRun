@@ -40,41 +40,12 @@ namespace sprite
 
 namespace sprite
 {
-    static u32 count_write_convert_image_files(PathList const& files, ImageList<p32>& list, img::Image const& table, sfs::path const& dst_dir)
-    {  
-        assert(files.size() == list.size());
-
-        u32 count = 0;
-
-        for (u32 i = 0; i < files.size(); i++)
-        {
-            auto& file = files[i];
-            auto& src = list[i];
-
-            auto gray = util::convert_image(src, table);
-
-            auto path = dst_dir / file.filename();
-            img::write_image(gray, path.c_str());
-
-            img::destroy_image(src);
-            img::destroy_image(gray);
-            count++;
-        }
-
-        return count;
-    }
-
-    
     static void print_result(auto const& result, u32 n_written)
     {
         printf("%s: %u/%u/%u\n", result.name.c_str(), result.n_expected, result.n_read, n_written);
     }
-}
 
 
-
-namespace sprite
-{
     inline void generate_sprites()
     {
         auto out_dir = sfs::path(OUT_DIR);
@@ -94,14 +65,14 @@ namespace sprite
             
             auto res = get_spritesheet_images(dir);
 
-            auto table = util::create_color_table_image(res.list);
-            img::write_image(table, out_table.c_str());            
+            auto table = util::generate_color_table(res.list);
+            util::write_color_table(table, out_table.c_str());            
 
             u32 n_tile = 0;
-            n_tile += count_write_convert_image_files(res.files, res.list, table, out_files);
+            n_tile += util::count_write_convert_image_files(res.files, res.list, table, out_files);
             
             print_result(res, n_tile);
-            img::destroy_image(table);
+            util::destroy_color_table(table);
         }
     }
 }

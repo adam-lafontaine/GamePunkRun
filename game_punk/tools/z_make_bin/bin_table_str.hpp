@@ -51,25 +51,34 @@ namespace xbin
 
         switch (type)
         {
-        case FT::Image4C:             return "FileType::Image4C";
+        case FT::Image4C: return "FileType::Image4C";
+
+        case FT::Image4C_Table: return "FileType::Image4C_Table";        
+
         case FT::Image4C_Spritesheet: return "FileType::Image4C_Spritesheet";
         case FT::Image4C_Tile:        return "FileType::Image4C_Tile";
 
         case FT::Image1C: return "FileType::Image1C";
-        case FT::Music:   return "FileType::Music";
-        case FT::SFX:     return "FileType::SFX";
-        default:          return "FileType::Unknown";
+
+        case FT::Image1C_Mask:   return "FileType::Image1C_Mask";
+        case FT::Image1C_Filter: return "FileType::Image1C_Filter";
+        case FT::Image1C_Table:  return "FileType::Image1C_Table";
+
+        case FT::Music: return "FileType::Music";
+        case FT::SFX:   return "FileType::SFX";
+
+        default: return "FileType::Unknown";
         }
     }
 
 
-    static std::string define_image_set(auto const& info, cstr set_class)
+    static std::string define_image_set(auto const& info, cstr set_class, bin::FileType image_type)
     {
         auto& set_name = info.name;
         auto set_offset = (int)info.offset;
         auto set_size = (int)info.size;
-        auto file_type = xbin::to_cstr(bin::FileType::Image1C);
-        auto table_type = xbin::to_cstr(bin::FileType::Image4C);
+        auto file_type = xbin::to_cstr(image_type);
+        auto table_type = xbin::to_cstr(bin::FileType::Image4C_Table);
         auto& items = info.list.items;
         auto item_count = (int)info.list.items.size();
 
@@ -78,6 +87,8 @@ namespace xbin
         xbin::ns_begin(oss);
 
         i32 t = 1;
+
+        xbin::oss_tab(oss, t) << "// define_image_set()\n";
 
         xbin::oss_tab(oss, t) << "class " << set_class << "_" << set_name << "\n";
         xbin::oss_tab(oss, t) << "{\n";
@@ -89,12 +100,18 @@ namespace xbin
             xbin::oss_tab(oss, t) << "static constexpr FileType file_type = " << file_type <<";\n";
             xbin::oss_tab(oss, t) << "static constexpr FileType table_type = " << table_type <<";\n\n";
 
+            xbin::oss_tab(oss, t) << "static constexpr auto uFT = (u8)file_type;\n";
+            xbin::oss_tab(oss, t) << "static constexpr auto uTT = (u8)table_type;\n\n";
+
+            xbin::oss_tab(oss, t) << "using ImageInfo = FileInfo_Image<uFT>;\n";
+            xbin::oss_tab(oss, t) << "using TableInfo = FileInfo_Image<uTT>;\n\n";
+
             xbin::oss_tab(oss, t) << "static constexpr u32 count = " << item_count <<";\n\n";
 
             xbin::oss_tab(oss, t) << "union\n";
             xbin::oss_tab(oss, t) << "{\n";
         t++;
-                xbin::oss_tab(oss, t) << "FileInfo_Image items[count] = {\n";
+                xbin::oss_tab(oss, t) << "ImageInfo items[count] = {\n";
         t++;
         for (auto const& item : items)
         {
@@ -104,7 +121,7 @@ namespace xbin
             auto offset = (int)item.offset;
             auto size = (int)item.size;
 
-                    xbin::oss_tab(oss, t) << "to_file_info_image(file_type, " << w << ", " << h << ", " << name << ", " << offset << ", " << size << "),\n";
+                    xbin::oss_tab(oss, t) << "to_file_info_image<uFT>(" << w << ", " << h << ", " << name << ", " << offset << ", " << size << "),\n";
         }
         t--;
                 xbin::oss_tab(oss, t) << "};\n\n";
@@ -114,7 +131,7 @@ namespace xbin
         t++;
         for (auto const& item : items)
         {
-                    xbin::oss_tab(oss, t) << "FileInfo_Image " << item.name << ";\n";
+                    xbin::oss_tab(oss, t) << "ImageInfo " << item.name << ";\n";
         }
         t--;
 
@@ -128,7 +145,7 @@ namespace xbin
         auto name = std::string("\"") +  info.table.name + '"';
         auto offset = (int)info.table.offset;
         auto size = (int)info.table.size;
-            xbin::oss_tab(oss, t) << "static constexpr FileInfo_Image color_table = to_file_info_image(table_type, " << w << ", " << h << ", " << name << ", " << offset << ", " << size << ");\n\n";
+            xbin::oss_tab(oss, t) << "static constexpr TableInfo color_table = to_file_info_image<uTT>(" << w << ", " << h << ", " << name << ", " << offset << ", " << size << ");\n\n";
 
             xbin::oss_tab(oss, t) << "constexpr " << set_class << "_" << set_name << "(){}\n";
         t--;
@@ -195,6 +212,8 @@ namespace bin
 
         i32 t = 1;
 
+        xbin::oss_tab(oss, t) << "// define_info_list_image()\n";
+
         xbin::oss_tab(oss, t) << "class InfoList_Image_" << class_tag << "\n";
         xbin::oss_tab(oss, t) << "{\n";
         xbin::oss_tab(oss, t) << "public:\n";
@@ -202,14 +221,17 @@ namespace bin
             xbin::oss_tab(oss, t) << "u32 offset = " << list_offset << ";\n";
             xbin::oss_tab(oss, t) << "u32 size = " << list_size << ";\n\n";
 
-            xbin::oss_tab(oss, t) << "static constexpr FileType file_type = " << file_type <<";\n\n";
+            xbin::oss_tab(oss, t) << "static constexpr FileType file_type = " << file_type <<";\n";
+            xbin::oss_tab(oss, t) << "static constexpr auto uFT = (u8)file_type;\n";
+            xbin::oss_tab(oss, t) << "using ImageInfo = FileInfo_Image<uFT>;\n\n";
 
-            xbin::oss_tab(oss, t) << "static constexpr u32 count = " << item_count <<";\n";
+            xbin::oss_tab(oss, t) << "static constexpr u32 count = " << item_count <<";\n";            
+            
 
             xbin::oss_tab(oss, t) << "union\n";
             xbin::oss_tab(oss, t) << "{\n";
         t++;
-                xbin::oss_tab(oss, t) << "FileInfo_Image items[count] = {\n";
+                xbin::oss_tab(oss, t) << "ImageInfo items[count] = {\n";
         t++;
         for (auto const& item : list.items)
         {
@@ -219,7 +241,7 @@ namespace bin
             auto offset = (int)item.offset;
             auto size = (int)item.size;
 
-                    xbin::oss_tab(oss, t) << "to_file_info_image(file_type, " << w << ", " << h << ", " << name << ", " << offset << ", " << size << "),\n";
+                    xbin::oss_tab(oss, t) << "to_file_info_image<uFT>(" << w << ", " << h << ", " << name << ", " << offset << ", " << size << "),\n";
         }
         t--;
                 xbin::oss_tab(oss, t) << "};\n\n";
@@ -229,7 +251,7 @@ namespace bin
         t++;
         for (auto const& item : list.items)
         {
-                    xbin::oss_tab(oss, t) << "FileInfo_Image " << item.name << ";\n";
+                    xbin::oss_tab(oss, t) << "ImageInfo " << item.name << ";\n";
         }
         t--;
 
@@ -249,24 +271,24 @@ namespace bin
 
     std::string define_background_set(BackgroundInfo const& info)
     {
-        return xbin::define_image_set(info, "Background");
+        return xbin::define_image_set(info, "Background", bin::FileType::Image1C_Mask);
     }
     
     
     std::string define_sprite_set(SpritesheetInfo const& info)
     {
-        return xbin::define_image_set(info, "Spriteset");
+        return xbin::define_image_set(info, "Spriteset", bin::FileType::Image1C_Table);
     }
     
     
     std::string define_tile_set(TileInfo const& info)
     {
-        return xbin::define_image_set(info, "Tileset");
+        return xbin::define_image_set(info, "Tileset", bin::FileType::Image1C_Table);
     }
 
 
     std::string define_ui_set(UIInfo const& info)
     {
-        return xbin::define_image_set(info, "UIset");
+        return xbin::define_image_set(info, "UIset", bin::FileType::Image1C_Filter);
     }
 }

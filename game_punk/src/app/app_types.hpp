@@ -115,16 +115,6 @@ namespace game_punk
 
 namespace game_punk
 {
-    static Vec2Du32 get_image_dims(bt::FileInfo_Image const& info)
-    {
-        Vec2Du32 dims;
-        dims.x = info.width;
-        dims.y = info.height;
-
-        return dims;
-    }
-
-
     template <typename T>
     static bool rect_intersect(Rect2D<T> const& a, Rect2D<T> const& b)
     {
@@ -151,89 +141,16 @@ namespace game_punk
     static void add_pma(Span32 const& src, Span32 const& dst)
     {
         p32 ps;
-        p32 pd;
 
         for (u32 i = 0; i < src.length; i++)
         {
             ps = src.data[i];
-            pd = dst.data[i];
+            auto& pd = dst.data[i];
 
             pd.red += ps.red;
             pd.green += ps.green;
             pd.blue += ps.blue;
-
-            dst.data[i] = pd;
         }
-    }
-
-
-    static void mask_fill(Span32 const& dst, p32 color)
-    {
-        color.alpha = 255; // no transparency allowed
-
-        for (u32 i = 0; i < dst.length; i++)
-        {
-            dst.data[i] = dst.data[i].alpha ? color : COLOR_TRANSPARENT;
-        }
-    }
-
-
-    static void mask_fill(ImageView const& dst_view, p32 color)
-    {
-        auto dst = img::to_span(dst_view);
-
-        mask_fill(dst, color);
-    }
-
-
-    static void filter_fill(Span32 const& dst, p32 primary, p32 secondary)
-    {
-        primary.alpha = 255; // no transparency allowed
-        secondary.alpha = 255;
-
-        auto blend_r = (primary.red + secondary.red) / 2;
-        auto blend_g = (primary.green + secondary.green) / 2;
-        auto blend_b = (primary.blue + secondary.blue) / 2;
-        auto blend = img::to_pixel((u8)blend_r, (u8)blend_g, (u8)blend_b);
-
-        p32 ps;
-
-        for (u32 i = 0; i < dst.length; i++)
-        {
-            ps = dst.data[i];
-
-            switch (ps.alpha)
-            {
-            case 0:
-                dst.data[i] = COLOR_TRANSPARENT;
-                break;
-
-            case 50:
-                dst.data[i] = secondary;
-                break;
-
-            case 128:
-                dst.data[i] = blend;
-                break;
-
-            case 255:
-                dst.data[i] = primary;
-                break;
-
-            default:
-                break;
-            }
-
-            dst.data[i].alpha = ps.alpha;
-        }
-    }
-
-
-    static void filter_fill(ImageView const& dst_view, p32 primary, p32 secondary)
-    {
-        auto dst = img::to_span(dst_view);
-
-        filter_fill(dst, primary, secondary);
     }
 
 
@@ -787,8 +704,8 @@ namespace game_punk
         {
             ImageView title;            
             
-            SpritesheetView font;
-            SpritesheetView icons;
+            SpritesheetView font; // FontView
+            SpritesheetView icons; // IconView
 
             p32 colors[CTS];
         } data;
@@ -857,10 +774,10 @@ namespace game_punk
         app_assert(ok && "*** Invalid color id ***");
 
         auto color = ui.data.colors[color_id];
-        mask_fill(to_image_view(ui.data.font), color);
+        bt::mask_update(to_image_view(ui.data.font), color);
 
         // temp icon color
-        filter_fill(to_image_view(ui.data.icons), color, COLOR_BLACK);
+        bt::filter_update(to_image_view(ui.data.icons), color, COLOR_BLACK);
         ui.font_color_id = color_id;
 
         return ok;

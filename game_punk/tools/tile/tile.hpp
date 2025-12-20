@@ -38,36 +38,6 @@ namespace tile
 }
 
 
-/* process tile images */
-
-namespace tile
-{
-    static u32 count_write_convert_image_files(PathList const& files, ImageList<p32>& list, img::Image const& table, sfs::path const& dst_dir)
-    {  
-        assert(files.size() == list.size());
-
-        u32 count = 0;
-
-        for (u32 i = 0; i < files.size(); i++)
-        {
-            auto& file = files[i];
-            auto& src = list[i];
-
-            auto gray = util::convert_image(src, table);
-
-            auto path = dst_dir / file.filename();
-            util::write_image(gray, path);
-
-            img::destroy_image(src);
-            img::destroy_image(gray);
-            count++;
-        }
-
-        return count;
-    }
-}
-
-
 namespace tile
 {
     static void print_result(auto const& result, u32 n_written)
@@ -94,16 +64,16 @@ namespace tile
             sfs::create_directories(out);
             sfs::create_directories(out_files);
             
-            auto res_tile = get_tile_images(dir);
+            auto res = get_tile_images(dir);
 
-            auto table = util::create_color_table_image(res_tile.list);
-            util::write_image(table, out_table);
+            auto table = util::generate_color_table(res.list);
+            util::write_color_table(table, out_table);
 
             u32 n_tile = 0;
-            n_tile += count_write_convert_image_files(res_tile.files, res_tile.list, table, out_files);
+            n_tile += util::count_write_convert_image_files(res.files, res.list, table, out_files);
             
-            print_result(res_tile, n_tile);
-            img::destroy_image(table);
+            print_result(res, n_tile);
+            util::destroy_color_table(table);
         }        
         
         printf("\n"); 

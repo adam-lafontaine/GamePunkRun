@@ -130,13 +130,13 @@ namespace ui
     {
         u32 count = 0;
 
-        auto table = util::create_color_table_image(res.palette_image);
-        if (table.data_)
+        auto table = util::generate_color_table(res.palette_image);
+        if (table.data)
         {
             count++;
             auto path = out / "table.png";
-            util::write_image(table, path);
-            img::destroy_image(table);
+            util::write_color_table(table, path);
+            util::destroy_color_table(table);
         }        
         
         img::destroy_image(res.palette_image);
@@ -148,12 +148,10 @@ namespace ui
     static u32 count_write_font_mask_image(FontImageResult& res, sfs::path const& out)
     {
         u32 count = 0;
-
         u32 width = 16; 
-
         u32 h = 0;
-
         u32 n = 0;
+        
         for (auto const& src : res.digit_images)
         {
             h = src.height > h ? src.height : h;
@@ -175,17 +173,17 @@ namespace ui
         u32 height = h * n;
 
         img::Image dst;
-        img::ImageGray mask;
+        MaskImage mask;
 
         bool ok = true;
 
         ok &= img::create_image(dst, width, height);
-        ok &= img::create_image(mask, width, height);
+        ok &= util::create_image(mask, width, height);
 
         if (!ok)
         {
             img::destroy_image(dst);
-            img::destroy_image(mask);
+            util::destroy_image(mask);
         }
 
         img::fill(img::make_view(dst), img::to_pixel(0, 0, 0, 0));
@@ -215,7 +213,7 @@ namespace ui
         count += util::write_image(mask, (out / "font.png"));
 
         img::destroy_image(dst);
-        img::destroy_image(mask);
+        util::destroy_image(mask);
 
         return count;
     }
@@ -297,13 +295,13 @@ namespace ui
     {
         u32 count = 0;
 
-        auto table = util::create_color_table_image(res.palette_image);
-        if (table.data_)
+        auto table = util::generate_color_table(res.palette_image);
+        if (table.data)
         {
             count++;
             auto path = out / "table.png";
-            util::write_image(table, path);
-            img::destroy_image(table);
+            util::write_color_table(table, path);
+            util::destroy_color_table(table);
         }        
         
         img::destroy_image(res.palette_image);
@@ -323,16 +321,16 @@ namespace ui
         auto height = h * (1 + res.icon_images.size());
 
         img::Image dst;
-        img::ImageGray mask;        
+        FilterImage mask;
 
         bool ok = true;
         ok &= img::create_image(dst, width, height);
-        ok &= img::create_image(mask, width, height);
+        ok &= util::create_image(mask, width, height);
 
         if (!ok)
         {
             img::destroy_image(dst);
-            img::destroy_image(mask);
+            util::destroy_image(mask);
         }
 
         img::fill(img::make_view(dst), img::to_pixel(0, 0, 0, 0));
@@ -351,42 +349,15 @@ namespace ui
             img::destroy_image(src);
         }
 
-        auto primary = img::to_pixel(255, 129, 66); // Magic!
+        auto primary = img::to_pixel(255, 129, 66); // Magic! from the file
+        auto secondary = img::to_pixel(0);
 
-        util::transform_filter(dst, mask, primary);
+        util::transform_filter(dst, mask, primary, secondary);
 
         count += util::write_image(mask, (out / "icons.png"));
 
         img::destroy_image(dst);
-        img::destroy_image(mask);
-
-        return count;
-    }
-}
-
-
-namespace ui
-{  
-    static u32 count_write_convert_image_files(ImageResult& res, img::Image const& table, sfs::path const& dst_dir)
-    {
-        u32 count = 0;
-
-        auto N = res.files.size();
-
-        for (u32 i = 0; i < N; i++)
-        {
-            auto& file = res.files[i];
-            auto& src = res.images[i];
-
-            auto gray = util::convert_image(src, table);
-
-            auto path = dst_dir / file.filename();
-            util::write_image(gray, path);
-
-            img::destroy_image(src);
-            img::destroy_image(gray);
-            count++;
-        }
+        util::destroy_image(mask);
 
         return count;
     }
@@ -421,15 +392,15 @@ namespace ui
         sfs::create_directories(out_files);
 
         auto res = get_images(dir);
-        auto table = util::create_color_table_image(res.images);
+        auto table = util::generate_color_table(res.images);
 
         auto path = out / "table.png";
-        util::write_image(table, path);
+        util::write_color_table(table, path);
 
-        auto n_image = count_write_convert_image_files(res, table, out_files);
+        auto n_image = util::count_write_convert_image_files(res.files, res.images, table, out_files);
 
         print_result(res, n_image);
-        img::destroy_image(table);
+        util::destroy_color_table(table);
     }
 
 
