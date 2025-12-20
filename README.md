@@ -12,6 +12,11 @@ Position is the game tick
 
 ## Change Log
 
+### TODO
+* [ ] Refactor font and icons
+* [ ] Name UI icons
+
+
 ### v0.2.0
 * [ ] Moving sprites, tiles, background
 * [ ] Automate release builds
@@ -21,9 +26,8 @@ Position is the game tick
 
 
 ### v0.1.2
-* [ ] Refactor font and icons
-* [ ] Name UI icons
-* [ ] Asset u8 pixel codes
+* [*] Asset image strict types
+* [*] Asset u8 pixel codes
 
 
 ### v0.1.1

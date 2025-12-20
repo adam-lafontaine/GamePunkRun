@@ -148,12 +148,10 @@ namespace ui
     static u32 count_write_font_mask_image(FontImageResult& res, sfs::path const& out)
     {
         u32 count = 0;
-
         u32 width = 16; 
-
         u32 h = 0;
-
         u32 n = 0;
+        
         for (auto const& src : res.digit_images)
         {
             h = src.height > h ? src.height : h;

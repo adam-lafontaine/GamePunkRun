@@ -784,8 +784,8 @@ namespace game_punk
         {
             ImageView title;            
             
-            SpritesheetView font;
-            SpritesheetView icons;
+            SpritesheetView font; // FontView
+            SpritesheetView icons; // IconView
 
             p32 colors[CTS];
         } data;
