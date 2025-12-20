@@ -430,7 +430,7 @@ namespace assets
     }
 
 
-    static bool load_background_1(AssetData const& src, BackgroundView const& dst)
+    /*static bool load_background_1(AssetData const& src, BackgroundView const& dst)
     {
         constexpr bt::Background_Bg1 list;
 
@@ -447,10 +447,98 @@ namespace assets
         bt::destroy_image(table);
 
         return ok;
+    }*/
+
+
+    static bool load_background_1(AssetData const& src, BackgroundAnimation const& dst)
+    {
+        constexpr bt::Background_Bg1 list;
+        constexpr auto color_id = 8;
+
+        bool ok = dst.count == list.count;
+        if (!ok)
+        {
+            app_assert(ok && "*** BackgroundAnimation not initialized ***");
+            return false;
+        }
+
+        for (u32 i = 0; i < list.count; i++)
+        {
+            ok &= has_data(dst.data[i]);
+        }
+
+        if (!ok)
+        {
+            app_assert(ok && "*** BackgroundAnimation not created ***");
+            return false;
+        }
+
+        bt::ColorTable4C table;
+        ok &= read_color_table(src, list.color_table, table);
+
+        auto color = table.data[color_id];
+
+        for (u32 i = 0; i < list.count; i++)
+        {
+            auto& view = dst.data[i];
+            ok &= load_background_mask(src, view, list.items[i]);
+            if (ok)
+            {
+                bt::mask_update(to_image_view(view), color);
+            }            
+        }
+
+        bt::destroy_image(table);
+
+        return ok;
     }
 
 
-    static bool load_background_2(AssetData const& src, BackgroundView const& dst)
+    static bool load_background_2(AssetData const& src, BackgroundAnimation const& dst)
+    {
+        constexpr bt::Background_Bg2 list;
+        constexpr auto color_id = 6;
+
+        bool ok = dst.count == list.count;
+        if (!ok)
+        {
+            app_assert(ok && "*** BackgroundAnimation not initialized ***");
+            return false;
+        }
+
+        for (u32 i = 0; i < list.count; i++)
+        {
+            ok &= has_data(dst.data[i]);
+        }
+
+        if (!ok)
+        {
+            app_assert(ok && "*** BackgroundAnimation not created ***");
+            return false;
+        }
+
+        bt::ColorTable4C table;
+        ok &= read_color_table(src, list.color_table, table);
+
+        auto color = table.data[color_id];
+
+        for (u32 i = 0; i < list.count; i++)
+        {
+            auto& view = dst.data[i];
+            ok &= load_background_mask(src, view, list.items[i]);
+            if (ok)
+            {
+                bt::mask_update(to_image_view(view), color);
+            }            
+        }
+
+        bt::destroy_image(table);
+
+        return ok;
+    }
+
+
+    /*static bool load_background_2(AssetData const& src, BackgroundView const& dst)
     {
         constexpr bt::Background_Bg2 list;
 
@@ -467,7 +555,7 @@ namespace assets
         bt::destroy_image(table);
 
         return ok;
-    }
+    }*/
 
     
 } // assets
@@ -581,8 +669,8 @@ namespace assets
 
         ok &= load_sky_base(src, bg_state.sky.base);
         ok &= load_sky_overlay(src, bg_state.sky.overlay_src);
-        ok &= load_background_1(src, bg_state.bg_1.data[0]);
-        ok &= load_background_2(src, bg_state.bg_2.data[0]);
+        ok &= load_background_1(src, bg_state.bg_1);
+        ok &= load_background_2(src, bg_state.bg_2);
 
         render_front_back(bg_state.sky);
 

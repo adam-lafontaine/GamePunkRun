@@ -208,16 +208,17 @@ namespace game_punk
         return view;
     }
 
-
+    
     class BackgroundAnimation
     {
     public:
+        u32 count = 0;
 
-        BackgroundView data[1];
+        BackgroundView data[cxpr::BACKGROUND_COUNT_MAX];
 
         p32* list[4] = { 0 };
 
-        u32 shift = 0;        
+        u32 speed_shift = 0;        
     };
 
 
@@ -227,18 +228,25 @@ namespace game_punk
 
         app_assert(ok && "*** BackgroundAnimation not created ***");
 
-        an.shift = 0;
+        an.speed_shift = 0;
 
         for (u32 i = 0; i < 4; i++)
         {
-            an.list[i] = an.data[0].data;
+            an.list[i] = an.data[i].data; // TODO: random
         }
     }
 
 
-    static void count_background_animation(BackgroundAnimation& an, MemoryCounts& counts)
+    static void count_background_animation(BackgroundAnimation& an, MemoryCounts& counts, u32 n_backgrounds)
     {
-        count_view(an.data[0], counts);
+        app_assert(n_backgrounds <= cxpr::BACKGROUND_COUNT_MAX);
+
+        an.count = n_backgrounds;
+
+        for (u32 i = 0; i < an.count; i++)
+        {
+            count_view(an.data[i], counts);
+        }        
     }
 
 
@@ -246,7 +254,10 @@ namespace game_punk
     {
         bool ok = true;
 
-        ok &= create_view(an.data[0], memory);
+        for (u32 i = 0; i < an.count; i++)
+        {
+            ok &= create_view(an.data[i], memory);
+        }
 
         return ok;
     }
@@ -259,7 +270,7 @@ namespace game_punk
         auto W = BACKGROUND_DIMS.proc.width;
         auto H = BACKGROUND_DIMS.proc.height;
 
-        pos <<= an.shift; // speed
+        pos <<= an.speed_shift; // speed
         pos %= (4 * H);
 
         auto list_id1 = pos / H;

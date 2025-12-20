@@ -72,6 +72,11 @@ namespace cxpr
     }
 
 
+    constexpr u32 BACKGROUND_1_COUNT = bt::Background_Bg1::count;
+    constexpr u32 BACKGROUND_2_COUNT = bt::Background_Bg2::count;
+    constexpr u32 BACKGROUND_COUNT_MAX = math::cxpr::max(BACKGROUND_1_COUNT, BACKGROUND_2_COUNT);
+
+
 
 } // cxpr    
 
@@ -599,7 +604,7 @@ namespace game_punk
         reset_background_animation(bg.bg_1);
         reset_background_animation(bg.bg_2);
 
-        bg.bg_2.shift = 1;
+        bg.bg_2.speed_shift = 1;
     }
 
 
@@ -607,8 +612,8 @@ namespace game_punk
     {  
         count_sky_animation(bg.sky, counts);
         
-        count_background_animation(bg.bg_1, counts);
-        count_background_animation(bg.bg_2, counts);
+        count_background_animation(bg.bg_1, counts, bt::Background_Bg1::count);
+        count_background_animation(bg.bg_2, counts, bt::Background_Bg2::count);
     }
 
 
