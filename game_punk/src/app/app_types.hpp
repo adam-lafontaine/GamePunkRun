@@ -115,14 +115,14 @@ namespace game_punk
 
 namespace game_punk
 {
-    static Vec2Du32 get_image_dims(bt::FileInfo_Image const& info)
+    /*static Vec2Du32 get_image_dims(bt::FileInfo_Image const& info)
     {
         Vec2Du32 dims;
         dims.x = info.width;
         dims.y = info.height;
 
         return dims;
-    }
+    }*/
 
 
     template <typename T>
@@ -183,7 +183,7 @@ namespace game_punk
     }*/
 
 
-    static void filter_fill(Span32 const& dst, p32 primary, p32 secondary)
+    /*static void filter_fill(Span32 const& dst, p32 primary, p32 secondary)
     {
         primary.alpha = 255; // no transparency allowed
         secondary.alpha = 255;
@@ -223,15 +223,15 @@ namespace game_punk
 
             dst.data[i].alpha = ps.alpha;
         }
-    }
+    }*/
 
 
-    static void filter_fill(ImageView const& dst_view, p32 primary, p32 secondary)
+    /*static void filter_fill(ImageView const& dst_view, p32 primary, p32 secondary)
     {
         auto dst = img::to_span(dst_view);
 
         filter_fill(dst, primary, secondary);
-    }
+    }*/
 
 
     template <typename T>
@@ -854,10 +854,10 @@ namespace game_punk
         app_assert(ok && "*** Invalid color id ***");
 
         auto color = ui.data.colors[color_id];
-        mask_fill(to_image_view(ui.data.font), color);
+        bt::mask_update(to_image_view(ui.data.font), color);
 
         // temp icon color
-        filter_fill(to_image_view(ui.data.icons), color, COLOR_BLACK);
+        bt::filter_update(to_image_view(ui.data.icons), color, COLOR_BLACK);
         ui.font_color_id = color_id;
 
         return ok;

@@ -12,6 +12,10 @@ namespace assets
     template <u8 FT>
     using ImageInfo = bt::FileInfo_Image<FT>;
 
+    using SkyBaseInfo = bt::InfoList_Image_Sky_Base::ImageInfo;
+    using SkyOverlayInfo = bt::InfoList_Image_Sky_Overlay::ImageInfo;
+    using SkyTableInfo = bt::InfoList_Image_Sky_ColorTable::ImageInfo;
+
 
     constexpr f32 SKY_OVERLAY_ALPHA = 0.22f;
     constexpr f32 SKY_BASE_ALPHA = 1.0f - SKY_OVERLAY_ALPHA;
@@ -24,6 +28,59 @@ namespace assets
 
 namespace game_punk
 {
+
+/* read wrappers */
+
+namespace assets
+{
+    template <u8 FT>
+    static ByteView make_byte_view(MemoryBuffer<u8> const& buffer, ImageInfo<FT> const& info)
+    {
+        ByteView view{};
+
+        view.data = buffer.data_ + info.offset;
+        view.length = info.size;
+
+        return view;
+    }
+
+
+    static bool read_rgba(AssetData const& src, bt::ImageRGBAInfo const& info, Image& dst)
+    {
+        auto data = make_byte_view(src.bytes, info);
+        return bt::read_rgba(data, info, dst) == bt::ReadResult::OK;
+    }
+
+
+    static bool read_color_table(AssetData const& src, bt::ColorTableInfo const& info, bt::ColorTable4C& dst)
+    {
+        auto data = make_byte_view(src.bytes, info);
+        return bt::read_color_table(data, info, dst) == bt::ReadResult::OK;
+    }
+
+
+    static bool read_table_image(AssetData const& src, bt::TableImageInfo const& info, bt::TableImage1C& dst)
+    {
+        auto data = make_byte_view(src.bytes, info);
+        return bt::read_table_image(data, info, dst) == bt::ReadResult::OK;
+    }
+
+
+    static bool read_filter_image(AssetData const& src, bt::FilterImageInfo const& info, bt::FilterImage1C& dst)
+    {
+        auto data = make_byte_view(src.bytes, info);
+        return bt::read_filter_image(data, info, dst) == bt::ReadResult::OK;
+    }
+
+
+    static bool read_mask_image(AssetData const& src, bt::MaskImageInfo const& info, bt::MaskImage1C& dst)
+    {
+        auto data = make_byte_view(src.bytes, info);
+        return bt::read_mask_image(data, info, dst) == bt::ReadResult::OK;
+    }
+}
+
+
 namespace assets
 {   
     
@@ -83,98 +140,156 @@ namespace assets
         };
 
         span::transform(src, dst, do_pma);
-    } 
-        
-    
-    static void apply_color_table_pma(Span8 const& src, Span32 const& dst, Span32 const& table, f32 alpha)
+    }
+
+
+    static bool apply_color_table_pma(bt::TableImage1C const& src, ImageView const& dst, bt::ColorTable4C const& table, f32 alpha)
     {
+        if (src.width != dst.width || src.height != dst.height)
+		{
+			return false;
+		}
+
         f32 r = 0.0f;
         f32 g = 0.0f;
         f32 b = 0.0f;
 
         p32 ps;
 
-        for (u32 i = 0; i < src.length; i++)
+        auto length = src.width * src.height;
+        auto s = src.data;
+        auto d = dst.matrix_data_;
+        auto t = table.data;
+
+        for (u32 i = 0; i < length; i++)
         {
-            ps = table.data[src.data[i]];
+            ps = t[s[i]];
 
             r = ps.red * alpha + 0.5f;
             g = ps.green * alpha + 0.5f;
             b = ps.blue * alpha + 0.5f;
 
-            dst.data[i] = img::to_pixel((u8)r, (u8)g, (u8)b);
+            d[i] = img::to_pixel((u8)r, (u8)g, (u8)b);
         }
-    }
+
+        return true;
+    }    
     
-    
-    template <u8 FT>
-    static ByteView make_byte_view(MemoryBuffer<u8> const& buffer, ImageInfo<FT> const& info)
+
+    static bool load_table_image(AssetData const& src, ImageView const& dst, bt::TableImageInfo const& info, bt::ColorTableInfo const& ct)
     {
-        ByteView view{};
-
-        view.data = buffer.data_ + info.offset;
-        view.length = info.size;
-
-        return view;
-    }
-
-
-    template <u8 FT>
-    static bool load_image_asset(AssetData const& src, Image& dst, ImageInfo<FT> const& info)
-    {
-        using FT = bt::FileType;
-
-        bool ok = true;
-
-        auto view = make_byte_view(src.bytes, info);        
-
-        ok &= img::read_image_from_memory(view, dst);
-        app_assert(ok && "*** Read image error ***");
-
-        ok &= dst.width == info.width;
-        ok &= dst.height == info.height;
-        app_assert(ok && "*** Image dimensions mismatch ***");
-
-        return ok;
-    }
-
-
-    static bool load_image_asset(AssetData const& src, ImageGray& dst, ImageInfo const& info)
-    {
-        using FT = bt::FileType;
-
-        bool ok = true;
-
-        auto view = make_byte_view(src.bytes, info);
-
-        ok &= img::read_image_from_memory(view, dst);
-        app_assert(ok && "*** Read image error ***");
-
-        ok &= dst.width == info.width;
-        ok &= dst.height == info.height;
-        app_assert(ok && "*** Image dimensions mismatch ***");
-
-        return ok;
-    }
-
-
-    static bool load_sky_base_image(AssetData const& src, BackgroundView const& dst, ImageInfo const& info)
-    {
-        Image part_yx;
-        bool ok = load_image_asset(src, part_yx, info);
+        bt::TableImage1C table_image;
+        bool ok = read_table_image(src, info, table_image);
         if (!ok)
         {
+            app_assert(ok && "*** read_table_image() ***");
+            return false;
+        }
+
+        ok &= table_image.width == info.width;
+        ok &= table_image.height == info.height;
+        if (!ok)
+        {
+            app_assert(ok && "*** Unexpected image size ***");
+            bt::destroy_image(table_image);
+        }
+
+        bt::ColorTable4C table;
+        ok &= read_color_table(src, ct, table);
+        if (!ok)
+        {
+            app_assert(ok && "*** read_color_table() ***");
+            bt::destroy_image(table_image);
+            return false;
+        }
+
+        ok &= table.length == 256;
+        if (!ok)
+        {
+            app_assert(ok && "*** Unexpected color table image size ***");
+            bt::destroy_image(table_image);
+            bt::destroy_image(table);
+            return false;
+        }
+
+        ok &= bt::color_table_convert(table_image, table, dst);
+        if (!ok)
+        {
+            app_assert(ok && "*** color_table_convert() ***");
+            bt::destroy_image(table_image);
+            bt::destroy_image(table);
+            return false;
+        }
+
+        bt::destroy_image(table_image);
+        bt::destroy_image(table);
+        
+        return true;
+    }
+
+
+    static bool load_filter_image(AssetData const& src, ImageView const& dst, bt::FilterImageInfo const& info)
+    {
+        bt::FilterImage1C filter;
+        bool ok = read_filter_image(src, info, filter);
+        if (!ok)
+        {
+            app_assert(ok && "*** read_filter_image() ***");
+            return false;
+        }
+
+        ok &= filter.width == info.width;
+        ok &= filter.height == info.height;
+        if (!ok)
+        {
+            app_assert(ok && "*** Unexpected image size ***");
+            bt::destroy_image(filter);
+            return false;
+        }
+
+        ok &= bt::filter_convert(filter, dst);
+        if (!ok)
+        {
+            app_assert(ok && "*** filter_convert() ***");
+            bt::destroy_image(filter);
+            return false;
+        }
+
+        bt::destroy_image(filter);
+
+        return ok;
+    }
+}
+}
+
+
+/* backgrounds */
+
+namespace game_punk
+{
+namespace assets
+{  
+    static bool load_sky_base_image(AssetData const& src, BackgroundView const& dst, SkyBaseInfo const& info)
+    {
+        auto data = make_byte_view(src.bytes, info);
+
+        Image part_yx;
+
+        bool ok = read_rgba(src, info, part_yx);
+        if (!ok)
+        {
+            app_assert(ok && "*** read_rgba() ***");
             return false;
         }
 
         auto& dims = dst.dims.proc;
 
         ok &= part_yx.width == dims.width;
-        ok &= dims.height % part_yx.height == 0;
-        app_assert(ok && "*** Unexpected image part size ***");
+        ok &= dims.height % part_yx.height == 0;        
 
         if (!ok)
         {
+            app_assert(ok && "*** Unexpected image part size ***");
             img::destroy_image(part_yx);
             return false;
         }
@@ -190,126 +305,98 @@ namespace assets
     }
 
 
-    static bool load_sky_overlay_image(AssetData const& src, SkyOverlayView const& dst, ImageInfo const& ov, ImageInfo const& ct)
+    static bool load_sky_overlay_image(AssetData const& src, SkyOverlayView const& dst, SkyOverlayInfo const& ov, SkyTableInfo const& ct)
     {
-        ImageGray overlay;
-        bool ok = load_image_asset(src, overlay, ov);
+        bt::TableImage1C overlay;
+        bool ok = read_table_image(src, ov, overlay);
         if (!ok)
         {
+            app_assert(ok && "*** read_table_image() ***");
             return false;
         }
         
         ok &= overlay.width == dst.width;
         ok &= overlay.height == dst.height;
-        app_assert(ok && "*** Unexpected overlay image size ***");
-
-        Image table;
-        ok = load_image_asset(src, table, ct);
         if (!ok)
         {
+            app_assert(ok && "*** Unexpected overlay image size ***");
+            bt::destroy_image(overlay);
+            return false;
+        }        
+
+        bt::ColorTable4C table;
+        ok = read_color_table(src, ct, table);
+        if (!ok)
+        {
+            app_assert(ok && "*** read_color_table() ***");
+            bt::destroy_image(overlay);
             return false;
         }
 
-        ok &= table.width == 256;
-        ok &= table.height = 1;
-        app_assert(ok && "*** Unexpected color table image size ***");
-
+        ok &= table.length == 256;
         if (!ok)
         {
-            img::destroy_image(overlay);
-            img::destroy_image(table);
+            app_assert(ok && "*** Unexpected color table image size ***");
+            bt::destroy_image(overlay);
+            bt::destroy_image(table);
             return false;
         }
 
         // pre-multiplied alpha
-        auto s = img::to_span(overlay);
-        auto d = to_span(dst);
-        auto t = img::to_span(table);
-        apply_color_table_pma(s, d, t, SKY_OVERLAY_ALPHA);
+        ok &= apply_color_table_pma(overlay, to_image_view(dst), table, SKY_OVERLAY_ALPHA);
+        if (!ok)
+        {
+            app_assert(ok && "*** apply_color_table_pma() ***");
+            bt::destroy_image(overlay);
+            bt::destroy_image(table);            
+            return false;
+        }
 
-        img::destroy_image(overlay);
-        img::destroy_image(table);
+        bt::destroy_image(overlay);
+        bt::destroy_image(table);
 
-        return true;
+        return ok;
     }
 
 
-    static bool load_background_image(AssetData const& src, BackgroundView const& dst, ImageInfo const& info)
+    static bool load_background_mask(AssetData const& src, BackgroundView const& dst, bt::MaskImageInfo const& info)
     {
-        ImageGray mask_yx;
-        bool ok = load_image_asset(src, mask_yx, info);
+        bt::MaskImage1C mask;
+        bool ok = read_mask_image(src, info, mask);
         if (!ok)
         {
+            app_assert(ok && "*** read_mask_image() ***");
             return false;
         }
 
         auto& dims = dst.dims.proc;
 
-        ok &= mask_yx.width == dims.width;
-        ok &= mask_yx.height == dims.height;
-        app_assert(ok && "*** Unexpected background size ***");
-
+        ok &= mask.width == dims.width;
+        ok &= mask.height == dims.height;
         if (!ok)
         {
+            app_assert(ok && "*** Unexpected background size ***");
+            bt::destroy_image(mask);
             return false;
         }
 
-        mask_convert(img::to_span(mask_yx), to_span(dst));
+        ok &= bt::mask_convert(mask, to_image_view(dst));
+        if (!ok)
+        {
+            app_assert(ok && "*** mask_convert() ***");
+            bt::destroy_image(mask);
+            return false;
+        }
 
-        img::destroy_image(mask_yx);
+        bt::destroy_image(mask);
 
         return true;
     }
 
 
-    /*static bool load_spritesheet_image(AssetData const& src, SpritesheetView const& dst, ImageInfo const& info)
-    {
-        bool ok = true;
-        auto dims = dst.dims.proc;
-
-        ok &= dims.width == info.width;
-        ok &= dims.height == info.height;
-        app_assert(ok && "*** Spritesheet dimensions mismatch ***");
-
-        if (!ok)
-        {
-            return false;
-        }
-        
-        Image ss_image;
-
-        ok = load_image_asset(src, ss_image, info);
-        ok &= ss_image.width == info.width;
-        ok &= ss_image.height == info.height;
-        app_assert(ok && "*** spritesheet asset dimensions mismatch ***");
-
-        ok &= ss_image.height > ss_image.width;
-        ok &= ss_image.height % ss_image.width == 0;
-        app_assert(ok && "*** Invalid spritesheet asset dimensions ***");
-
-        span::copy(img::to_span(ss_image), to_span(dst));
-        img::destroy_image(ss_image);
-
-        return ok;
-    }*/
-}
-}
-
-
-/* backgrounds */
-
-namespace game_punk
-{
-namespace assets
-{  
     static bool load_sky_base(AssetData const& src, BackgroundView const& dst)
     {
-        using FT = bt::FileType;
-
         constexpr bt::InfoList_Image_Sky_Base list;
-        constexpr auto file_type_ok = list.file_type == FT::Image4C;
-
-        static_assert(file_type_ok && "*** RGBA image expected ***");
 
         auto& info = list.file_info.base_day_png;
 
@@ -328,13 +415,7 @@ namespace assets
         using FT = bt::FileType;
 
         constexpr bt::InfoList_Image_Sky_Overlay list;
-        constexpr auto file_type_ok = list.file_type == FT::Image1C;        
-
         constexpr bt::InfoList_Image_Sky_ColorTable tables;
-        constexpr auto table_ok = tables.file_type == FT::Image4C;
-
-        static_assert(file_type_ok && "*** Gray image expected ***");
-        static_assert(table_ok && "*** RGBA image expected ***");
 
         auto& ov = list.file_info.ov_13_png;
         auto& ct = tables.file_info.ct_13_png;
@@ -351,25 +432,19 @@ namespace assets
 
     static bool load_background_1(AssetData const& src, BackgroundView const& dst)
     {
-        using FT = bt::FileType;
-
         constexpr bt::Background_Bg1 list;
-        constexpr auto file_type_ok = list.file_type == FT::Image1C;
-
-        static_assert(file_type_ok && "*** 1 channel image expected ***");
 
         auto& info = list.file_info.B;
 
-        auto ok = load_background_image(src, dst, info);
+        auto ok = load_background_mask(src, dst, info);
 
-        Image table;
-        load_image_asset(src, table, list.color_table);
+        bt::ColorTable4C table;
+        read_color_table(src, list.color_table, table);
 
-        auto color = img::pixel_at(img::make_view(table), 8, 0);
+        auto color = table.data[8];
+        bt::mask_update(to_image_view(dst), color);
 
-        mask_fill(to_span(dst), color);
-
-        img::destroy_image(table);
+        bt::destroy_image(table);
 
         return ok;
     }
@@ -377,25 +452,19 @@ namespace assets
 
     static bool load_background_2(AssetData const& src, BackgroundView const& dst)
     {
-        using FT = bt::FileType;
-
         constexpr bt::Background_Bg2 list;
-        constexpr auto file_type_ok = list.file_type == FT::Image1C;
-
-        static_assert(file_type_ok && "*** 1 channel image expected ***");
 
         auto& info = list.file_info.B;
 
-        auto ok = load_background_image(src, dst, info);
+        auto ok = load_background_mask(src, dst, info);
 
-        Image table;
-        load_image_asset(src, table, list.color_table);
+        bt::ColorTable4C table;
+        read_color_table(src, list.color_table, table);
 
-        auto color = img::pixel_at(img::make_view(table), 6, 0);
+        auto color = table.data[6];
+        bt::mask_update(to_image_view(dst), color);
 
-        game_punk::mask_fill(to_span(dst), color);
-
-        img::destroy_image(table);
+        bt::destroy_image(table);
 
         return ok;
     }
@@ -412,7 +481,21 @@ namespace game_punk
 {
 namespace assets
 {
-    
+    static bool load_spritesheet_image(AssetData const& src, SpritesheetView const& dst, bt::TableImageInfo const& ss, bt::ColorTableInfo const& ct)
+    {
+        return load_table_image(src, to_image_view(dst), ss, ct);
+    }
+
+
+    static bool load_sprites_punk(AssetData const& src, SpritesheetState const& ss_state)
+    {
+        bt::Spriteset_Punk list;
+
+        auto& info = list.file_info.Punk_run;
+        auto& table = list.color_table;
+
+        return load_spritesheet_image(src, ss_state.punk_run, info, table);
+    }
 }
 }
 
@@ -423,7 +506,27 @@ namespace game_punk
 {
 namespace assets
 {
-    
+    static bool load_tile_image(AssetData const& src, TileView const& dst, bt::TableImageInfo const& info, bt::ColorTableInfo const& ct)
+    {
+        return load_table_image(src, to_image_view(dst), info, ct);
+    }
+
+
+    static bool load_tiles_ex_zone(AssetData const& src, TileState const& tiles)
+    {
+        bt::Tileset_ex_zone list;
+
+        auto& floor2 = list.file_info.floor_02;
+        auto& floor3 = list.file_info.floor_03;
+        auto& table = list.color_table;
+
+        bool ok = true;
+
+        ok &= load_tile_image(src, tiles.floor_a, floor2, table);
+        ok &= load_tile_image(src, tiles.floor_b, floor3, table);
+
+        return ok;
+    }
 }
 }
 
@@ -436,99 +539,31 @@ namespace assets
 {
     static bool load_ui_font(AssetData const& src, UIState& ui)
     {
-        using FT = bt::FileType;
+        bt::UIset_Font list;
 
-        bt::UIset_Font font;
+        auto& font = list.file_info.font;
 
-        constexpr auto file_type_ok = font.file_type == FT::Image1C;
-        constexpr auto table_type_ok = font.table_type == FT::Image4C;
-
-        static_assert(file_type_ok && "*** Grayscale image expected ***");
-        static_assert(table_type_ok && "*** RGBA image expected ***");
-
-        static_assert(UIState::CTS == font.color_table.width);
-
-        bool ok = true;
-
-        Image table;
-        ImageGray mask;
-        ok &= load_image_asset(src, table, font.color_table);
-        ok &= load_image_asset(src, mask, font.file_info.font);
-
-        if (ok)
-        {
-            for (u32 i = 0; i < ui.CTS; i++)
-            {
-                ui.data.colors[i] = table.data_[i];
-            }
-            
-            mask_convert(mask, to_image_view(ui.data.font));
-        }
-
-        img::destroy_image(table);
-        img::destroy_image(mask);
-
-        return ok;
+        return load_filter_image(src, to_image_view(ui.data.font), font);        
     }
 
 
     static bool load_ui_title(AssetData const& src, UIState& ui)
     {
-        using FT = bt::FileType;
+        bt::UIset_Title list;
 
-        bt::UIset_Title title;
+        auto& title = list.file_info.title_main;
 
-        constexpr auto file_type_ok = title.file_type == FT::Image1C;
-        constexpr auto table_type_ok = title.table_type == FT::Image4C;
-
-        static_assert(file_type_ok && "*** Grayscale image expected ***");
-        static_assert(table_type_ok && "*** RGBA image expected ***");
-
-        bool ok = true;
-
-        Image table;
-        ImageGray mask;
-        ok &= load_image_asset(src, table, title.color_table);
-        ok &= load_image_asset(src, mask, title.file_info.title_main);
-
-        if (ok)
-        {
-            apply_color_table(mask, ui.data.title, table);
-        }
-
-        img::destroy_image(table);
-        img::destroy_image(mask);
-
-        return ok;
+        return load_filter_image(src, ui.data.title, title);
     }
 
 
     static bool load_ui_icons(AssetData const& src, UIState& ui)
     {
-        using FT = bt::FileType;
+        bt::UIset_Icons list;
 
-        bt::UIset_Icons icons;
+        auto& icons = list.file_info.icons;
 
-        constexpr auto file_type_ok = icons.file_type == FT::Image1C;
-        constexpr auto table_type_ok = icons.table_type == FT::Image4C;
-
-        static_assert(file_type_ok && "*** Grayscale image expected ***");
-        static_assert(table_type_ok && "*** RGBA image expected ***");
-
-        bool ok = true;
-
-        ImageGray filter;
-
-        ok &= load_image_asset(src, filter, icons.file_info.icons);
-
-        if (ok)
-        {
-            filter_convert(filter, to_image_view(ui.data.icons));
-        }
-
-        img::destroy_image(filter);
-
-        return ok;
+        return load_filter_image(src, to_image_view(ui.data.icons), icons);
     }
 }
 }
@@ -555,30 +590,11 @@ namespace assets
     }
 
 
-    static bool load_spritesheet_assets(AssetData const& src, SpritesheetState& ss_state)
-    {       
-        using FT = bt::FileType;
-
-        bt::Spriteset_Punk list;
-
-        constexpr auto tile_type_ok = list.file_type == FT::Image1C;
-        constexpr auto table_type_ok = list.table_type == FT::Image4C;
-
-        static_assert(tile_type_ok && "*** Grayscale image expected ***");
-        static_assert(table_type_ok && "*** RGBA image expected ***");
-
+    static bool load_spritesheet_assets(AssetData const& src, SpritesheetState const& ss_state)
+    {  
         bool ok = true;
 
-        Image table;
-        ImageGray spritesheet;
-
-        ok &= load_image_asset(src, table, list.color_table);
-
-        ok &= load_image_asset(src, spritesheet, list.file_info.Punk_run);
-        apply_color_table(spritesheet, ss_state.punk_run, table);
-
-        img::destroy_image(spritesheet);
-        img::destroy_image(table);
+        ok &= load_sprites_punk(src, ss_state);
 
         return ok;
     }
@@ -586,32 +602,9 @@ namespace assets
 
     static bool load_tile_assets(AssetData const& src, TileState& tile_state)
     {
-        using FT = bt::FileType;
-
-        bt::Tileset_ex_zone list;
-
-        constexpr auto tile_type_ok = list.file_type == FT::Image1C;
-        constexpr auto table_type_ok = list.table_type == FT::Image4C;
-
-        static_assert(tile_type_ok && "*** Grayscale image expected ***");
-        static_assert(table_type_ok && "*** RGBA image expected ***");
-
         bool ok = true;
 
-        Image table;
-        ImageGray tile;
-
-        ok &= load_image_asset(src, table, list.color_table);
-        
-        ok &= load_image_asset(src, tile, list.file_info.floor_02);
-        apply_color_table(tile, tile_state.floor_a, table);
-        img::destroy_image(tile);
-
-        ok &= load_image_asset(src, tile, list.file_info.floor_03);
-        apply_color_table(tile, tile_state.floor_b, table);
-        img::destroy_image(tile);
-
-        img::destroy_image(table);
+        ok &= load_tiles_ex_zone(src, tile_state);
 
         return ok;
     }

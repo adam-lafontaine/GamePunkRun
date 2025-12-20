@@ -385,7 +385,7 @@ namespace bin
         out_file << file_top();
         out_file << define_types();
         out_file << define_info_list_image(table.sky.sky_base, FT::Image4C, "Sky_Base");
-        out_file << define_info_list_image(table.sky.sky_overlay, FT::Image1C, "Sky_Overlay");
+        out_file << define_info_list_image(table.sky.sky_overlay, FT::Image1C_Table, "Sky_Overlay");
         out_file << define_info_list_image(table.sky.sky_table, FT::Image4C_Table, "Sky_ColorTable");
 
         for (auto const& info : table.backgrounds)

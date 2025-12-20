@@ -22,46 +22,7 @@ namespace bin_table
 	};
 
 
-	class FilterImage1C
-	{
-	public:
-		u32 width = 0;
-		u32 height = 0;
-
-		u8* data = 0;
-	};
-
-
-	class TableImage1C
-	{
-	public:
-		u32 width = 0;
-		u32 height = 0;
-
-		u8* data = 0;
-	};
-
-
-	class MaskImage1C
-	{
-	public:
-		u32 width = 0;
-		u32 height = 0;
-
-		u8* data = 0;
-	};
-
-
-	class ColorTable4C
-	{
-	public:
-		u32 length = 0;
-
-		p32* data = 0;
-	};
-
-
-    enum class FileType : u8
+	enum class FileType : u8
     {
         Unknown = 0,
 
@@ -79,6 +40,54 @@ namespace bin_table
         Music,
         SFX
     };
+
+
+	class FilterImage1C
+	{
+	public:
+		static constexpr FileType type = FileType::Image1C_Filter;
+		
+		u32 width = 0;
+		u32 height = 0;
+
+		u8* data = 0;
+	};
+
+
+	class TableImage1C
+	{
+	public:
+		static constexpr FileType type = FileType::Image1C_Table;
+
+		u32 width = 0;
+		u32 height = 0;
+
+		u8* data = 0;
+	};
+
+
+	class MaskImage1C
+	{
+	public:
+		static constexpr FileType type = FileType::Image1C_Mask;
+
+		u32 width = 0;
+		u32 height = 0;
+
+		u8* data = 0;
+	};
+
+
+	class ColorTable4C
+	{
+	public:
+		static constexpr FileType type = FileType::Image4C_Table;
+
+		u32 length = 0;
+
+		p32* data = 0;
+	};
+    
 
 
 	template <u8 FT>
@@ -109,21 +118,23 @@ namespace bin_table
 	}
 
 
+	using ImageGrayInfo = FileInfo_Image<(u8)FileType::Image1C>;
+	using ImageRGBAInfo = FileInfo_Image<(u8)FileType::Image4C>;
 	using ColorTableInfo = FileInfo_Image<(u8)FileType::Image4C_Table>;
 	using TableImageInfo = FileInfo_Image<(u8)FileType::Image1C_Table>;
 	using FilterImageInfo = FileInfo_Image<(u8)FileType::Image1C_Filter>;
 	using MaskImageInfo = FileInfo_Image<(u8)FileType::Image1C_Mask>;
 
 
-	inline void destroy_image(auto& item, FileType type)
+	inline void destroy_image(auto& item)
 	{
-		switch (type)
+		switch (item.type)
 		{
 		case FileType::Image4C:
 		case FileType::Image4C_Table:
 		{
 			Image image;
-			image.data_ = item.data;
+			image.data_ = (p32*)item.data;
 			img::destroy_image(image);
 		} break;
 
@@ -133,7 +144,7 @@ namespace bin_table
 		case FileType::Image1C_Table:
 		{
 			ImageGray image;
-			image.data_ = item.data;
+			image.data_ = (u8*)item.data;
 			img::destroy_image(image);
 		} break;
 
@@ -185,8 +196,26 @@ namespace bin_table
 	}
 
 
+	inline ReadResult read_gray(ByteView const& src, ImageGrayInfo info, ImageGray& dst)
+	{
+		static_assert(ImageGrayInfo::type == FileType::Image1C);
+
+		return read_image(src, info.type, dst);
+	}
+
+
+	inline ReadResult read_rgba(ByteView const& src, ImageRGBAInfo info, Image& dst)
+	{
+		static_assert(ImageRGBAInfo::type == FileType::Image4C);
+
+		return read_image(src, info.type, dst);
+	}
+
+
 	inline ReadResult read_color_table(ByteView const& src, ColorTableInfo info, ColorTable4C& out)
 	{
+		static_assert(ColorTableInfo::type == ColorTable4C::type);
+
 		Image dst;
 		auto res = read_image(src, info.type, dst);
 		if (res != ReadResult::OK)
@@ -208,6 +237,8 @@ namespace bin_table
 
 	inline ReadResult read_table_image(ByteView const& src, TableImageInfo info, TableImage1C& out)
 	{
+		static_assert(TableImageInfo::type == TableImage1C::type);
+
 		ImageGray dst;
 		auto res = read_image(src, info.type, dst);
 		if (res != ReadResult::OK)
@@ -230,6 +261,8 @@ namespace bin_table
 
 	inline ReadResult read_filter_image(ByteView const& src, FilterImageInfo info, FilterImage1C& out)
 	{
+		static_assert(FilterImageInfo::type == FilterImage1C::type);
+
 		ImageGray dst;
 		auto res = read_image(src, info.type, dst);
 		if (res != ReadResult::OK)
@@ -252,6 +285,8 @@ namespace bin_table
 
 	inline ReadResult read_mask_image(ByteView const& src, MaskImageInfo info, MaskImage1C& out)
 	{
+		static_assert(MaskImageInfo::type == MaskImage1C::type);
+
 		ImageGray dst;
 		auto res = read_image(src, info.type, dst);
 		if (res != ReadResult::OK)

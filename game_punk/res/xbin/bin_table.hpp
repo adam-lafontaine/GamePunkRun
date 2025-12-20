@@ -1,5 +1,5 @@
 #pragma once
-/* timestamp: 1766180191006054084 */
+/* timestamp: 1766193780892098583 */
 
 
 // bin_table_types.hpp
@@ -26,46 +26,7 @@ namespace bin_table
 	};
 
 
-	class FilterImage1C
-	{
-	public:
-		u32 width = 0;
-		u32 height = 0;
-
-		u8* data = 0;
-	};
-
-
-	class TableImage1C
-	{
-	public:
-		u32 width = 0;
-		u32 height = 0;
-
-		u8* data = 0;
-	};
-
-
-	class MaskImage1C
-	{
-	public:
-		u32 width = 0;
-		u32 height = 0;
-
-		u8* data = 0;
-	};
-
-
-	class ColorTable4C
-	{
-	public:
-		u32 length = 0;
-
-		p32* data = 0;
-	};
-
-
-    enum class FileType : u8
+	enum class FileType : u8
     {
         Unknown = 0,
 
@@ -83,6 +44,54 @@ namespace bin_table
         Music,
         SFX
     };
+
+
+	class FilterImage1C
+	{
+	public:
+		static constexpr FileType type = FileType::Image1C_Filter;
+		
+		u32 width = 0;
+		u32 height = 0;
+
+		u8* data = 0;
+	};
+
+
+	class TableImage1C
+	{
+	public:
+		static constexpr FileType type = FileType::Image1C_Table;
+
+		u32 width = 0;
+		u32 height = 0;
+
+		u8* data = 0;
+	};
+
+
+	class MaskImage1C
+	{
+	public:
+		static constexpr FileType type = FileType::Image1C_Mask;
+
+		u32 width = 0;
+		u32 height = 0;
+
+		u8* data = 0;
+	};
+
+
+	class ColorTable4C
+	{
+	public:
+		static constexpr FileType type = FileType::Image4C_Table;
+
+		u32 length = 0;
+
+		p32* data = 0;
+	};
+    
 
 
 	template <u8 FT>
@@ -113,21 +122,23 @@ namespace bin_table
 	}
 
 
+	using ImageGrayInfo = FileInfo_Image<(u8)FileType::Image1C>;
+	using ImageRGBAInfo = FileInfo_Image<(u8)FileType::Image4C>;
 	using ColorTableInfo = FileInfo_Image<(u8)FileType::Image4C_Table>;
 	using TableImageInfo = FileInfo_Image<(u8)FileType::Image1C_Table>;
 	using FilterImageInfo = FileInfo_Image<(u8)FileType::Image1C_Filter>;
 	using MaskImageInfo = FileInfo_Image<(u8)FileType::Image1C_Mask>;
 
 
-	inline void destroy_image(auto& item, FileType type)
+	inline void destroy_image(auto& item)
 	{
-		switch (type)
+		switch (item.type)
 		{
 		case FileType::Image4C:
 		case FileType::Image4C_Table:
 		{
 			Image image;
-			image.data_ = item.data;
+			image.data_ = (p32*)item.data;
 			img::destroy_image(image);
 		} break;
 
@@ -137,7 +148,7 @@ namespace bin_table
 		case FileType::Image1C_Table:
 		{
 			ImageGray image;
-			image.data_ = item.data;
+			image.data_ = (u8*)item.data;
 			img::destroy_image(image);
 		} break;
 
@@ -189,8 +200,26 @@ namespace bin_table
 	}
 
 
+	inline ReadResult read_gray(ByteView const& src, ImageGrayInfo info, ImageGray& dst)
+	{
+		static_assert(ImageGrayInfo::type == FileType::Image1C);
+
+		return read_image(src, info.type, dst);
+	}
+
+
+	inline ReadResult read_rgba(ByteView const& src, ImageRGBAInfo info, Image& dst)
+	{
+		static_assert(ImageRGBAInfo::type == FileType::Image4C);
+
+		return read_image(src, info.type, dst);
+	}
+
+
 	inline ReadResult read_color_table(ByteView const& src, ColorTableInfo info, ColorTable4C& out)
 	{
+		static_assert(ColorTableInfo::type == ColorTable4C::type);
+
 		Image dst;
 		auto res = read_image(src, info.type, dst);
 		if (res != ReadResult::OK)
@@ -212,6 +241,8 @@ namespace bin_table
 
 	inline ReadResult read_table_image(ByteView const& src, TableImageInfo info, TableImage1C& out)
 	{
+		static_assert(TableImageInfo::type == TableImage1C::type);
+
 		ImageGray dst;
 		auto res = read_image(src, info.type, dst);
 		if (res != ReadResult::OK)
@@ -234,6 +265,8 @@ namespace bin_table
 
 	inline ReadResult read_filter_image(ByteView const& src, FilterImageInfo info, FilterImage1C& out)
 	{
+		static_assert(FilterImageInfo::type == FilterImage1C::type);
+
 		ImageGray dst;
 		auto res = read_image(src, info.type, dst);
 		if (res != ReadResult::OK)
@@ -256,6 +289,8 @@ namespace bin_table
 
 	inline ReadResult read_mask_image(ByteView const& src, MaskImageInfo info, MaskImage1C& out)
 	{
+		static_assert(MaskImageInfo::type == MaskImage1C::type);
+
 		ImageGray dst;
 		auto res = read_image(src, info.type, dst);
 		if (res != ReadResult::OK)
@@ -463,7 +498,7 @@ namespace bin_table
 		u32 offset = 466;
 		u32 size = 725104;
 
-		static constexpr FileType file_type = FileType::Image1C;
+		static constexpr FileType file_type = FileType::Image1C_Table;
 		static constexpr auto uFT = (u8)file_type;
 		using ImageInfo = FileInfo_Image<uFT>;
 
@@ -657,7 +692,7 @@ namespace bin_table
 	{
 	public:
 		u32 offset = 818733;
-		u32 size = 2064;
+		u32 size = 2597;
 
 		static constexpr FileType file_type = FileType::Image1C_Table;
 		static constexpr FileType table_type = FileType::Image4C_Table;
@@ -673,8 +708,8 @@ namespace bin_table
 		union
 		{
 			ImageInfo items[count] = {
-				to_file_info_image<uFT>(48, 192, "Punk_idle", 818733, 617),
-				to_file_info_image<uFT>(48, 288, "Punk_run", 819350, 1447),
+				to_file_info_image<uFT>(48, 192, "Punk_idle", 818733, 855),
+				to_file_info_image<uFT>(48, 288, "Punk_run", 819588, 1742),
 			};
 
 			struct
@@ -684,7 +719,7 @@ namespace bin_table
 			} file_info;
 		};
 
-		static constexpr TableInfo color_table = to_file_info_image<uTT>(256, 1, "table", 820797, 134);
+		static constexpr TableInfo color_table = to_file_info_image<uTT>(256, 1, "table", 821330, 134);
 
 		constexpr Spriteset_Punk(){}
 	};
@@ -700,7 +735,7 @@ namespace bin_table
 	class Tileset_ex_zone
 	{
 	public:
-		u32 offset = 820931;
+		u32 offset = 821464;
 		u32 size = 848;
 
 		static constexpr FileType file_type = FileType::Image1C_Table;
@@ -717,8 +752,8 @@ namespace bin_table
 		union
 		{
 			ImageInfo items[count] = {
-				to_file_info_image<uFT>(32, 32, "floor_02", 820931, 377),
-				to_file_info_image<uFT>(32, 32, "floor_03", 821308, 369),
+				to_file_info_image<uFT>(32, 32, "floor_02", 821464, 377),
+				to_file_info_image<uFT>(32, 32, "floor_03", 821841, 369),
 			};
 
 			struct
@@ -728,7 +763,7 @@ namespace bin_table
 			} file_info;
 		};
 
-		static constexpr TableInfo color_table = to_file_info_image<uTT>(256, 1, "table", 821677, 102);
+		static constexpr TableInfo color_table = to_file_info_image<uTT>(256, 1, "table", 822210, 102);
 
 		constexpr Tileset_ex_zone(){}
 	};
@@ -744,7 +779,7 @@ namespace bin_table
 	class UIset_Font
 	{
 	public:
-		u32 offset = 821779;
+		u32 offset = 822312;
 		u32 size = 3014;
 
 		static constexpr FileType file_type = FileType::Image1C_Filter;
@@ -761,7 +796,7 @@ namespace bin_table
 		union
 		{
 			ImageInfo items[count] = {
-				to_file_info_image<uFT>(16, 806, "font", 821779, 2783),
+				to_file_info_image<uFT>(16, 806, "font", 822312, 2783),
 			};
 
 			struct
@@ -770,7 +805,7 @@ namespace bin_table
 			} file_info;
 		};
 
-		static constexpr TableInfo color_table = to_file_info_image<uTT>(256, 1, "table", 824562, 231);
+		static constexpr TableInfo color_table = to_file_info_image<uTT>(256, 1, "table", 825095, 231);
 
 		constexpr UIset_Font(){}
 	};
@@ -786,7 +821,7 @@ namespace bin_table
 	class UIset_Title
 	{
 	public:
-		u32 offset = 824793;
+		u32 offset = 825326;
 		u32 size = 1413;
 
 		static constexpr FileType file_type = FileType::Image1C_Filter;
@@ -803,7 +838,7 @@ namespace bin_table
 		union
 		{
 			ImageInfo items[count] = {
-				to_file_info_image<uFT>(74, 96, "title_main", 824793, 1321),
+				to_file_info_image<uFT>(74, 96, "title_main", 825326, 1321),
 			};
 
 			struct
@@ -812,7 +847,7 @@ namespace bin_table
 			} file_info;
 		};
 
-		static constexpr TableInfo color_table = to_file_info_image<uTT>(256, 1, "table", 826114, 92);
+		static constexpr TableInfo color_table = to_file_info_image<uTT>(256, 1, "table", 826647, 92);
 
 		constexpr UIset_Title(){}
 	};
@@ -828,7 +863,7 @@ namespace bin_table
 	class UIset_Icons
 	{
 	public:
-		u32 offset = 826206;
+		u32 offset = 826739;
 		u32 size = 4962;
 
 		static constexpr FileType file_type = FileType::Image1C_Filter;
@@ -845,7 +880,7 @@ namespace bin_table
 		union
 		{
 			ImageInfo items[count] = {
-				to_file_info_image<uFT>(32, 1312, "icons", 826206, 4731),
+				to_file_info_image<uFT>(32, 1312, "icons", 826739, 4731),
 			};
 
 			struct
@@ -854,7 +889,7 @@ namespace bin_table
 			} file_info;
 		};
 
-		static constexpr TableInfo color_table = to_file_info_image<uTT>(256, 1, "table", 830937, 231);
+		static constexpr TableInfo color_table = to_file_info_image<uTT>(256, 1, "table", 831470, 231);
 
 		constexpr UIset_Icons(){}
 	};

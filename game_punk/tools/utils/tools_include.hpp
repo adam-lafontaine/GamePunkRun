@@ -506,7 +506,7 @@ namespace util
 
         auto equals = [](p32 a, p32 b)
         {
-            return a.red == b.red && a.green == b.green && a.blue == b.blue;
+            return a.red == b.red && a.green == b.green && a.blue == b.blue && a.alpha == b.alpha;
         };
 
         auto s = img::to_span(src);

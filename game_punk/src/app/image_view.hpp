@@ -33,9 +33,9 @@ namespace game_punk
     class TileView : public GameImageView {};
 
 
-    static void count_view(TileView& view, MemoryCounts& counts, bt::FileInfo_Image const& info)
+    static void count_view(TileView& view, MemoryCounts& counts, auto const& info)
     {
-        bool ok = info.type == bt::FileType::Image1C;
+        bool ok = info.type == bt::FileType::Image1C_Table;
         app_assert(ok && "*** Unexpected tile image ***");
 
         auto& ctx = view.dims.proc;
@@ -249,9 +249,9 @@ namespace game_punk
     };
 
 
-    static void count_view(SpritesheetView& view, MemoryCounts& counts, bt::FileInfo_Image const& info, u32 count_h = 0)
+    static void count_view(SpritesheetView& view, MemoryCounts& counts, auto const& info, u32 count_h = 0)
     {
-        bool ok = info.type == bt::FileType::Image1C;
+        bool ok = info.type == bt::FileType::Image1C_Table || info.type == bt::FileType::Image1C_Filter;
         app_assert(ok && "*** Unexpected spritesheet image ***");
 
         auto& ctx = view.dims.proc;
