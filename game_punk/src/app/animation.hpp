@@ -209,33 +209,33 @@ namespace game_punk
     }
 
     
-    class BackgroundAnimation
+    class BackgroundAnimationFast
     {
     public:
 
         u32 count = 0;
         u32 speed_shift = 0;
 
-        BackgroundView data[cxpr::BACKGROUND_COUNT_MAX];
+        BackgroundView data[cxpr::BACKGROUND_COUNT_MAX]; // Fast, uses more memory
 
-        u8 working_ids[4] = {0};
+        u8 work_ids[4] = {0};
         u8 select_ids[cxpr::BACKGROUND_COUNT_MAX - 4] = {0};        
 
         u32 work_next = 0;
     };
 
 
-    static void reset_background_animation(BackgroundAnimation& an)
+    static void reset_background_animation(BackgroundAnimationFast& an)
     {
         bool ok = has_data(an.data[0]);
 
-        app_assert(ok && "*** BackgroundAnimation not created ***");
+        app_assert(ok && "*** BackgroundAnimationFast not created ***");
 
         an.speed_shift = 0;
 
         for (u32 i = 0; i < 4; i++)
         {
-            an.working_ids[i] = i;
+            an.work_ids[i] = i;
         }
 
         for (u32 i = 4; i < an.count; i++)
@@ -245,7 +245,7 @@ namespace game_punk
     }
 
 
-    static void count_background_animation(BackgroundAnimation& an, MemoryCounts& counts, u32 n_backgrounds)
+    static void count_background_animation(BackgroundAnimationFast& an, MemoryCounts& counts, u32 n_backgrounds)
     {
         app_assert(n_backgrounds <= cxpr::BACKGROUND_COUNT_MAX);
 
@@ -258,7 +258,7 @@ namespace game_punk
     }
 
 
-    static bool create_background_animation(BackgroundAnimation& an, Memory& memory)
+    static bool create_background_animation(BackgroundAnimationFast& an, Memory& memory)
     {
         bool ok = true;
 
@@ -271,7 +271,7 @@ namespace game_punk
     }
 
 
-    static BackgroundPartPair get_animation_pair(BackgroundAnimation& an, Randomf32& rng, u64 pos)
+    static BackgroundPartPair get_animation_pair(BackgroundAnimationFast& an, Randomf32& rng, u64 pos)
     {
         BackgroundPartPair bp;
 
@@ -289,19 +289,132 @@ namespace game_punk
         bp.height2 = pos;
         bp.height1 = H - bp.height2;
 
-        bp.data1 = an.data[an.working_ids[work_1]].data + bp.height2 * W;
-        bp.data2 = an.data[an.working_ids[work_2]].data;
+        bp.data1 = an.data[an.work_ids[work_1]].data + bp.height2 * W;
+        bp.data2 = an.data[an.work_ids[work_2]].data;
 
-        if (work_1 != an.work_next)
+        if (bp.height2 == 0)
         { 
-            auto select = next_random_u32(rng, 0, an.count - 4);
+            auto select = next_random_u32(rng, 0, an.count - 4 - 1);
             auto bg_id = an.select_ids[select];
 
-            an.select_ids[select] = an.working_ids[an.work_next];
-            an.working_ids[an.work_next] = bg_id;
+            an.select_ids[select] = an.work_ids[an.work_next];
+            an.work_ids[an.work_next] = bg_id;
 
             an.work_next = work_1;
         }
+
+        return bp;
+    }
+}
+
+
+namespace game_punk
+{
+    class BackgroundAnimation
+    {
+    public:
+        using ImageInfo = bt::Background_Bg1::FileInfo;
+
+        static constexpr u32 work_count = 4;
+        static constexpr u32 data_count = 2;
+
+        u32 asset_count = 0;
+
+        u32 select_count = 0;
+        
+        u32 speed_shift = 0;
+
+        ImageInfo asset_info[cxpr::BACKGROUND_COUNT_MAX];
+        Span32 table;
+
+        BackgroundView data[data_count];
+
+        u8 work_ids[work_count] = {0};
+        u8 select_ids[cxpr::BACKGROUND_COUNT_MAX - work_count] = {0};        
+
+        u32 work_next = 0;
+    };
+
+
+    static void reset_background_animation(BackgroundAnimation& an)
+    {
+        bool ok = has_data(an.data[0]) && has_data(an.table);
+
+        app_assert(ok && "*** BackgroundAnimation not created ***");
+
+        an.speed_shift = 0;
+
+        for (u32 i = 0; i < an.work_count; i++)
+        {
+            an.work_ids[i] = i;
+        }
+
+        for (u32 i = an.work_count; i < an.asset_count; i++)
+        {
+            an.select_ids[i - an.work_count] = i;
+        }
+
+        // load?
+    }
+
+
+    static void count_background_animation(BackgroundAnimation& an, MemoryCounts& counts)
+    {
+        count_span(an.table, counts, 256);
+
+        for (u32 i = 0; i < an.data_count; i++)
+        {
+            count_view(an.data[i], counts);
+        }
+    }
+
+
+    static bool create_background_animation(BackgroundAnimation& an, Memory& memory)
+    {
+        bool ok = true;
+
+        ok &= create_span(an.table, memory);
+
+        for (u32 i = 0; i < an.data_count; i++)
+        {
+            ok &= create_view(an.data[i], memory);
+        }
+
+        return ok;
+    }
+
+
+    static BackgroundPartPair get_animation_pair(BackgroundAnimation& an, Randomf32& rng, u64 pos)
+    {
+        BackgroundPartPair bp;
+
+        /*auto W = BACKGROUND_DIMS.proc.width;
+        auto H = BACKGROUND_DIMS.proc.height;
+
+        pos <<= an.speed_shift; // speed
+        pos %= (4 * H);
+
+        u32 work_1 = pos / H;
+        u32 work_2 = (work_1 + 1) & (4 - 1);
+
+        pos %= H;
+        
+        bp.height2 = pos;
+        bp.height1 = H - bp.height2;
+
+        bp.data1 = an.work_data[work_1].data + bp.height2 * W;
+        bp.data2 = an.work_data[work_2].data;
+
+        if (work_1 != an.work_next)
+        { 
+            auto select = next_random_u32(rng, 0, an.select_count - 1);
+            auto bg_id = an.select_ids[select];
+
+            an.select_ids[select] = an.work_ids[an.work_next];
+            an.work_ids[an.work_next] = bg_id;
+
+            an.work_next = work_1;
+        }*/
 
         return bp;
     }

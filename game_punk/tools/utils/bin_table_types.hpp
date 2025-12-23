@@ -11,6 +11,7 @@ namespace bin_table
     using ImageView = img::ImageView;
     using ImageGray = img::ImageGray;
     using GrayView = img::GrayView;
+	using Buffer8 = img::Buffer8;
 
 
 	enum class FilterKey : u8
@@ -28,9 +29,6 @@ namespace bin_table
 
         Image4C,             // 4 channel image
 		Image4C_Table,
-
-		Image4C_Spritesheet, // 4 channel spritesheet
-		Image4C_Tile,        // 4 channel tile
 
         Image1C,      // 1 channel image
 		Image1C_Mask,
@@ -126,22 +124,47 @@ namespace bin_table
 	using MaskImageInfo = FileInfo_Image<(u8)FileType::Image1C_Mask>;
 
 
-	inline void destroy_image(auto& item)
+	
+}
+
+
+/* helpers */
+
+
+namespace bin_table
+{
+	inline constexpr u32 data_size(FileType type)
 	{
-		switch (item.type)
+		switch (type)
 		{
 		case FileType::Image4C:
 		case FileType::Image4C_Table:
+			return sizeof(p32);
+
+		case FileType::Image1C:
+		case FileType::Image1C_Mask:
+		case FileType::Image1C_Filter:
+		case FileType::Image1C_Table:
+			return sizeof(u8);
+
+		default:
+			return 0;
+		}
+	}
+	
+	
+	inline void destroy_image(auto& item)
+	{
+		switch (data_size(item.type))
+		{
+		case data_size(FileType::Image4C):
 		{
 			Image image;
 			image.data_ = (p32*)item.data;
 			img::destroy_image(image);
 		} break;
 
-		case FileType::Image1C:
-		case FileType::Image1C_Mask:
-		case FileType::Image1C_Filter:
-		case FileType::Image1C_Table:
+		case data_size(FileType::Image1C):
 		{
 			ImageGray image;
 			image.data_ = (u8*)item.data;
@@ -149,9 +172,26 @@ namespace bin_table
 		} break;
 
 		default:
+			// error?
 			break;
 		}
 	}
+
+
+	template <class T>
+	inline auto to_file_info_span(T const& def)
+    {
+		using F = T::FileInfo;
+
+		static_assert(sizeof(def.items[0]) == sizeof(F));
+
+        SpanView<F> view;
+
+        view.data = (F*)def.items;
+        view.length = def.count;
+
+        return view;
+    }
 }
 
 
@@ -168,62 +208,114 @@ namespace bin_table
 	};
 
 
-	inline ReadResult read_image(ByteView const& src, FileType type, ImageGray& dst)
+	template <u8 FT>
+    static ByteView make_byte_view(Buffer8 const& buffer, FileInfo_Image<FT> const& info)
+    {
+        ByteView view{};
+
+        view.data = buffer.data_ + info.offset;
+        view.length = info.size;
+
+        return view;
+    }
+
+
+	template <u8 FT>
+	inline ReadResult read_image(Buffer8 const& buffer, FileInfo_Image<FT> const& info, ImageGray& dst)
 	{
-		switch (type)
+		auto src = make_byte_view(buffer, info);
+
+		bool ok = false;
+
+		switch (info.type)
 		{
 		case FileType::Image1C:
 		case FileType::Image1C_Mask:
 		case FileType::Image1C_Filter:
 		case FileType::Image1C_Table:
-			return img::read_image_from_memory(src, dst) ? ReadResult::OK : ReadResult::ReadError;
+			ok = img::read_image_from_memory(src, dst);
+			break;
 
 		default: return ReadResult::Unsupported;
 		}
+
+		if (!ok)
+		{
+			return ReadResult::ReadError;
+		}
+
+		ok &= dst.width == info.width;
+		ok &= dst.height == info.height;
+		if (!ok)
+		{
+			return ReadResult::SizeError;
+		}
+
+		return ReadResult::OK;
 	}
 
 
-	inline ReadResult read_image(ByteView const& src, FileType type, Image& dst)
+	template <u8 FT>
+	inline ReadResult read_image(Buffer8 const& buffer, FileInfo_Image<FT> const& info, Image& dst)
 	{
-		switch (type)
+		auto src = make_byte_view(buffer, info);
+		
+		bool ok = false;
+
+		switch (info.type)
 		{
 		case FileType::Image4C:
 		case FileType::Image4C_Table:
-			return img::read_image_from_memory(src, dst) ? ReadResult::OK : ReadResult::ReadError;
+			ok = img::read_image_from_memory(src, dst);
+			break;
 
 		default: return ReadResult::Unsupported;
 		}
+
+		if (!ok)
+		{
+			return ReadResult::ReadError;
+		}
+
+		ok &= dst.width == info.width;
+		ok &= dst.height == info.height;
+		if (!ok)
+		{
+			return ReadResult::SizeError;
+		}
+
+		return ReadResult::OK;
 	}
 
 
-	inline ReadResult read_gray(ByteView const& src, ImageGrayInfo info, ImageGray& dst)
+	inline ReadResult read_gray(Buffer8 const& buffer, ImageGrayInfo info, ImageGray& dst)
 	{
 		static_assert(ImageGrayInfo::type == FileType::Image1C);
 
-		return read_image(src, info.type, dst);
+		return read_image(buffer, info, dst);
 	}
 
 
-	inline ReadResult read_rgba(ByteView const& src, ImageRGBAInfo info, Image& dst)
+	inline ReadResult read_rgba(Buffer8 const& buffer, ImageRGBAInfo info, Image& dst)
 	{
 		static_assert(ImageRGBAInfo::type == FileType::Image4C);
 
-		return read_image(src, info.type, dst);
+		return read_image(buffer, info, dst);
 	}
 
 
-	inline ReadResult read_color_table(ByteView const& src, ColorTableInfo info, ColorTable4C& out)
+	inline ReadResult read_color_table(Buffer8 const& buffer, ColorTableInfo info, ColorTable4C& out)
 	{
 		static_assert(ColorTableInfo::type == ColorTable4C::type);
 
 		Image dst;
-		auto res = read_image(src, info.type, dst);
+		auto res = read_image(buffer, info, dst);
 		if (res != ReadResult::OK)
 		{
 			return res;
 		}
 
-		if (dst.width != info.width || dst.height != info.height || info.height != 1)
+		if (info.height != 1)
 		{
 			return ReadResult::SizeError;
 		}
@@ -235,20 +327,15 @@ namespace bin_table
 	}
 
 
-	inline ReadResult read_table_image(ByteView const& src, TableImageInfo info, TableImage1C& out)
+	inline ReadResult read_table_image(Buffer8 const& buffer, TableImageInfo info, TableImage1C& out)
 	{
 		static_assert(TableImageInfo::type == TableImage1C::type);
 
 		ImageGray dst;
-		auto res = read_image(src, info.type, dst);
+		auto res = read_image(buffer, info, dst);
 		if (res != ReadResult::OK)
 		{
 			return res;
-		}
-
-		if (dst.width != info.width || dst.height != info.height)
-		{
-			return ReadResult::SizeError;
 		}
 
 		out.width = dst.width;
@@ -259,20 +346,15 @@ namespace bin_table
 	}
 
 
-	inline ReadResult read_filter_image(ByteView const& src, FilterImageInfo info, FilterImage1C& out)
+	inline ReadResult read_filter_image(Buffer8 const& buffer, FilterImageInfo info, FilterImage1C& out)
 	{
 		static_assert(FilterImageInfo::type == FilterImage1C::type);
 
 		ImageGray dst;
-		auto res = read_image(src, info.type, dst);
+		auto res = read_image(buffer, info, dst);
 		if (res != ReadResult::OK)
 		{
 			return res;
-		}
-
-		if (dst.width != info.width || dst.height != info.height)
-		{
-			return ReadResult::SizeError;
 		}
 
 		out.width = dst.width;
@@ -283,20 +365,15 @@ namespace bin_table
 	}
 
 
-	inline ReadResult read_mask_image(ByteView const& src, MaskImageInfo info, MaskImage1C& out)
+	inline ReadResult read_mask_image(Buffer8 const& buffer, MaskImageInfo info, MaskImage1C& out)
 	{
 		static_assert(MaskImageInfo::type == MaskImage1C::type);
 
 		ImageGray dst;
-		auto res = read_image(src, info.type, dst);
+		auto res = read_image(buffer, info, dst);
 		if (res != ReadResult::OK)
 		{
 			return res;
-		}
-
-		if (dst.width != info.width || dst.height != info.height)
-		{
-			return ReadResult::SizeError;
 		}
 
 		out.width = dst.width;
@@ -304,6 +381,54 @@ namespace bin_table
 		out.data = dst.data_;
 		
 		return ReadResult::OK;
+	}
+}
+
+
+/* testing */
+
+namespace bin_table
+{
+	template <u8 FT>
+	inline bool test_read(Buffer8 const& buffer, FileInfo_Image<FT> const& info)
+	{
+		bool ok = false;
+
+		switch (data_size(info.type))
+		{
+		case data_size(FileType::Image4C):
+		{
+			Image rgba;
+			ok = read_image(buffer, info, rgba) == ReadResult::OK;
+			img::destroy_image(rgba);
+		} break;
+
+		case data_size(FileType::Image1C):
+		{
+			ImageGray gray;
+			ok = read_image(buffer, info, gray) == ReadResult::OK;
+			img::destroy_image(gray);
+		}break;
+
+		default:
+			break;
+		}
+
+		return ok;
+	}
+
+
+	template <u8 FT>
+	inline bool test_items(Buffer8 const& buffer, FileInfo_Image<FT>* items, u32 count)
+	{
+		bool ok = true;
+
+		for (u32 i = 0; i < count; i++)
+		{
+			ok &= test_read(buffer, items[i]);
+		}
+
+		return ok;
 	}
 }
 

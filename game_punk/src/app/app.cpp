@@ -153,6 +153,7 @@ namespace game_punk
 
         auto& data = get_data(state);
 
+        destroy_asset_data(data.asset_data);
         destroy_memory(data.memory);
 
         mem::free(state.data_);
@@ -227,14 +228,15 @@ namespace game_punk
     {
         ++data.game_tick;
         begin_ui_frame(data.ui);
-        begin_random_frame(data.rng);
         reset_draw(data.drawq); 
     }
 
 
     static void end_update(StateData& data)
     {
+        refresh_random(data.rng);
 
+        // load assets
     }
 
 
@@ -275,8 +277,8 @@ namespace game_punk
         auto& rng = data.rng;
 
         auto sky = get_sky_animation(bg.sky, data.game_tick);
-        auto bg1 = get_animation_pair(bg.bg_1, rng, data.game_tick.value_);
-        auto bg2 = get_animation_pair(bg.bg_2, rng, data.game_tick.value_);
+        auto bg1 = get_animation_pair(bg.bgf_1, rng, data.game_tick.value_);
+        auto bg2 = get_animation_pair(bg.bgf_2, rng, data.game_tick.value_);
         
         push_draw(dq, sky, camera);
         push_draw(dq, bg1, camera);
@@ -382,7 +384,6 @@ namespace game_punk
 
         case AssetStatus::Success:
             set_game_mode(data, GameMode::Title);
-            destroy_asset_data(data.asset_data);
             break;
 
         case AssetStatus::Loading: return;
@@ -536,7 +537,7 @@ namespace game_punk
 
     void close(AppState& state)
     {
-        destroy_state_data(state);
+        destroy_state_data(state);        
     }
 
 

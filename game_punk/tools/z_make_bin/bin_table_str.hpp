@@ -53,10 +53,7 @@ namespace xbin
         {
         case FT::Image4C: return "FileType::Image4C";
 
-        case FT::Image4C_Table: return "FileType::Image4C_Table";        
-
-        case FT::Image4C_Spritesheet: return "FileType::Image4C_Spritesheet";
-        case FT::Image4C_Tile:        return "FileType::Image4C_Tile";
+        case FT::Image4C_Table: return "FileType::Image4C_Table";  
 
         case FT::Image1C: return "FileType::Image1C";
 
@@ -103,7 +100,7 @@ namespace xbin
             xbin::oss_tab(oss, t) << "static constexpr auto uFT = (u8)file_type;\n";
             xbin::oss_tab(oss, t) << "static constexpr auto uTT = (u8)table_type;\n\n";
 
-            xbin::oss_tab(oss, t) << "using ImageInfo = FileInfo_Image<uFT>;\n";
+            xbin::oss_tab(oss, t) << "using FileInfo = FileInfo_Image<uFT>;\n";
             xbin::oss_tab(oss, t) << "using TableInfo = FileInfo_Image<uTT>;\n\n";
 
             xbin::oss_tab(oss, t) << "static constexpr u32 count = " << item_count <<";\n\n";
@@ -111,7 +108,7 @@ namespace xbin
             xbin::oss_tab(oss, t) << "union\n";
             xbin::oss_tab(oss, t) << "{\n";
         t++;
-                xbin::oss_tab(oss, t) << "ImageInfo items[count] = {\n";
+                xbin::oss_tab(oss, t) << "FileInfo items[count] = {\n";
         t++;
         for (auto const& item : items)
         {
@@ -131,7 +128,7 @@ namespace xbin
         t++;
         for (auto const& item : items)
         {
-                    xbin::oss_tab(oss, t) << "ImageInfo " << item.name << ";\n";
+                    xbin::oss_tab(oss, t) << "FileInfo " << item.name << ";\n";
         }
         t--;
 
@@ -147,7 +144,15 @@ namespace xbin
         auto size = (int)info.table.size;
             xbin::oss_tab(oss, t) << "static constexpr TableInfo color_table = to_file_info_image<uTT>(" << w << ", " << h << ", " << name << ", " << offset << ", " << size << ");\n\n";
 
-            xbin::oss_tab(oss, t) << "constexpr " << set_class << "_" << set_name << "(){}\n";
+            xbin::oss_tab(oss, t) << "constexpr " << set_class << "_" << set_name << "(){}\n\n\n";
+
+            xbin::oss_tab(oss, t) << "bool test(Buffer8 const& buffer)\n";
+            xbin::oss_tab(oss, t) << "{\n";
+            t++;
+                xbin::oss_tab(oss, t) << "return test_items(buffer, items, count) && test_read(buffer, color_table);\n";
+            t--;
+            xbin::oss_tab(oss, t) << "}\n";
+
         t--;
         xbin::oss_tab(oss, t) << "};\n";
 
@@ -223,7 +228,7 @@ namespace bin
 
             xbin::oss_tab(oss, t) << "static constexpr FileType file_type = " << file_type <<";\n";
             xbin::oss_tab(oss, t) << "static constexpr auto uFT = (u8)file_type;\n";
-            xbin::oss_tab(oss, t) << "using ImageInfo = FileInfo_Image<uFT>;\n\n";
+            xbin::oss_tab(oss, t) << "using FileInfo = FileInfo_Image<uFT>;\n\n";
 
             xbin::oss_tab(oss, t) << "static constexpr u32 count = " << item_count <<";\n";            
             
@@ -231,7 +236,7 @@ namespace bin
             xbin::oss_tab(oss, t) << "union\n";
             xbin::oss_tab(oss, t) << "{\n";
         t++;
-                xbin::oss_tab(oss, t) << "ImageInfo items[count] = {\n";
+                xbin::oss_tab(oss, t) << "FileInfo items[count] = {\n";
         t++;
         for (auto const& item : list.items)
         {
@@ -251,7 +256,7 @@ namespace bin
         t++;
         for (auto const& item : list.items)
         {
-                    xbin::oss_tab(oss, t) << "ImageInfo " << item.name << ";\n";
+                    xbin::oss_tab(oss, t) << "FileInfo " << item.name << ";\n";
         }
         t--;
 
@@ -259,7 +264,14 @@ namespace bin
         t--;
             xbin::oss_tab(oss, t) << "};\n\n";
 
-            xbin::oss_tab(oss, t) << "constexpr InfoList_Image_" << class_tag << "(){}\n";
+            xbin::oss_tab(oss, t) << "constexpr InfoList_Image_" << class_tag << "(){}\n\n\n";
+
+            xbin::oss_tab(oss, t) << "bool test(Buffer8 const& buffer)\n";
+            xbin::oss_tab(oss, t) << "{\n";
+            t++;
+                xbin::oss_tab(oss, t) << "return test_items(buffer, items, count);\n";
+            t--;
+            xbin::oss_tab(oss, t) << "}\n";
         t--;
         xbin::oss_tab(oss, t) << "};\n";
 
