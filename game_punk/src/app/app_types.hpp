@@ -767,22 +767,21 @@ namespace game_punk
         BackgroundAnimationFast bgf_1;
         BackgroundAnimationFast bgf_2;
 
-        BackgroundAnimation bg_1;
-        BackgroundAnimation bg_2;
+        //BackgroundAnimation bg_1;
+        //BackgroundAnimation bg_2;
     };
 
 
     static void reset_background_state(BackgroundState& bg)
     {   
         reset_sky_animation(bg.sky);
-        reset_background_animation(bg.bg_1);
-        reset_background_animation(bg.bg_2);
 
-        bg.bg_2.speed_shift = 1;
+        /*reset_background_animation(bg.bg_1);
+        reset_background_animation(bg.bg_2);
+        bg.bg_2.speed_shift = 1;*/
 
         reset_background_animation(bg.bgf_1);
         reset_background_animation(bg.bgf_2);
-
         bg.bgf_2.speed_shift = 1;
     }
 
@@ -791,8 +790,8 @@ namespace game_punk
     {  
         count_sky_animation(bg.sky, counts);
         
-        count_background_animation(bg.bg_1, counts);
-        count_background_animation(bg.bg_2, counts);
+        //count_background_animation(bg.bg_1, counts);
+        //count_background_animation(bg.bg_2, counts);
 
         count_background_animation(bg.bgf_1, counts, bt::Background_Bg1::count);
         count_background_animation(bg.bgf_2, counts, bt::Background_Bg2::count);
@@ -805,8 +804,8 @@ namespace game_punk
 
         ok &= create_sky_animation(bg_state.sky, memory);
 
-        ok &= create_background_animation(bg_state.bg_1, memory);
-        ok &= create_background_animation(bg_state.bg_2, memory);
+        //ok &= create_background_animation(bg_state.bg_1, memory);
+        //ok &= create_background_animation(bg_state.bg_2, memory);
 
         ok &= create_background_animation(bg_state.bgf_1, memory);
         ok &= create_background_animation(bg_state.bgf_2, memory);

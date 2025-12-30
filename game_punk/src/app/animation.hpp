@@ -216,7 +216,7 @@ namespace game_punk
         u32 count = 0;
         u32 speed_shift = 0;
 
-        BackgroundView data[cxpr::BACKGROUND_COUNT_MAX]; // Fast, uses more memory
+        BackgroundView background_data[cxpr::BACKGROUND_COUNT_MAX]; // Fast, uses more memory
 
         u8 work_ids[4] = {0};
         u8 select_ids[cxpr::BACKGROUND_COUNT_MAX - 4] = {0};        
@@ -227,7 +227,7 @@ namespace game_punk
 
     static void reset_background_animation(BackgroundAnimationFast& an)
     {
-        bool ok = has_data(an.data[0]);
+        bool ok = has_data(an.background_data[0]);
 
         app_assert(ok && "*** BackgroundAnimationFast not created ***");
 
@@ -253,7 +253,7 @@ namespace game_punk
 
         for (u32 i = 0; i < an.count; i++)
         {
-            count_view(an.data[i], counts);
+            count_view(an.background_data[i], counts);
         }        
     }
 
@@ -264,7 +264,7 @@ namespace game_punk
 
         for (u32 i = 0; i < an.count; i++)
         {
-            ok &= create_view(an.data[i], memory);
+            ok &= create_view(an.background_data[i], memory);
         }
 
         return ok;
@@ -289,8 +289,8 @@ namespace game_punk
         bp.height2 = pos;
         bp.height1 = H - bp.height2;
 
-        bp.data1 = an.data[an.work_ids[work_1]].data + bp.height2 * W;
-        bp.data2 = an.data[an.work_ids[work_2]].data;
+        bp.data1 = an.background_data[an.work_ids[work_1]].data + bp.height2 * W;
+        bp.data2 = an.background_data[an.work_ids[work_2]].data;
 
         if (bp.height2 == 0)
         { 

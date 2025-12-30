@@ -225,13 +225,15 @@ namespace assets
     template <typename BG_DEF>
     static bool init_load_background(Buffer8 const& buffer, BackgroundAnimation& bg, u32 color_id)
     {
-        BG_DEF def;
+        //using BG_DEF = bt::Background_Bg1;
+
+        BG_DEF list;
 
         constexpr auto N = sizeof(bg.background_data) / sizeof(bg.background_data[0]);
 
         static_assert(BG_DEF::count >= N);
 
-        auto table = def.read_table(buffer);
+        auto table = list.read_table(buffer);
         auto color = table.at(color_id);
         
         bg.load_cmd.on_load = load_background_image<BG_DEF>;
@@ -242,7 +244,38 @@ namespace assets
         for (u32 i = 0; i < N; i++)
         {
             auto item = static_cast<BG_DEF::Items>(i);
-            auto filter = def.read_alpha_filter_item(buffer, item);
+            auto filter = list.read_alpha_filter_item(buffer, item);
+            auto dst = to_image_view(bg.background_data[i]);
+            ok &= bt::alpha_filter_convert(filter, dst, color);
+            app_assert(ok && "*** bt::alpha_filter_convert() ***");
+            filter.destroy();
+        }
+
+        table.destroy();
+
+        return ok;
+    }
+
+
+    template <typename BG_DEF>
+    static bool init_load_background(Buffer8 const& buffer, BackgroundAnimationFast& bg, u32 color_id)
+    {
+        //using BG_DEF = bt::Background_Bg1;
+
+        BG_DEF list;
+
+        constexpr auto N = sizeof(bg.background_data) / sizeof(bg.background_data[0]);
+        static_assert(BG_DEF::count <= N);
+
+        auto table = list.read_table(buffer);
+        auto color = table.at(color_id);
+
+        bool ok = true;
+
+        for (u32 i = 0; i < BG_DEF::count; i++)
+        {
+            auto item = static_cast<BG_DEF::Items>(i);
+            auto filter = list.read_alpha_filter_item(buffer, item);
             auto dst = to_image_view(bg.background_data[i]);
             ok &= bt::alpha_filter_convert(filter, dst, color);
             app_assert(ok && "*** bt::alpha_filter_convert() ***");
@@ -408,8 +441,11 @@ namespace assets
         ok &= init_load_sky_base(src.bytes, bg_state.sky);
         ok &= init_load_sky_overlay(src.bytes, bg_state.sky);
 
-        ok &= init_load_background<bt::Background_Bg1>(src.bytes, bg_state.bg_1, 8);
-        ok &= init_load_background<bt::Background_Bg2>(src.bytes, bg_state.bg_2, 6);
+        ok &= init_load_background<bt::Background_Bg1>(src.bytes, bg_state.bgf_1, 8);
+        ok &= init_load_background<bt::Background_Bg2>(src.bytes, bg_state.bgf_2, 6);
+
+        //ok &= init_load_background<bt::Background_Bg1>(src.bytes, bg_state.bg_1, 8);
+        //ok &= init_load_background<bt::Background_Bg2>(src.bytes, bg_state.bg_2, 6);
         
         render_front_back(bg_state.sky);
 
