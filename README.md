@@ -19,7 +19,9 @@ Position is the game tick
 
 
 ### v0.2.0
+* [x] Moving backgrounds
 * [x] Randomized backgrounds
+* [x] Dynamically load backgrounds
 * [ ] Moving sprites, tiles, background
 * [ ] Automate release builds
 * [ ] Release files
