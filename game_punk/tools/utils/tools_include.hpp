@@ -315,6 +315,7 @@ namespace util
                 red = p.red;
                 green = p.green;
                 blue = p.blue;
+                alpha = p.alpha;
 
                 gray = rgb_to_gray(red, green, blue);
             }
@@ -326,7 +327,7 @@ namespace util
 
     public:
 
-        TableColor() {};
+        TableColor() = delete;
 
         TableColor(p32 p)
         {
@@ -335,9 +336,15 @@ namespace util
 
         TableColor(u32 n)
         {
-            auto p = *((p32*)&n);
+            union 
+            {
+                u32 n;
+                p32 p;
+            } conv;
 
-            set_channels(p);
+            conv.n = n;
+
+            set_channels(conv.p);
         }
 
         bool operator < (TableColor const& other) { return gray < other.gray; }
@@ -350,7 +357,15 @@ namespace util
 
         auto const insert = [&](p32 p)
         {
-            unique.insert(img::as_u32(p));
+            union 
+            {
+                u32 n;
+                p32 p;
+            } conv;
+
+            conv.p = p;
+
+            unique.insert(conv.n);
         };
         
         img::for_each_pixel(img::make_view(src), insert);
@@ -385,7 +400,15 @@ namespace util
 
         auto const insert = [&](p32 p)
         {
-            unique.insert(img::as_u32(p));
+            union 
+            {
+                u32 n;
+                p32 p;
+            } conv;
+
+            conv.p = p;
+
+            unique.insert(conv.n);
         };
         
         for (auto const& item : list)

@@ -113,7 +113,7 @@ namespace assets
     }
  
 
-    static bool apply_color_table_pma(bt::TableFilterImage const& src, ImageView const& dst, bt::ColorTableImage const& table, f32 alpha)
+    static bool apply_color_table_pma(bt::TableFilterImage const& src, bt::ColorTableImage const& table, ImageView const& dst, f32 alpha)
     {
         if (src.gray.width != dst.width || src.gray.height != dst.height)
 		{
@@ -211,7 +211,9 @@ namespace assets
             return false;
         }
 
-        ok &= bt::color_table_convert(filter, table, to_image_view(dst));
+        ok &= apply_color_table_pma(filter, table, to_image_view(dst), SKY_OVERLAY_ALPHA);
+
+        //ok &= bt::color_table_convert(filter, table, to_image_view(dst));
 
         app_assert(ok && "*** bt::color_table_convert() ***");
 

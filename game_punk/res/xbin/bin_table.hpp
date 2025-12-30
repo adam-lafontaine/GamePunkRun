@@ -1,5 +1,5 @@
 #pragma once
-/* timestamp: 1767125495702400403 */
+/* timestamp: 1767129123897578136 */
 
 
 // bin_table_types.hpp
@@ -525,7 +525,7 @@ namespace bin_table
 	{
 	public:
 		static constexpr u32 offset = 466;
-		static constexpr u32 size = 21865;
+		static constexpr u32 size = 725954;
 
 		using ImageInfo = AssetInfo_Image;
 
@@ -535,7 +535,7 @@ namespace bin_table
 		static constexpr u32 count = 1;
 
 		ImageInfo items[count] = {
-			to_image_info(file_type, 1200, 1800, "ov_13", 466, 21015),
+			to_image_info(file_type, 1200, 1800, "ov_13", 466, 725104),
 		};
 
 		enum class Items : u32
@@ -545,7 +545,7 @@ namespace bin_table
 
 
 		ImageInfo table_items[count] = {
-			to_image_info(table_type, 256, 1, "ov_13", 21481, 850),
+			to_image_info(table_type, 256, 1, "ov_13", 725570, 850),
 		};
 
 
@@ -585,7 +585,7 @@ namespace bin_table
 	class Background_Bg1
 	{
 	public:
-		static constexpr u32 offset = 22331;
+		static constexpr u32 offset = 726420;
 		static constexpr u32 size = 27113;
 
 		using ImageInfo = AssetInfo_Image;
@@ -596,14 +596,14 @@ namespace bin_table
 		static constexpr u32 count = 8;
 
 		ImageInfo items[count] = {
-			to_image_info(file_type, 324, 576, "A", 22331, 3189),
-			to_image_info(file_type, 324, 576, "B", 25520, 3457),
-			to_image_info(file_type, 324, 576, "C", 28977, 4126),
-			to_image_info(file_type, 324, 576, "D", 33103, 2991),
-			to_image_info(file_type, 324, 576, "E", 36094, 3561),
-			to_image_info(file_type, 324, 576, "F", 39655, 3289),
-			to_image_info(file_type, 324, 576, "G", 42944, 3391),
-			to_image_info(file_type, 324, 576, "H", 46335, 3109),
+			to_image_info(file_type, 324, 576, "A", 726420, 3189),
+			to_image_info(file_type, 324, 576, "B", 729609, 3457),
+			to_image_info(file_type, 324, 576, "C", 733066, 4126),
+			to_image_info(file_type, 324, 576, "D", 737192, 2991),
+			to_image_info(file_type, 324, 576, "E", 740183, 3561),
+			to_image_info(file_type, 324, 576, "F", 743744, 3289),
+			to_image_info(file_type, 324, 576, "G", 747033, 3391),
+			to_image_info(file_type, 324, 576, "H", 750424, 3109),
 		};
 
 		enum class Items : u32
@@ -619,7 +619,7 @@ namespace bin_table
 		};
 
 
-		static constexpr ImageInfo color_table = to_image_info(table_type, 256, 1, "table", 49444, 112);
+		static constexpr ImageInfo color_table = to_image_info(table_type, 256, 1, "table", 753533, 114);
 
 		constexpr Background_Bg1(){}
 
@@ -657,7 +657,7 @@ namespace bin_table
 	class Background_Bg2
 	{
 	public:
-		static constexpr u32 offset = 49556;
+		static constexpr u32 offset = 753647;
 		static constexpr u32 size = 64972;
 
 		using ImageInfo = AssetInfo_Image;
@@ -668,22 +668,22 @@ namespace bin_table
 		static constexpr u32 count = 16;
 
 		ImageInfo items[count] = {
-			to_image_info(file_type, 324, 576, "A", 49556, 4922),
-			to_image_info(file_type, 324, 576, "B", 54478, 3407),
-			to_image_info(file_type, 324, 576, "C", 57885, 3977),
-			to_image_info(file_type, 324, 576, "D", 61862, 4429),
-			to_image_info(file_type, 324, 576, "E", 66291, 3323),
-			to_image_info(file_type, 324, 576, "F", 69614, 4035),
-			to_image_info(file_type, 324, 576, "G", 73649, 3399),
-			to_image_info(file_type, 324, 576, "H", 77048, 3313),
-			to_image_info(file_type, 324, 576, "I", 80361, 3597),
-			to_image_info(file_type, 324, 576, "J", 83958, 3161),
-			to_image_info(file_type, 324, 576, "K", 87119, 3912),
-			to_image_info(file_type, 324, 576, "L", 91031, 4395),
-			to_image_info(file_type, 324, 576, "M", 95426, 3962),
-			to_image_info(file_type, 324, 576, "N", 99388, 6221),
-			to_image_info(file_type, 324, 576, "O", 105609, 3651),
-			to_image_info(file_type, 324, 576, "P", 109260, 5268),
+			to_image_info(file_type, 324, 576, "A", 753647, 4922),
+			to_image_info(file_type, 324, 576, "B", 758569, 3407),
+			to_image_info(file_type, 324, 576, "C", 761976, 3977),
+			to_image_info(file_type, 324, 576, "D", 765953, 4429),
+			to_image_info(file_type, 324, 576, "E", 770382, 3323),
+			to_image_info(file_type, 324, 576, "F", 773705, 4035),
+			to_image_info(file_type, 324, 576, "G", 777740, 3399),
+			to_image_info(file_type, 324, 576, "H", 781139, 3313),
+			to_image_info(file_type, 324, 576, "I", 784452, 3597),
+			to_image_info(file_type, 324, 576, "J", 788049, 3161),
+			to_image_info(file_type, 324, 576, "K", 791210, 3912),
+			to_image_info(file_type, 324, 576, "L", 795122, 4395),
+			to_image_info(file_type, 324, 576, "M", 799517, 3962),
+			to_image_info(file_type, 324, 576, "N", 803479, 6221),
+			to_image_info(file_type, 324, 576, "O", 809700, 3651),
+			to_image_info(file_type, 324, 576, "P", 813351, 5268),
 		};
 
 		enum class Items : u32
@@ -707,7 +707,7 @@ namespace bin_table
 		};
 
 
-		static constexpr ImageInfo color_table = to_image_info(table_type, 256, 1, "table", 114528, 112);
+		static constexpr ImageInfo color_table = to_image_info(table_type, 256, 1, "table", 818619, 114);
 
 		constexpr Background_Bg2(){}
 
@@ -745,8 +745,8 @@ namespace bin_table
 	class Spriteset_Punk
 	{
 	public:
-		static constexpr u32 offset = 114640;
-		static constexpr u32 size = 361;
+		static constexpr u32 offset = 818733;
+		static constexpr u32 size = 2597;
 
 		using ImageInfo = AssetInfo_Image;
 
@@ -756,8 +756,8 @@ namespace bin_table
 		static constexpr u32 count = 2;
 
 		ImageInfo items[count] = {
-			to_image_info(file_type, 48, 192, "Punk_idle", 114640, 158),
-			to_image_info(file_type, 48, 288, "Punk_run", 114798, 203),
+			to_image_info(file_type, 48, 192, "Punk_idle", 818733, 855),
+			to_image_info(file_type, 48, 288, "Punk_run", 819588, 1742),
 		};
 
 		enum class Items : u32
@@ -767,7 +767,7 @@ namespace bin_table
 		};
 
 
-		static constexpr ImageInfo color_table = to_image_info(table_type, 256, 1, "table", 115001, 131);
+		static constexpr ImageInfo color_table = to_image_info(table_type, 256, 1, "table", 821330, 134);
 
 		constexpr Spriteset_Punk(){}
 
@@ -805,8 +805,8 @@ namespace bin_table
 	class Tileset_ex_zone
 	{
 	public:
-		static constexpr u32 offset = 115132;
-		static constexpr u32 size = 252;
+		static constexpr u32 offset = 821464;
+		static constexpr u32 size = 848;
 
 		using ImageInfo = AssetInfo_Image;
 
@@ -816,8 +816,8 @@ namespace bin_table
 		static constexpr u32 count = 2;
 
 		ImageInfo items[count] = {
-			to_image_info(file_type, 32, 32, "floor_02", 115132, 77),
-			to_image_info(file_type, 32, 32, "floor_03", 115209, 77),
+			to_image_info(file_type, 32, 32, "floor_02", 821464, 377),
+			to_image_info(file_type, 32, 32, "floor_03", 821841, 369),
 		};
 
 		enum class Items : u32
@@ -827,7 +827,7 @@ namespace bin_table
 		};
 
 
-		static constexpr ImageInfo color_table = to_image_info(table_type, 256, 1, "table", 115286, 98);
+		static constexpr ImageInfo color_table = to_image_info(table_type, 256, 1, "table", 822210, 102);
 
 		constexpr Tileset_ex_zone(){}
 
@@ -865,7 +865,7 @@ namespace bin_table
 	class UIset_Font
 	{
 	public:
-		static constexpr u32 offset = 115384;
+		static constexpr u32 offset = 822312;
 		static constexpr u32 size = 3011;
 
 		using ImageInfo = AssetInfo_Image;
@@ -876,7 +876,7 @@ namespace bin_table
 		static constexpr u32 count = 1;
 
 		ImageInfo items[count] = {
-			to_image_info(file_type, 16, 806, "font", 115384, 2783),
+			to_image_info(file_type, 16, 806, "font", 822312, 2783),
 		};
 
 		enum class Items : u32
@@ -885,7 +885,7 @@ namespace bin_table
 		};
 
 
-		static constexpr ImageInfo color_table = to_image_info(table_type, 256, 1, "table", 118167, 228);
+		static constexpr ImageInfo color_table = to_image_info(table_type, 256, 1, "table", 825095, 228);
 
 		constexpr UIset_Font(){}
 
@@ -923,8 +923,8 @@ namespace bin_table
 	class UIset_Title
 	{
 	public:
-		static constexpr u32 offset = 118395;
-		static constexpr u32 size = 224;
+		static constexpr u32 offset = 825323;
+		static constexpr u32 size = 1413;
 
 		using ImageInfo = AssetInfo_Image;
 
@@ -934,7 +934,7 @@ namespace bin_table
 		static constexpr u32 count = 1;
 
 		ImageInfo items[count] = {
-			to_image_info(file_type, 74, 96, "title_main", 118395, 135),
+			to_image_info(file_type, 74, 96, "title_main", 825323, 1321),
 		};
 
 		enum class Items : u32
@@ -943,7 +943,7 @@ namespace bin_table
 		};
 
 
-		static constexpr ImageInfo color_table = to_image_info(table_type, 256, 1, "table", 118530, 89);
+		static constexpr ImageInfo color_table = to_image_info(table_type, 256, 1, "table", 826644, 92);
 
 		constexpr UIset_Title(){}
 
@@ -981,7 +981,7 @@ namespace bin_table
 	class UIset_Icons
 	{
 	public:
-		static constexpr u32 offset = 118619;
+		static constexpr u32 offset = 826736;
 		static constexpr u32 size = 4959;
 
 		using ImageInfo = AssetInfo_Image;
@@ -992,7 +992,7 @@ namespace bin_table
 		static constexpr u32 count = 1;
 
 		ImageInfo items[count] = {
-			to_image_info(file_type, 32, 1312, "icons", 118619, 4731),
+			to_image_info(file_type, 32, 1312, "icons", 826736, 4731),
 		};
 
 		enum class Items : u32
@@ -1001,7 +1001,7 @@ namespace bin_table
 		};
 
 
-		static constexpr ImageInfo color_table = to_image_info(table_type, 256, 1, "table", 123350, 228);
+		static constexpr ImageInfo color_table = to_image_info(table_type, 256, 1, "table", 831467, 228);
 
 		constexpr UIset_Icons(){}
 
