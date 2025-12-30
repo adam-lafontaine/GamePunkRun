@@ -223,7 +223,7 @@ namespace game_punk
     using OnAssetLoad = void (*)(Buffer8 const&, LoadContext const&);
 
     
-    class LoadCommand
+    class LoadAssetCommand
     {
     public:
         b8 is_active = 0;
@@ -234,17 +234,17 @@ namespace game_punk
     };
     
     
-    class LoadQueue
+    class LoadAssetQueue
     {
     public:
-        u32 capacity = 0;
+        static constexpr u32 capacity = 10;
         u32 size = 0;
 
-        LoadCommand* commands = 0;
+        LoadAssetCommand commands[10];
     };
 
 
-    static void push_load(LoadQueue& q, LoadCommand cmd)
+    static void push_load(LoadAssetQueue& q, LoadAssetCommand cmd)
     {
         auto i = q.size;
 
@@ -256,7 +256,7 @@ namespace game_punk
     }
 
 
-    static void load_all(AssetData const& src, LoadQueue& q)
+    static void load_all(AssetData const& src, LoadAssetQueue& q)
     {
         for (u32 i = 0; i < q.size; i++)
         {
@@ -531,13 +531,11 @@ namespace game_punk
     public:
         static constexpr u32 capacity = COUNT;
 
-        u32 size = 0;
-
         T data[COUNT];
 
         u32 id = 0;
 
-        T& get(Randomf32& rng) { id = next_random_u32(rng, 0, size - 1); return data[id]; }
+        T& get(Randomf32& rng) { id = next_random_u32(rng, 0, capacity - 1); return data[id]; }
 
         void set(T value) { data[id] = value; }
     };
@@ -764,11 +762,11 @@ namespace game_punk
 
         SkyAnimation sky;
 
-        BackgroundAnimationFast bgf_1;
-        BackgroundAnimationFast bgf_2;
+        //BackgroundAnimationFast bgf_1;
+        //BackgroundAnimationFast bgf_2;
 
-        //BackgroundAnimation bg_1;
-        //BackgroundAnimation bg_2;
+        BackgroundAnimation bg_1;
+        BackgroundAnimation bg_2;
     };
 
 
@@ -776,13 +774,13 @@ namespace game_punk
     {   
         reset_sky_animation(bg.sky);
 
-        /*reset_background_animation(bg.bg_1);
+        reset_background_animation(bg.bg_1);
         reset_background_animation(bg.bg_2);
-        bg.bg_2.speed_shift = 1;*/
+        bg.bg_2.speed_shift = 1;
 
-        reset_background_animation(bg.bgf_1);
+        /*reset_background_animation(bg.bgf_1);
         reset_background_animation(bg.bgf_2);
-        bg.bgf_2.speed_shift = 1;
+        bg.bgf_2.speed_shift = 1;*/
     }
 
 
@@ -790,11 +788,11 @@ namespace game_punk
     {  
         count_sky_animation(bg.sky, counts);
         
-        //count_background_animation(bg.bg_1, counts);
-        //count_background_animation(bg.bg_2, counts);
+        count_background_animation(bg.bg_1, counts);
+        count_background_animation(bg.bg_2, counts);
 
-        count_background_animation(bg.bgf_1, counts, bt::Background_Bg1::count);
-        count_background_animation(bg.bgf_2, counts, bt::Background_Bg2::count);
+        //count_background_animation(bg.bgf_1, counts, bt::Background_Bg1::count);
+        //count_background_animation(bg.bgf_2, counts, bt::Background_Bg2::count);
     }
 
 
@@ -804,11 +802,11 @@ namespace game_punk
 
         ok &= create_sky_animation(bg_state.sky, memory);
 
-        //ok &= create_background_animation(bg_state.bg_1, memory);
-        //ok &= create_background_animation(bg_state.bg_2, memory);
+        ok &= create_background_animation(bg_state.bg_1, memory);
+        ok &= create_background_animation(bg_state.bg_2, memory);
 
-        ok &= create_background_animation(bg_state.bgf_1, memory);
-        ok &= create_background_animation(bg_state.bgf_2, memory);
+        //ok &= create_background_animation(bg_state.bgf_1, memory);
+        //ok &= create_background_animation(bg_state.bgf_2, memory);
 
         return ok;
     }
@@ -1324,21 +1322,6 @@ namespace game_punk
             push_draw_view(dq, bmp, out, p);
         }
     }
-}
-
-
-/* load assets */
-
-namespace game_punk
-{
-    class LoadImageQueue
-    {
-    public:
-        u32 capacity = 0;
-        u32 size = 0;
-
-        
-    };
 }
 
 

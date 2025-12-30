@@ -333,7 +333,7 @@ namespace game_punk
         RingStackBuffer<AssetID, 4> work_asset_ids;
         RandomStackBuffer<AssetID, cxpr::BACKGROUND_COUNT_MAX - 4> select_asset_ids;
 
-        LoadCommand load_cmd;
+        LoadAssetCommand load_cmd;
     };
 
 
@@ -429,10 +429,10 @@ namespace game_punk
     }
 
 
-    static void push_load_background(BackgroundAnimation& an, LoadQueue& lq)
+    static void push_load_background(BackgroundAnimation& an, LoadAssetQueue& lq)
     {
-       push_load(lq, an.load_cmd);
-       an.load_cmd.is_active = 0;
+        push_load(lq, an.load_cmd);
+        an.load_cmd.is_active = 0;
     }
 }
 

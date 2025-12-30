@@ -442,14 +442,13 @@ namespace assets
         bool ok = true;
         ok &= init_load_sky_base(src.bytes, bg_state.sky);
         ok &= init_load_sky_overlay(src.bytes, bg_state.sky);
-
-        ok &= init_load_background<bt::Background_Bg1>(src.bytes, bg_state.bgf_1, 8);
-        ok &= init_load_background<bt::Background_Bg2>(src.bytes, bg_state.bgf_2, 6);
-
-        //ok &= init_load_background<bt::Background_Bg1>(src.bytes, bg_state.bg_1, 8);
-        //ok &= init_load_background<bt::Background_Bg2>(src.bytes, bg_state.bg_2, 6);
-        
         render_front_back(bg_state.sky);
+
+        //ok &= init_load_background<bt::Background_Bg1>(src.bytes, bg_state.bgf_1, 8);
+        //ok &= init_load_background<bt::Background_Bg2>(src.bytes, bg_state.bgf_2, 6);
+
+        ok &= init_load_background<bt::Background_Bg1>(src.bytes, bg_state.bg_1, 8);
+        ok &= init_load_background<bt::Background_Bg2>(src.bytes, bg_state.bg_2, 6);        
 
         return ok;
     }

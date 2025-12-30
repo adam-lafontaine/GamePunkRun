@@ -93,10 +93,13 @@ namespace game_punk
         ScreenCamera camera;
 
         DrawQueue drawq;
+
         SpriteAnimation punk_animation;
 
         Memory memory;
+
         AssetData asset_data;
+        LoadAssetQueue loadq;
 
         GameTick64 game_tick;
 
@@ -222,7 +225,10 @@ namespace game_punk
     {
         refresh_random(data.rng);
 
-        // load assets
+        push_load_background(data.background.bg_1, data.loadq);
+        push_load_background(data.background.bg_2, data.loadq);
+
+        load_all(data.asset_data, data.loadq);
     }
 
 
@@ -263,8 +269,8 @@ namespace game_punk
         auto& rng = data.rng;
 
         auto sky = get_sky_animation(bg.sky, data.game_tick);
-        auto bg1 = get_animation_pair(bg.bgf_1, rng, data.game_tick.value_);
-        auto bg2 = get_animation_pair(bg.bgf_2, rng, data.game_tick.value_);
+        auto bg1 = get_animation_pair(bg.bg_1, rng, data.game_tick.value_);
+        auto bg2 = get_animation_pair(bg.bg_2, rng, data.game_tick.value_);
         
         push_draw(dq, sky, camera);
         push_draw(dq, bg1, camera);
