@@ -1,8 +1,22 @@
 #pragma once
-/* timestamp: 1767117729864994878 */
+/* timestamp: 1767125495702400403 */
 
 
 // bin_table_types.hpp
+
+#ifndef app_assert
+#include <cassert>
+#define app_assert(condition) assert(condition)
+#endif
+
+#ifndef app_log
+#include <cstdio>
+#define app_log(...) printf(__VA_ARGS__)
+#endif
+
+#ifndef app_crash
+#define app_crash(message) assert(false && message)
+#endif
 
 /* types */
 
@@ -248,12 +262,11 @@ namespace bin_table
 			break;
 		}
 
-	#ifdef app_log
 		if (!ok)
 		{		
-			app_log("Asset read error: %s", info.name);		
+			app_log("Asset read error: %s\n", info.name);
+			app_crash("Asset read error");
 		}
-	#endif
 
 		return ok;
 	}
@@ -532,7 +545,7 @@ namespace bin_table
 
 
 		ImageInfo table_items[count] = {
-			to_image_info(file_type, 256, 1, "ov_13", 21481, 850),
+			to_image_info(table_type, 256, 1, "ov_13", 21481, 850),
 		};
 
 

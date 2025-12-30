@@ -1,5 +1,19 @@
 // bin_table_types.hpp
 
+#ifndef app_assert
+#include <cassert>
+#define app_assert(condition) assert(condition)
+#endif
+
+#ifndef app_log
+#include <cstdio>
+#define app_log(...) printf(__VA_ARGS__)
+#endif
+
+#ifndef app_crash
+#define app_crash(message) assert(false && message)
+#endif
+
 /* types */
 
 namespace bin_table
@@ -244,12 +258,11 @@ namespace bin_table
 			break;
 		}
 
-	#ifdef app_log
 		if (!ok)
 		{		
-			app_log("Asset read error: %s", info.name);		
+			app_log("Asset read error: %s\n", info.name);
+			app_crash("Asset read error");
 		}
-	#endif
 
 		return ok;
 	}

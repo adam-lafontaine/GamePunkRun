@@ -840,7 +840,7 @@ namespace game_punk
         constexpr auto idle = Punk::Items::Punk_idle;
 
         count_view(ss_state.punk_run, counts, bt::item_at(list, run));
-        count_view(ss_state.punk_run, counts, bt::item_at(list, idle));
+        count_view(ss_state.punk_idle, counts, bt::item_at(list, idle));
     }
 
 

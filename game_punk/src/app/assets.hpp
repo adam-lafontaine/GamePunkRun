@@ -196,6 +196,8 @@ namespace assets
         auto table = overlay.read_table_item(buffer, item);
         auto filter = overlay.read_table_filter_item(buffer, item);
 
+        app_assert(table.rgba.data_);
+
         auto& dst = sky.overlay_src;
 
         bool ok = true;
@@ -243,6 +245,7 @@ namespace assets
             auto filter = def.read_alpha_filter_item(buffer, item);
             auto dst = to_image_view(bg.background_data[i]);
             ok &= bt::alpha_filter_convert(filter, dst, color);
+            app_assert(ok && "*** bt::alpha_filter_convert() ***");
             filter.destroy();
         }
 
@@ -275,7 +278,9 @@ namespace assets
         bool ok = true;
 
         ok &= bt::color_table_convert(run, table, to_image_view(ss.punk_run));
+        app_assert(ok && "*** bt::color_table_convert() ***");
         ok &= bt::color_table_convert(idle, table, to_image_view(ss.punk_idle));
+        app_assert(ok && "*** bt::color_table_convert() ***");
 
         table.destroy();
         run.destroy();
@@ -306,7 +311,9 @@ namespace assets
         bool ok = true;
 
         ok &= bt::color_table_convert(f2, table, to_image_view(tiles.floor_a));
+        app_assert(ok && "*** bt::color_table_convert() ***");
         ok &= bt::color_table_convert(f3, table, to_image_view(tiles.floor_b));
+        app_assert(ok && "*** bt::color_table_convert() ***");
 
         table.destroy();
         f2.destroy();
@@ -336,6 +343,7 @@ namespace assets
         bool ok = true;
 
         ok &= bt::color_table_convert(filter, table, to_image_view(ui.data.font));
+        app_assert(ok && "*** bt::color_table_convert() ***");
 
         table.destroy();
         filter.destroy();
@@ -355,7 +363,8 @@ namespace assets
 
         bool ok = true;
 
-        ok &= bt::color_table_convert(filter, table, to_image_view(ui.data.font));
+        ok &= bt::color_table_convert(filter, table, ui.data.title);
+        app_assert(ok && "*** bt::color_table_convert() ***");
 
         table.destroy();
         filter.destroy();
@@ -375,7 +384,8 @@ namespace assets
 
         bool ok = true;
 
-        ok &= bt::color_table_convert(filter, table, to_image_view(ui.data.font));
+        ok &= bt::color_table_convert(filter, table, to_image_view(ui.data.icons));
+        app_assert(ok && "*** bt::color_table_convert() ***");
 
         table.destroy();
         filter.destroy();
@@ -395,13 +405,12 @@ namespace assets
     static bool load_background_assets(AssetData const& src, BackgroundState& bg_state)
     {
         bool ok = true;
-
         ok &= init_load_sky_base(src.bytes, bg_state.sky);
         ok &= init_load_sky_overlay(src.bytes, bg_state.sky);
 
         ok &= init_load_background<bt::Background_Bg1>(src.bytes, bg_state.bg_1, 8);
         ok &= init_load_background<bt::Background_Bg2>(src.bytes, bg_state.bg_2, 6);
-
+        
         render_front_back(bg_state.sky);
 
         return ok;
@@ -445,7 +454,7 @@ namespace assets
         static_assert(bt::CLASS_COUNT == 9); // will fail as classes are added/removed
 
         u32 test_count = 0;
-
+        
         test_count += (u32)bt::SkyBase_base().test(src.bytes);
         test_count += (u32)bt::SkyOverlay_overlay().test(src.bytes);
         test_count += (u32)bt::Background_Bg1().test(src.bytes);

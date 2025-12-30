@@ -392,7 +392,7 @@ namespace xbin
                 auto offset = (int)item.offset;
                 auto size = (int)item.size;
 
-                    xbin::oss_tab(oss, t) << "to_image_info(file_type, " << w << ", " << h << ", ";
+                    xbin::oss_tab(oss, t) << "to_image_info(table_type, " << w << ", " << h << ", ";
                     oss << name << ", " << offset << ", " << size << "),\n";
             }
             t--;

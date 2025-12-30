@@ -345,10 +345,12 @@ namespace game_punk
             break;
 
         case GameMode::Loading:
+            app_log("Loading\n");
             assets::load_game_assets(data);
             break;
 
         case GameMode::Title:
+            app_log("Title\n");
             set_animation_spritesheet(data.punk_animation, data.spritesheet.punk_run);
             data.game_tick = GameTick64::zero();
             break;
