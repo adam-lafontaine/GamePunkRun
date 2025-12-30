@@ -322,8 +322,8 @@ namespace game_punk
             AssetID(){}
             AssetID(u8 v) { value_ = v; }
 
-            bool is_valid() { return value_ < (u8)cxpr::BACKGROUND_COUNT_MAX; }
-            void reset() { value_ = (u8)cxpr::BACKGROUND_COUNT_MAX; }
+            //bool is_valid() { return value_ < (u8)cxpr::BACKGROUND_COUNT_MAX; }
+            //void reset() { value_ = (u8)cxpr::BACKGROUND_COUNT_MAX; }
         };        
         
         u32 speed_shift = 0;
@@ -332,10 +332,8 @@ namespace game_punk
 
         RingStackBuffer<AssetID, 4> work_asset_ids;
         RandomStackBuffer<AssetID, cxpr::BACKGROUND_COUNT_MAX - 4> select_asset_ids;
-        
-        AssetID load_asset_id;        
-        p32 load_asset_color;
-        OnAssetLoad load_asset_cb;
+
+        LoadCommand load_cmd;
     };
 
 
@@ -420,7 +418,10 @@ namespace game_punk
             an.select_asset_ids.set(work_id);
             work_id = bg_id;
 
-            an.load_asset_id = bg_id;
+            an.load_cmd.is_active = 1;
+            an.load_cmd.ctx.item_id = bg_id.value_;
+            an.load_cmd.ctx.dst = to_image_view(an.background_data[data_2]);
+            
             an.work_asset_ids.next();
         }
 
@@ -430,10 +431,8 @@ namespace game_punk
 
     static void push_load_background(BackgroundAnimation& an, LoadQueue& lq)
     {
-        if (!an.load_asset_id.is_valid())
-        {
-            return;
-        }
+       push_load(lq, an.load_cmd);
+       an.load_cmd.is_active = 0;
     }
 }
 

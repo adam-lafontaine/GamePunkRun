@@ -11,9 +11,6 @@ namespace game_punk
     namespace bt = bin_table;
     namespace sb = stack_buffer;
 
-    template <bt::FileType FT>
-    using ImageInfo = bt::FileInfo_Image;
-
 
 namespace cxpr
 {
@@ -229,6 +226,7 @@ namespace game_punk
     class LoadCommand
     {
     public:
+        b8 is_active = 0;
 
         LoadContext ctx;
 
@@ -250,7 +248,7 @@ namespace game_punk
     {
         auto i = q.size;
 
-        if (i < q.capacity)
+        if (i < q.capacity && cmd.is_active)
         {
             q.commands[i] = cmd;
             q.size++;
@@ -275,7 +273,8 @@ namespace game_punk
     {
         constexpr LIST list;
 
-        auto filter = list.read_alpha_filter_item(buffer, (LIST::Items)ctx.item_id);
+        auto item = static_cast<LIST::Items>(ctx.item_id);
+        auto filter = list.read_alpha_filter_item(buffer, item);
         bt::alpha_filter_convert(filter, ctx.dst, ctx.color);
         filter.destroy();
     }
@@ -287,7 +286,8 @@ namespace game_punk
         constexpr LIST list;
 
         auto table = list.read_table(buffer);
-        auto filter = list.read_table_filter_item(buffer, (LIST::Items)ctx.item_id);
+        auto item = static_cast<LIST::Items>(ctx.item_id);
+        auto filter = list.read_table_filter_item(buffer, item);
         bt::color_table_convert(filter, table, ctx.dst);
 
         table.destroy();
@@ -301,7 +301,8 @@ namespace game_punk
         constexpr LIST list;
 
         auto table = list.read_table(buffer);
-        auto filter = list.read_table_filter_item(buffer, (LIST::Items)ctx.item_id);
+        auto item = static_cast<LIST::Items>(ctx.item_id);
+        auto filter = list.read_table_filter_item(buffer, item);
         bt::color_table_convert(filter, table, ctx.dst);
 
         table.destroy();
@@ -490,7 +491,7 @@ namespace game_punk
 
         constexpr uN2()
         {
-            static_assert(math::cxpr::is_unsigned(uT));
+            static_assert(math::cxpr::is_unsigned<uT>());
             static_assert(math::cxpr::is_power_of_2(N));
         }
 

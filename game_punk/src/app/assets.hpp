@@ -220,27 +220,27 @@ namespace assets
     }
 
 
-    template <class BG_DEF>
+    template <typename BG_DEF>
     static bool init_load_background(Buffer8 const& buffer, BackgroundAnimation& bg, u32 color_id)
     {
-        using Def = BG_DEF;
-
-        Def def;
+        BG_DEF def;
 
         constexpr auto N = sizeof(bg.background_data) / sizeof(bg.background_data[0]);
 
-        static_assert(Def::count >= N);
+        static_assert(BG_DEF::count >= N);
 
         auto table = def.read_table(buffer);
         auto color = table.at(color_id);
-        bg.load_asset_color = color;
-        bg.load_asset_cb = load_background_image<Def>;
+        
+        bg.load_cmd.on_load = load_background_image<BG_DEF>;
+        bg.load_cmd.ctx.color = color;
 
         bool ok = true;
 
         for (u32 i = 0; i < N; i++)
         {
-            auto filter = def.read_alpha_filter_item(buffer, (Def::Items)i);
+            auto item = static_cast<BG_DEF::Items>(i);
+            auto filter = def.read_alpha_filter_item(buffer, item);
             auto dst = to_image_view(bg.background_data[i]);
             ok &= bt::alpha_filter_convert(filter, dst, color);
             filter.destroy();

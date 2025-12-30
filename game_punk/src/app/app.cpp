@@ -59,22 +59,6 @@ namespace game_punk
 #include "app_types.hpp"
 
 
-/* constants */
-
-namespace game_punk
-{
-    
-}
-
-
-/* helpers */
-
-namespace game_punk
-{
-    
-}
-
-
 /* state */
 
 namespace game_punk
