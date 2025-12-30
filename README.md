@@ -15,6 +15,7 @@ Position is the game tick
 ### TODO
 * [ ] Refactor font and icons
 * [ ] Name UI icons
+* [ ] Allocator for stbi/assets
 
 
 ### v0.2.0

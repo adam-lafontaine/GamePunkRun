@@ -309,49 +309,62 @@ namespace game_punk
 
 
 namespace game_punk
-{
+{  
+    
     class BackgroundAnimation
     {
     public:
-        using ImageInfo = bt::Background_Bg1::FileInfo;
+        class AssetID
+        {
+        public:
+            u8 value_ = (u8)cxpr::BACKGROUND_COUNT_MAX;
 
-        static constexpr u32 work_count = 4;
-        static constexpr u32 data_count = 2;
+            AssetID(){}
+            AssetID(u8 v) { value_ = v; }
 
-        u32 asset_count = 0;
-
-        u32 select_count = 0;
+            bool is_valid() { return value_ < (u8)cxpr::BACKGROUND_COUNT_MAX; }
+            void reset() { value_ = (u8)cxpr::BACKGROUND_COUNT_MAX; }
+        };        
         
         u32 speed_shift = 0;
 
-        ImageInfo asset_info[cxpr::BACKGROUND_COUNT_MAX];
-        Span32 table;
+        BackgroundView background_data[2] = { 0 };
 
-        BackgroundView data[data_count];
-
-        u8 work_ids[work_count] = {0};
-        u8 select_ids[cxpr::BACKGROUND_COUNT_MAX - work_count] = {0};        
-
-        u32 work_next = 0;
+        RingStackBuffer<AssetID, 4> work_asset_ids;
+        RandomStackBuffer<AssetID, cxpr::BACKGROUND_COUNT_MAX - 4> select_asset_ids;
+        
+        AssetID load_asset_id;        
+        p32 load_asset_color;
+        OnAssetLoad load_asset_cb;
     };
 
 
     static void reset_background_animation(BackgroundAnimation& an)
     {
-        bool ok = has_data(an.data[0]) && has_data(an.table);
+        using AssetID = BackgroundAnimation::AssetID;
+
+        bool ok = true;
+        ok &= has_data(an.background_data[0]);
+        ok &= has_data(an.background_data[1]);
 
         app_assert(ok && "*** BackgroundAnimation not created ***");
 
         an.speed_shift = 0;
 
-        for (u32 i = 0; i < an.work_count; i++)
+        auto WC = an.work_asset_ids.count;
+        auto SC = an.select_asset_ids.capacity;
+
+        an.work_asset_ids.cursor.reset();
+        u32 i = 0;
+        for (; i < WC; i++)
         {
-            an.work_ids[i] = i;
+            an.work_asset_ids.front() = i;
+            an.work_asset_ids.next();
         }
 
-        for (u32 i = an.work_count; i < an.asset_count; i++)
+        for (; i < SC; i++)
         {
-            an.select_ids[i - an.work_count] = i;
+            an.select_asset_ids.data[i - WC] = i;
         }
 
         // load?
@@ -360,12 +373,8 @@ namespace game_punk
 
     static void count_background_animation(BackgroundAnimation& an, MemoryCounts& counts)
     {
-        count_span(an.table, counts, 256);
-
-        for (u32 i = 0; i < an.data_count; i++)
-        {
-            count_view(an.data[i], counts);
-        }
+        count_view(an.background_data[0], counts);
+        count_view(an.background_data[1], counts);
     }
 
 
@@ -373,12 +382,8 @@ namespace game_punk
     {
         bool ok = true;
 
-        ok &= create_span(an.table, memory);
-
-        for (u32 i = 0; i < an.data_count; i++)
-        {
-            ok &= create_view(an.data[i], memory);
-        }
+        ok &= create_view(an.background_data[0], memory);
+        ok &= create_view(an.background_data[1], memory);
 
         return ok;
     }
@@ -386,37 +391,49 @@ namespace game_punk
 
     static BackgroundPartPair get_animation_pair(BackgroundAnimation& an, Randomf32& rng, u64 pos)
     {
+        using AssetID = BackgroundAnimation::AssetID;
+
         BackgroundPartPair bp;
 
-        /*auto W = BACKGROUND_DIMS.proc.width;
+        auto W = BACKGROUND_DIMS.proc.width;
         auto H = BACKGROUND_DIMS.proc.height;
 
         pos <<= an.speed_shift; // speed
-        pos %= (4 * H);
+        pos %= (2 * H);
 
-        u32 work_1 = pos / H;
-        u32 work_2 = (work_1 + 1) & (4 - 1);
+        u32 data_1 = pos / H;
+        u32 data_2 = !data_1;
 
         pos %= H;
         
         bp.height2 = pos;
         bp.height1 = H - bp.height2;
 
-        bp.data1 = an.work_data[work_1].data + bp.height2 * W;
-        bp.data2 = an.work_data[work_2].data;
+        bp.data1 = an.background_data[data_1].data + bp.height2 * W;
+        bp.data2 = an.background_data[data_2].data;
 
-        if (work_1 != an.work_next)
+        if (bp.height2 == 0)
         { 
-            auto select = next_random_u32(rng, 0, an.select_count - 1);
-            auto bg_id = an.select_ids[select];
+            auto& work_id = an.work_asset_ids.front();
 
-            an.select_ids[select] = an.work_ids[an.work_next];
-            an.work_ids[an.work_next] = bg_id;
+            auto bg_id = an.select_asset_ids.get(rng);            
+            an.select_asset_ids.set(work_id);
+            work_id = bg_id;
 
-            an.work_next = work_1;
-        }*/
+            an.load_asset_id = bg_id;
+            an.work_asset_ids.next();
+        }
 
         return bp;
+    }
+
+
+    static void push_load_background(BackgroundAnimation& an, LoadQueue& lq)
+    {
+        if (!an.load_asset_id.is_valid())
+        {
+            return;
+        }
     }
 }
 

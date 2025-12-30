@@ -97,11 +97,10 @@ namespace bin
 }
 
 
-using FilterKey = bin_table::FilterKey;
-using MaskImage = bin_table::MaskImage1C;
-using FilterImage = bin_table::FilterImage1C;
-using ColorTable = bin_table::ColorTable4C;
-using TableImage = bin_table::TableImage1C;
+using AlphaFilter = bin_table::AlphaFilter;
+using AlphaFilterImage = bin_table::AlphaFilterImage;
+using ColorTableImage = bin_table::ColorTableImage;
+using TableFilterImage = bin_table::TableFilterImage;
 
 
 /* internal */
@@ -119,34 +118,16 @@ namespace internal
             return false;
         }
 
-        image.width = width;
-        image.height = height;
-        image.data = gray.data_;
+        image.gray = gray;
 
         return true;
-    }
-    
-    
-    template <typename IMG>
-    static void destroy_image_gray(IMG& image)
-    {
-        img::ImageGray gray;
-        gray.data_ = image.data;
-
-        img::destroy_image(gray);
-        image.data = 0;
     }
 
 
     template <typename IMG>
     inline bool write_image_gray(IMG const& image, sfs::path const& path)
     {
-        img::ImageGray gray;
-        gray.data_ = image.data;
-        gray.width = image.width;
-        gray.height = image.height;
-
-        return img::write_image(gray, path.c_str());
+        return img::write_image(image.gray, path.c_str());
     }
 
 
@@ -159,81 +140,18 @@ namespace internal
             return false;
         }
 
-        image.width = rgba.width;
-        image.height = rgba.height;
-        image.data = rgba.data_;
+        image.rgba = rgba;
 
         return true;
     }
 
 
     template <typename IMG>
-    inline void destroy_image_rgba(IMG& image)
-    {
-        img::Image rgba;
-        rgba.data_ = image.data;
-        img::destroy_image(rgba);
-        image.data = 0;
-    }
-
-
-    template <typename IMG>
     inline bool write_image_rgba(IMG const& image, sfs::path const& path)
     {
-        img::Image rgba;
-        rgba.data_ = image.data;
-        rgba.width = image.width;
-        rgba.height = image.height;
-
-        return img::write_image(rgba, path.c_str());
+        return img::write_image(image.rgba, path.c_str());
     }
 }
-}
-
-
-/* mask image */
-
-namespace util
-{
-
-    inline bool create_image(MaskImage& image, u32 width, u32 height)
-    {
-        return internal::create_image_gray(image, width, height);
-    }
-
-
-    inline void destroy_image(MaskImage& image)
-    {
-        internal::destroy_image_gray(image);
-    }
-
-
-    inline bool write_image(MaskImage const& image, sfs::path const& path)
-    {
-        return internal::write_image_gray(image, path);
-    }    
-
-
-    static void transform_mask(img::Image const& src, MaskImage const& dst)
-    {
-        assert(src.data_);
-        assert(dst.data);
-        assert(src.width == dst.width);
-        assert(src.height == dst.height);
-
-        auto length = src.width * src.height;
-        auto s = src.data_;
-        auto d = dst.data;
-
-        auto on = (u8)FilterKey::Primary;
-        auto off = (u8)FilterKey::Transparent;
-
-        for (u32 i = 0; i < length; i++)
-        {
-            d[i] = s[i].alpha ? on : off;
-        }
-    }
-    
 }
 
 
@@ -241,34 +159,28 @@ namespace util
 
 namespace util
 {
-    static bool create_image(FilterImage& image, u32 width, u32 height)
+    static bool create_image(AlphaFilterImage& image, u32 width, u32 height)
     {
         return internal::create_image_gray(image, width, height);
     }
 
 
-    static void destroy_image(FilterImage& image)
-    {
-        internal::destroy_image_gray(image);
-    }
-
-
-    inline bool write_image(FilterImage const& image, sfs::path const& path)
+    inline bool write_image(AlphaFilterImage const& image, sfs::path const& path)
     {
         return internal::write_image_gray(image, path);
     }
 
 
-    static void transform_filter(img::Image const& src, FilterImage const& dst, p32 primary, p32 secondary)
+    static void transform_filter(img::Image const& src, AlphaFilterImage const& dst, p32 primary, p32 secondary)
     {
         assert(src.data_);
-        assert(dst.data);
-        assert(src.width == dst.width);
-        assert(src.height == dst.height);
+        assert(dst.gray.data_);
+        assert(src.width == dst.gray.width);
+        assert(src.height == dst.gray.height);
 
         auto length = src.width * src.height;
         auto s = src.data_;
-        auto d = dst.data;
+        auto d = dst.gray.data_;
 
         auto equals = [](p32 a, p32 b)
         {
@@ -283,20 +195,41 @@ namespace util
 
             if (!ps.alpha)
             {
-                d[i] = (u8)FilterKey::Transparent;                
+                d[i] = (u8)AlphaFilter::Transparent;                
             }
             else if (equals(ps, primary))
             {
-                d[i] = (u8)FilterKey::Primary;
+                d[i] = (u8)AlphaFilter::Primary;
             }
             else if (equals(ps, secondary))
             {
-                d[i] = (u8)FilterKey::Secondary;
+                d[i] = (u8)AlphaFilter::Secondary;
             }
             else
             {
-                d[i] = (u8)FilterKey::Blend;
+                d[i] = (u8)AlphaFilter::Blend;
             }
+        }
+    }
+
+
+    static void transform_mask(img::Image const& src, AlphaFilterImage const& dst)
+    {
+        assert(src.data_);
+        assert(dst.gray.data_);
+        assert(src.width == dst.gray.width);
+        assert(src.height == dst.gray.height);
+
+        auto length = src.width * src.height;
+        auto s = src.data_;
+        auto d = dst.gray.data_;
+
+        auto on = (u8)AlphaFilter::Primary;
+        auto off = (u8)AlphaFilter::Transparent;
+
+        for (u32 i = 0; i < length; i++)
+        {
+            d[i] = s[i].alpha ? on : off;
         }
     }
 }
@@ -306,19 +239,13 @@ namespace util
 
 namespace util
 {
-    static bool create_image(TableImage& image, u32 width, u32 height)
+    static bool create_image(TableFilterImage& image, u32 width, u32 height)
     {
         return internal::create_image_gray(image, width, height);
     }
 
 
-    static void destroy_image(TableImage& image)
-    {
-        internal::destroy_image_gray(image);
-    }
-
-
-    inline bool write_image(TableImage const& image, sfs::path const& path)
+    inline bool write_image(TableFilterImage const& image, sfs::path const& path)
     {
         return internal::write_image_gray(image, path);
     }
@@ -329,7 +256,7 @@ namespace util
 
 namespace util
 {
-    static bool create_color_table(ColorTable& table)
+    static bool create_color_table(ColorTableImage& table)
     {
         img::Image rgba;
         if (!img::create_image(rgba, 256, 1))
@@ -341,30 +268,15 @@ namespace util
 
         img::fill(img::make_view(rgba), none);
 
-        table.length = rgba.width;
-        table.data = rgba.data_;
+        table.rgba = rgba;
 
         return true;
     }
 
 
-    static void destroy_color_table(ColorTable& table)
+    static bool write_color_table(ColorTableImage& table, sfs::path const& path)
     {
-        img::Image rgba;
-        rgba.data_ = table.data;
-        img::destroy_image(rgba);
-        table.data = 0;
-    }
-
-
-    static bool write_color_table(ColorTable& table, sfs::path const& path)
-    {
-        img::Image rgba;
-        rgba.data_ = table.data;
-        rgba.width = table.length;
-        rgba.height = 1;
-
-        return img::write_image(rgba, path.c_str());
+        return img::write_image(table.rgba, path.c_str());
     }
 
 
@@ -395,33 +307,44 @@ namespace util
         
         f32 gray = 0.0f;
 
+    private:
+        void set_channels(p32 p)
+        {
+            if (p.alpha)
+            {
+                red = p.red;
+                green = p.green;
+                blue = p.blue;
+
+                gray = rgb_to_gray(red, green, blue);
+            }
+            else
+            {
+                gray = -1.0f; // transparent first element in table
+            }
+        }
+
+    public:
+
         TableColor() {};
 
         TableColor(p32 p)
         {
-            red = p.red;
-            green = p.green;
-            blue = p.blue;
-            alpha = p.alpha;
-            gray = (p.alpha == 255 ? 1 : -1) * rgb_to_gray(red, green, blue);
+            set_channels(p);
         }
 
         TableColor(u32 n)
         {
             auto p = *((p32*)&n);
 
-            red = p.red;
-            green = p.green;
-            blue = p.blue;
-            alpha = p.alpha;
-            gray = (p.alpha == 255 ? 1 : -1) * rgb_to_gray(red, green, blue);
+            set_channels(p);
         }
 
         bool operator < (TableColor const& other) { return gray < other.gray; }
     };
     
 
-    inline ColorTable generate_color_table(img::Image const& src)
+    inline ColorTableImage generate_color_table(img::Image const& src)
     {
         std::set<u32> unique;
 
@@ -429,7 +352,7 @@ namespace util
         {
             unique.insert(img::as_u32(p));
         };
-
+        
         img::for_each_pixel(img::make_view(src), insert);
 
         std::vector<TableColor> colors(unique.begin(), unique.end());
@@ -439,7 +362,7 @@ namespace util
 
         assert(N <= 256);
 
-        ColorTable table;
+        ColorTableImage table;
         if (!create_color_table(table))
         {
             assert("*** Image error - color table ***" && false);
@@ -449,14 +372,14 @@ namespace util
         for (u32 i = 0; i < N; i++)
         {
             auto& color = colors[i];
-            table.data[i] = img::to_pixel(color.red, color.green, color.blue, color.alpha);
+            table.rgba.data_[i] = img::to_pixel(color.red, color.green, color.blue, color.alpha);
         }
 
         return table;
     }
 
 
-    inline ColorTable generate_color_table(ImageList<p32> const& list)
+    inline ColorTableImage generate_color_table(ImageList<p32> const& list)
     {
         std::set<u32> unique;
 
@@ -464,7 +387,7 @@ namespace util
         {
             unique.insert(img::as_u32(p));
         };
-
+        
         for (auto const& item : list)
         {
             img::for_each_pixel(img::make_view(item), insert);
@@ -477,7 +400,7 @@ namespace util
 
         assert(N <= 256);
 
-        ColorTable table;
+        ColorTableImage table;
         if (!create_color_table(table))
         {
             assert("*** Image error - color table ***" && false);
@@ -487,16 +410,16 @@ namespace util
         for (u32 i = 0; i < N; i++)
         {
             auto& color = colors[i];
-            table.data[i] = img::to_pixel(color.red, color.green, color.blue, color.alpha);
+            table.rgba.data_[i] = img::to_pixel(color.red, color.green, color.blue, color.alpha);
         }
 
         return table;
     }
 
 
-    inline TableImage convert_image(img::Image const& src, ColorTable const& table)
+    inline TableFilterImage convert_image(img::Image const& src, ColorTableImage const& table)
     {
-        TableImage dst;
+        TableFilterImage dst;
 
         if (!create_image(dst, src.width, src.height))
         {
@@ -510,17 +433,17 @@ namespace util
         };
 
         auto s = img::to_span(src);
-        auto d = dst.data;
-        auto t = table.data;
+        auto d = dst.gray.data_;
+        auto t = img::to_span(table.rgba);
 
         for (u32 i = 0; i < s.length; i++)
         {
             auto ps = s.data[i];
             d[i] = 0;
             
-            for (u32 c = 0; c < table.length; c++)
+            for (u32 c = 0; c < t.length; c++)
             {
-                auto pt = t[c];
+                auto pt = t.data[c];
                 if (equals(pt, ps))
                 {
                     d[i] = (u8)c;
@@ -705,7 +628,7 @@ namespace util
     }    
 
 
-    static u32 count_write_convert_image_files(PathList const& files, ImageList<p32>& list, ColorTable const& table, sfs::path const& dst_dir)
+    static u32 count_write_convert_image_files(PathList const& files, ImageList<p32>& list, ColorTableImage const& table, sfs::path const& dst_dir)
     {  
         assert(files.size() == list.size());
 
@@ -722,7 +645,7 @@ namespace util
             write_image(dst, path);
 
             img::destroy_image(src);
-            destroy_image(dst);
+            dst.destroy();
             count++;
         }
 

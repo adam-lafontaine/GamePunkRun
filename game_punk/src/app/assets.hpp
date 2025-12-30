@@ -9,12 +9,8 @@ namespace game_punk
 {
 namespace assets
 {
-    template <u8 FT>
-    using ImageInfo = bt::FileInfo_Image<FT>;
-
-    using SkyBaseInfo = bt::InfoList_Image_Sky_Base::FileInfo;
-    using SkyOverlayInfo = bt::InfoList_Image_Sky_Overlay::FileInfo;
-    using SkyTableInfo = bt::InfoList_Image_Sky_ColorTable::FileInfo;
+    
+    using ImageInfo = bt::AssetInfo_Image;
 
 
     constexpr f32 SKY_OVERLAY_ALPHA = 0.22f;
@@ -28,9 +24,6 @@ namespace assets
 
 namespace game_punk
 {
-
-/* read wrappers */
-
 namespace assets
 {
     static bool read_result(bt::ReadResult res)
@@ -61,67 +54,6 @@ namespace assets
     }
 
 
-    static bool read_rgba(AssetData const& src, bt::ImageRGBAInfo const& info, Image& dst)
-    {
-        return read_result(bt::read_rgba(src.bytes, info, dst));
-    }
-
-
-    static bool read_color_table(AssetData const& src, bt::ColorTableInfo const& info, bt::ColorTable4C& dst)
-    {
-        return read_result(bt::read_color_table(src.bytes, info, dst));
-    }
-
-
-    static bool read_table_image(AssetData const& src, bt::TableImageInfo const& info, bt::TableImage1C& dst)
-    {
-        return read_result(bt::read_table_image(src.bytes, info, dst));
-    }
-
-
-    static bool read_filter_image(AssetData const& src, bt::FilterImageInfo const& info, bt::FilterImage1C& dst)
-    {
-        return read_result(bt::read_filter_image(src.bytes, info, dst));
-    }
-
-
-    static bool read_mask_image(AssetData const& src, bt::MaskImageInfo const& info, bt::MaskImage1C& dst)
-    {
-        return read_result(bt::read_mask_image(src.bytes, info, dst));
-    }
-}
-
-
-/* tests */
-
-namespace assets
-{    
-    template <u8 uFT, class IMG>
-    static bool test_read_images(AssetData const& src, SpanView<bt::FileInfo_Image<uFT>> const& file_info, IMG& dst)
-    {
-        constexpr auto type = (bt::FileType)uFT;
-        static_assert(bt::data_size(type) == sizeof(dst.data_[0]));
-
-        for (u32 i = 0; i < file_info.length; i++)
-        {
-            auto& info = file_info.data[i];
-            auto data = make_byte_view(src.bytes, info);
-            auto ok = bt::read_image(data, info.type, dst) == bt::ReadResult::OK;
-            img::destroy_image(dst);
-            if (!ok)
-            {
-                return false;
-            }
-        }
-
-        return true;
-    }
-}
-
-
-namespace assets
-{   
-    
     static void extend_view_x(Image const& src_view, ImageView const& dst_view)
     {
         auto src = img::make_view(src_view);
@@ -179,11 +111,11 @@ namespace assets
 
         span::transform(src, dst, do_pma);
     }
+ 
 
-
-    static bool apply_color_table_pma(bt::TableImage1C const& src, ImageView const& dst, bt::ColorTable4C const& table, f32 alpha)
+    static bool apply_color_table_pma(bt::TableFilterImage const& src, ImageView const& dst, bt::ColorTableImage const& table, f32 alpha)
     {
-        if (src.width != dst.width || src.height != dst.height)
+        if (src.gray.width != dst.width || src.gray.height != dst.height)
 		{
 			return false;
 		}
@@ -194,10 +126,10 @@ namespace assets
 
         p32 ps;
 
-        auto length = src.width * src.height;
-        auto s = src.data;
+        auto length = dst.width * dst.height;
+        auto s = src.gray.data_;
         auto d = dst.matrix_data_;
-        auto t = table.data;
+        auto t = table.rgba.data_;
 
         for (u32 i = 0; i < length; i++)
         {
@@ -212,110 +144,27 @@ namespace assets
 
         return true;
     }    
-    
+   
 
-    static bool load_table_image(AssetData const& src, ImageView const& dst, bt::TableImageInfo const& info, bt::ColorTableInfo const& ct)
-    {
-        bt::TableImage1C table_image;
-        bool ok = read_table_image(src, info, table_image);
-        if (!ok)
-        {
-            return false;
-        }
-
-        ok &= table_image.width == info.width;
-        ok &= table_image.height == info.height;
-        if (!ok)
-        {
-            app_assert(ok && "*** Unexpected image size ***");
-            bt::destroy_image(table_image);
-        }
-
-        bt::ColorTable4C table;
-        ok &= read_color_table(src, ct, table);
-        if (!ok)
-        {
-            bt::destroy_image(table_image);
-            return false;
-        }
-
-        ok &= table.length == 256;
-        if (!ok)
-        {
-            app_assert(ok && "*** Unexpected color table image size ***");
-            bt::destroy_image(table_image);
-            bt::destroy_image(table);
-            return false;
-        }
-
-        ok &= bt::color_table_convert(table_image, table, dst);
-        if (!ok)
-        {
-            app_assert(ok && "*** color_table_convert() ***");
-            bt::destroy_image(table_image);
-            bt::destroy_image(table);
-            return false;
-        }
-
-        bt::destroy_image(table_image);
-        bt::destroy_image(table);
-        
-        return true;
-    }
-
-
-    static bool load_filter_image(AssetData const& src, ImageView const& dst, bt::FilterImageInfo const& info)
-    {
-        bt::FilterImage1C filter;
-        bool ok = read_filter_image(src, info, filter);
-        if (!ok)
-        {
-            return false;
-        }
-
-        ok &= filter.width == info.width;
-        ok &= filter.height == info.height;
-        if (!ok)
-        {
-            app_assert(ok && "*** Unexpected image size ***");
-            bt::destroy_image(filter);
-            return false;
-        }
-
-        ok &= bt::filter_convert(filter, dst);
-        if (!ok)
-        {
-            app_assert(ok && "*** filter_convert() ***");
-            bt::destroy_image(filter);
-            return false;
-        }
-
-        bt::destroy_image(filter);
-
-        return ok;
-    }
-}
 }
 
 
 /* backgrounds */
 
-namespace game_punk
-{
 namespace assets
-{  
-    static bool load_sky_base_image(AssetData const& src, BackgroundView const& dst, SkyBaseInfo const& info)
+{ 
+    static bool init_load_sky_base(Buffer8 const& buffer, SkyAnimation& sky)
     {
-        Image part_yx;
+        using Def = bt::SkyBase_base;
+        Def base;        
 
-        bool ok = read_rgba(src, info, part_yx);
-        if (!ok)
-        {
-            return false;
-        }
+        Image part_yx = base.read_rgba_item(buffer, Def::Items::day);
+        
+        auto& dst = sky.base;
 
         auto& dims = dst.dims.proc;
 
+        bool ok = true;
         ok &= part_yx.width == dims.width;
         ok &= dims.height % part_yx.height == 0;        
 
@@ -337,358 +186,70 @@ namespace assets
     }
 
 
-    static bool load_sky_overlay_image(AssetData const& src, SkyOverlayView const& dst, SkyOverlayInfo const& ov, SkyTableInfo const& ct)
+    static bool init_load_sky_overlay(Buffer8 const& buffer, SkyAnimation& sky)
     {
-        bt::TableImage1C overlay;
-        bool ok = read_table_image(src, ov, overlay);
-        if (!ok)
-        {
-            return false;
-        }
-        
-        ok &= overlay.width == dst.width;
-        ok &= overlay.height == dst.height;
-        if (!ok)
-        {
-            app_assert(ok && "*** Unexpected overlay image size ***");
-            bt::destroy_image(overlay);
-            return false;
-        }        
+        using Def = bt::SkyOverlay_overlay;
 
-        bt::ColorTable4C table;
-        ok = read_color_table(src, ct, table);
+        Def overlay;
+        auto item = Def::Items::ov_13;
+
+        auto table = overlay.read_table_item(buffer, item);
+        auto filter = overlay.read_table_filter_item(buffer, item);
+
+        auto& dst = sky.overlay_src;
+
+        bool ok = true;
+        ok &= filter.gray.width == dst.width;
+        ok &= filter.gray.height == dst.height;
         if (!ok)
         {
-            bt::destroy_image(overlay);
+            app_assert(ok && "*** Unexpected table filter size ***");
+            table.destroy();
+            filter.destroy();
             return false;
         }
 
-        ok &= table.length == 256;
-        if (!ok)
-        {
-            app_assert(ok && "*** Unexpected color table image size ***");
-            bt::destroy_image(overlay);
-            bt::destroy_image(table);
-            return false;
-        }
+        ok &= bt::color_table_convert(filter, table, to_image_view(dst));
 
-        // pre-multiplied alpha
-        ok &= apply_color_table_pma(overlay, to_image_view(dst), table, SKY_OVERLAY_ALPHA);
-        if (!ok)
-        {
-            app_assert(ok && "*** apply_color_table_pma() ***");
-            bt::destroy_image(overlay);
-            bt::destroy_image(table);            
-            return false;
-        }
+        app_assert(ok && "*** bt::color_table_convert() ***");
 
-        bt::destroy_image(overlay);
-        bt::destroy_image(table);
-
-        return ok;
-    }
-
-
-    static bool load_background_mask(AssetData const& src, BackgroundView const& dst, bt::MaskImageInfo const& info)
-    {
-        bt::MaskImage1C mask;
-        bool ok = read_mask_image(src, info, mask);
-        if (!ok)
-        {
-            return false;
-        }
-
-        auto& dims = dst.dims.proc;
-
-        ok &= mask.width == dims.width;
-        ok &= mask.height == dims.height;
-        if (!ok)
-        {
-            app_assert(ok && "*** Unexpected background size ***");
-            bt::destroy_image(mask);
-            return false;
-        }
-
-        ok &= bt::mask_convert(mask, to_image_view(dst));
-        if (!ok)
-        {
-            app_assert(ok && "*** mask_convert() ***");
-            bt::destroy_image(mask);
-            return false;
-        }
-
-        bt::destroy_image(mask);
+        table.destroy();
+        filter.destroy();
 
         return true;
     }
 
 
-    static bool load_sky_base(AssetData const& src, BackgroundView const& dst)
+    template <class BG_DEF>
+    static bool init_load_background(Buffer8 const& buffer, BackgroundAnimation& bg, u32 color_id)
     {
-        constexpr bt::InfoList_Image_Sky_Base list;
+        using Def = BG_DEF;
 
-        auto& info = list.file_info.base_day_png;
+        Def def;
 
-        auto ok = load_sky_base_image(src, dst, info);
-        if (!ok)
-        {
-            return false;
-        }
+        constexpr auto N = sizeof(bg.background_data) / sizeof(bg.background_data[0]);
 
-        return true;
-    }
+        static_assert(Def::count >= N);
 
-
-    static bool load_sky_overlay(AssetData const& src, SkyOverlayView const& dst)
-    {
-        using FT = bt::FileType;
-
-        constexpr bt::InfoList_Image_Sky_Overlay list;
-        constexpr bt::InfoList_Image_Sky_ColorTable tables;
-
-        auto& ov = list.file_info.ov_13_png;
-        auto& ct = tables.file_info.ct_13_png;
-
-        auto ok = load_sky_overlay_image(src, dst, ov, ct);
-        if (!ok)
-        {
-            return false;
-        }
-
-        return true;
-    }
-
-
-    static bool load_background_1(AssetData const& src, BackgroundAnimationFast const& dst)
-    {
-        constexpr bt::Background_Bg1 list;
-        constexpr auto color_id = 8;
-
-        bool ok = dst.count == list.count;
-        if (!ok)
-        {
-            app_assert(ok && "*** BackgroundAnimation not initialized ***");
-            return false;
-        }
-
-        for (u32 i = 0; i < list.count; i++)
-        {
-            ok &= has_data(dst.data[i]);
-        }
-
-        if (!ok)
-        {
-            app_assert(ok && "*** BackgroundAnimation not created ***");
-            return false;
-        }
-
-        bt::ColorTable4C table;
-        ok &= read_color_table(src, list.color_table, table);
-
-        auto color = table.data[color_id];
-
-        for (u32 i = 0; i < list.count; i++)
-        {
-            auto& view = dst.data[i];
-            ok &= load_background_mask(src, view, list.items[i]);
-            if (ok)
-            {
-                bt::mask_update(to_image_view(view), color);
-            }            
-        }
-
-        bt::destroy_image(table);
-
-        return ok;
-    }
-
-
-    static bool load_background_2(AssetData const& src, BackgroundAnimationFast const& dst)
-    {
-        constexpr bt::Background_Bg2 list;
-        constexpr auto color_id = 6;
-
-        bool ok = dst.count == list.count;
-        if (!ok)
-        {
-            app_assert(ok && "*** BackgroundAnimation not initialized ***");
-            return false;
-        }
-
-        for (u32 i = 0; i < list.count; i++)
-        {
-            ok &= has_data(dst.data[i]);
-        }
-
-        if (!ok)
-        {
-            app_assert(ok && "*** BackgroundAnimation not created ***");
-            return false;
-        }
-
-        bt::ColorTable4C table;
-        ok &= read_color_table(src, list.color_table, table);
-        if (!ok)
-        {
-            return false;
-        }
-
-        ok &= table.length == 256;
-        if (!ok)
-        {
-            app_assert(ok && "*** Unexpected color table image size ***");
-            bt::destroy_image(table);
-            return false;
-        }
-
-        auto color = table.data[color_id];
-        bt::destroy_image(table);
-
-        for (u32 i = 0; i < list.count; i++)
-        {
-            auto& view = dst.data[i];
-            ok &= load_background_mask(src, view, list.items[i]);
-            if (ok)
-            {
-                bt::mask_update(to_image_view(view), color);
-            }            
-        }
-
-        
-
-        return ok;
-    }
-
-
-    static bool load_background_1(AssetData const& src, BackgroundAnimation& dst)
-    {
-        constexpr bt::Background_Bg1 list;
-        constexpr auto color_id = 8;
-
-        dst.asset_count = list.count;
-        dst.select_count = dst.asset_count - dst.work_count;
-
-        for (u32 i = 0; i < list.count; i++)
-        {
-            dst.asset_info[i] = list.items[i];
-        }
+        auto table = def.read_table(buffer);
+        auto color = table.at(color_id);
+        bg.load_asset_color = color;
+        bg.load_asset_cb = load_background_image<Def>;
 
         bool ok = true;
 
-        ok &= has_data(dst.table);
-
-        for (u32 i = 0; i < dst.data_count; i++)
+        for (u32 i = 0; i < N; i++)
         {
-            ok &= has_data(dst.data[i]);
+            auto filter = def.read_alpha_filter_item(buffer, (Def::Items)i);
+            auto dst = to_image_view(bg.background_data[i]);
+            ok &= bt::alpha_filter_convert(filter, dst, color);
+            filter.destroy();
         }
 
-        if (!ok)
-        {
-            app_assert(ok && "*** BackgroundAnimation not created ***");
-            return false;
-        }
-
-        bt::ColorTable4C table;
-        ok &= read_color_table(src, list.color_table, table);
-        if (!ok)
-        {
-            return false;
-        }
-
-        ok &= table.length == 256;
-        if (!ok)
-        {
-            app_assert(ok && "*** Unexpected color table image size ***");
-            bt::destroy_image(table);
-            return false;
-        }
-
-        for (u32 i = 0; i < table.length; i++)
-        {
-            dst.table.data[i] = table.data[i];
-        }
-        bt::destroy_image(table);        
-
-        auto color = table.data[color_id];
-
-        for (u32 i = 0; i < dst.data_count; i++)
-        {
-            auto& view = dst.data[i];
-            ok &= load_background_mask(src, view, dst.asset_info[i]);
-            if (ok)
-            {
-                bt::mask_update(to_image_view(view), color);
-            }
-        }        
+        table.destroy();
 
         return ok;
     }
-
-
-    static bool load_background_2(AssetData const& src, BackgroundAnimation& dst)
-    {
-        constexpr bt::Background_Bg2 list;
-        constexpr auto color_id = 6;
-
-        dst.asset_count = list.count;
-        dst.select_count = dst.asset_count - dst.work_count;
-
-        for (u32 i = 0; i < list.count; i++)
-        {
-            dst.asset_info[i] = list.items[i];
-        }
-
-        bool ok = true;
-
-        ok &= has_data(dst.table);
-
-        for (u32 i = 0; i < dst.data_count; i++)
-        {
-            ok &= has_data(dst.data[i]);
-        }
-
-        if (!ok)
-        {
-            app_assert(ok && "*** BackgroundAnimation not created ***");
-            return false;
-        }
-
-        bt::ColorTable4C table;
-        ok &= read_color_table(src, list.color_table, table);
-        if (!ok)
-        {
-            return false;
-        }
-
-        ok &= table.length == 256;
-        if (!ok)
-        {
-            app_assert(ok && "*** Unexpected color table image size ***");
-            bt::destroy_image(table);
-            return false;
-        }
-
-        for (u32 i = 0; i < table.length; i++)
-        {
-            dst.table.data[i] = table.data[i];
-        }
-        bt::destroy_image(table);        
-
-        auto color = table.data[color_id];
-
-        for (u32 i = 0; i < dst.data_count; i++)
-        {
-            auto& view = dst.data[i];
-            ok &= load_background_mask(src, view, dst.asset_info[i]);
-            if (ok)
-            {
-                bt::mask_update(to_image_view(view), color);
-            }
-        }        
-
-        return ok;
-    }
-
     
 } // assets
     
@@ -701,20 +262,26 @@ namespace game_punk
 {
 namespace assets
 {
-    static bool load_spritesheet_image(AssetData const& src, SpritesheetView const& dst, bt::TableImageInfo const& ss, bt::ColorTableInfo const& ct)
+    static bool load_sprites_punk(Buffer8 const& buffer, SpritesheetState const& ss)
     {
-        return load_table_image(src, to_image_view(dst), ss, ct);
-    }
+        using Punk = bt::Spriteset_Punk;
 
+        Punk list;
 
-    static bool load_sprites_punk(AssetData const& src, SpritesheetState const& ss_state)
-    {
-        bt::Spriteset_Punk list;
+        auto table = list.read_table(buffer);
+        auto run = list.read_table_filter_item(buffer, Punk::Items::Punk_run);
+        auto idle = list.read_table_filter_item(buffer, Punk::Items::Punk_idle);
+        
+        bool ok = true;
 
-        auto& info = list.file_info.Punk_run;
-        auto& table = list.color_table;
+        ok &= bt::color_table_convert(run, table, to_image_view(ss.punk_run));
+        ok &= bt::color_table_convert(idle, table, to_image_view(ss.punk_idle));
 
-        return load_spritesheet_image(src, ss_state.punk_run, info, table);
+        table.destroy();
+        run.destroy();
+        idle.destroy();
+
+        return ok;
     }
 }
 }
@@ -726,24 +293,24 @@ namespace game_punk
 {
 namespace assets
 {
-    static bool load_tile_image(AssetData const& src, TileView const& dst, bt::TableImageInfo const& info, bt::ColorTableInfo const& ct)
+    static bool load_tiles_ex_zone(Buffer8 const& buffer, TileState const& tiles)
     {
-        return load_table_image(src, to_image_view(dst), info, ct);
-    }
+        using Ex = bt::Tileset_ex_zone;
 
-
-    static bool load_tiles_ex_zone(AssetData const& src, TileState const& tiles)
-    {
         bt::Tileset_ex_zone list;
 
-        auto& floor2 = list.file_info.floor_02;
-        auto& floor3 = list.file_info.floor_03;
-        auto& table = list.color_table;
+        auto table = list.read_table(buffer);
+        auto f2 = list.read_table_filter_item(buffer, Ex::Items::floor_02);
+        auto f3 = list.read_table_filter_item(buffer, Ex::Items::floor_03);
 
         bool ok = true;
 
-        ok &= load_tile_image(src, tiles.floor_a, floor2, table);
-        ok &= load_tile_image(src, tiles.floor_b, floor3, table);
+        ok &= bt::color_table_convert(f2, table, to_image_view(tiles.floor_a));
+        ok &= bt::color_table_convert(f3, table, to_image_view(tiles.floor_b));
+
+        table.destroy();
+        f2.destroy();
+        f3.destroy();
 
         return ok;
     }
@@ -757,33 +324,63 @@ namespace game_punk
 {
 namespace assets
 {
-    static bool load_ui_font(AssetData const& src, UIState& ui)
+    static bool load_ui_font(Buffer8 const& buffer, UIState& ui)
     {
-        bt::UIset_Font list;
+        using Font = bt::UIset_Font;
 
-        auto& font = list.file_info.font;
+        Font list;
 
-        return load_filter_image(src, to_image_view(ui.data.font), font);        
+        auto table = list.read_table(buffer);
+        auto filter = list.read_table_filter_item(buffer, Font::Items::font);
+
+        bool ok = true;
+
+        ok &= bt::color_table_convert(filter, table, to_image_view(ui.data.font));
+
+        table.destroy();
+        filter.destroy();
+
+        return ok;
     }
 
 
-    static bool load_ui_title(AssetData const& src, UIState& ui)
+    static bool load_ui_title(Buffer8 const& buffer, UIState& ui)
     {
-        bt::UIset_Title list;
+        using Title = bt::UIset_Title;
 
-        auto& title = list.file_info.title_main;
+        Title list;
 
-        return load_filter_image(src, ui.data.title, title);
+        auto table = list.read_table(buffer);
+        auto filter = list.read_table_filter_item(buffer, Title::Items::title_main);
+
+        bool ok = true;
+
+        ok &= bt::color_table_convert(filter, table, to_image_view(ui.data.font));
+
+        table.destroy();
+        filter.destroy();
+
+        return ok;
     }
 
 
-    static bool load_ui_icons(AssetData const& src, UIState& ui)
+    static bool load_ui_icons(Buffer8 const& buffer, UIState& ui)
     {
-        bt::UIset_Icons list;
+        using Icons = bt::UIset_Icons;
 
-        auto& icons = list.file_info.icons;
+        Icons list;
 
-        return load_filter_image(src, to_image_view(ui.data.icons), icons);
+        auto table = list.read_table(buffer);
+        auto filter = list.read_table_filter_item(buffer, Icons::Items::icons);
+
+        bool ok = true;
+
+        ok &= bt::color_table_convert(filter, table, to_image_view(ui.data.font));
+
+        table.destroy();
+        filter.destroy();
+
+        return ok;
     }
 }
 }
@@ -799,13 +396,11 @@ namespace assets
     {
         bool ok = true;
 
-        ok &= load_sky_base(src, bg_state.sky.base);
-        ok &= load_sky_overlay(src, bg_state.sky.overlay_src);
-        ok &= load_background_1(src, bg_state.bg_1);
-        ok &= load_background_2(src, bg_state.bg_2);
+        ok &= init_load_sky_base(src.bytes, bg_state.sky);
+        ok &= init_load_sky_overlay(src.bytes, bg_state.sky);
 
-        ok &= load_background_1(src, bg_state.bgf_1);
-        ok &= load_background_2(src, bg_state.bgf_2);
+        ok &= init_load_background<bt::Background_Bg1>(src.bytes, bg_state.bg_1, 8);
+        ok &= init_load_background<bt::Background_Bg2>(src.bytes, bg_state.bg_2, 6);
 
         render_front_back(bg_state.sky);
 
@@ -817,7 +412,7 @@ namespace assets
     {  
         bool ok = true;
 
-        ok &= load_sprites_punk(src, ss_state);
+        ok &= load_sprites_punk(src.bytes, ss_state);
 
         return ok;
     }
@@ -827,7 +422,7 @@ namespace assets
     {
         bool ok = true;
 
-        ok &= load_tiles_ex_zone(src, tile_state);
+        ok &= load_tiles_ex_zone(src.bytes, tile_state);
 
         return ok;
     }
@@ -837,9 +432,9 @@ namespace assets
     {
         bool ok = true;
 
-        ok &= load_ui_font(src, ui);
-        ok &= load_ui_title(src, ui);
-        ok &= load_ui_icons(src, ui);
+        ok &= load_ui_font(src.bytes, ui);
+        ok &= load_ui_title(src.bytes, ui);
+        ok &= load_ui_icons(src.bytes, ui);
 
         return ok;
     }
@@ -847,20 +442,21 @@ namespace assets
 
     static bool test_game_assets(AssetData const& src)
     {
-        bool ok = true;
+        static_assert(bt::CLASS_COUNT == 9); // will fail as classes are added/removed
 
-        ok &= bt::InfoList_Image_Sky_Base().test(src.bytes);
-        ok &= bt::InfoList_Image_Sky_Overlay().test(src.bytes);
-        ok &= bt::InfoList_Image_Sky_ColorTable().test(src.bytes);
-        ok &= bt::Background_Bg1().test(src.bytes);
-        ok &= bt::Background_Bg2().test(src.bytes);
-        ok &= bt::Spriteset_Punk().test(src.bytes);
-        ok &= bt::Tileset_ex_zone().test(src.bytes);
-        ok &= bt::UIset_Font().test(src.bytes);
-        ok &= bt::UIset_Title().test(src.bytes);
-        ok &= bt::UIset_Icons().test(src.bytes);
+        u32 test_count = 0;
 
-        return ok;
+        test_count += (u32)bt::SkyBase_base().test(src.bytes);
+        test_count += (u32)bt::SkyOverlay_overlay().test(src.bytes);
+        test_count += (u32)bt::Background_Bg1().test(src.bytes);
+        test_count += (u32)bt::Background_Bg2().test(src.bytes);
+        test_count += (u32)bt::Spriteset_Punk().test(src.bytes);
+        test_count += (u32)bt::Tileset_ex_zone().test(src.bytes);
+        test_count += (u32)bt::UIset_Font().test(src.bytes);
+        test_count += (u32)bt::UIset_Title().test(src.bytes);
+        test_count += (u32)bt::UIset_Icons().test(src.bytes);
+
+        return test_count == bt::CLASS_COUNT;
     }
 
 
@@ -889,19 +485,21 @@ namespace assets
 
 #if defined(__EMSCRIPTEN__) || defined(GAME_PUNK_WASM)
 
+#define GAME_PUNK_ASSETS_WEB
+
 #include <emscripten/fetch.h>
 #include <string.h>
 
 #endif
 
 
-/* asset data */
+/* asset data web */
 
 namespace game_punk
 {
 namespace assets
 {
-#if defined(__EMSCRIPTEN__) || defined(GAME_PUNK_WASM)
+#ifdef GAME_PUNK_ASSETS_WEB
 
 
     constexpr auto GAME_DATA_PATH = "https://raw.githubusercontent.com/adam-lafontaine/CMS/punk-run-v0.1.0/sm/wasm/punk_run.bin"; // almostalwaysadam.com
@@ -952,6 +550,14 @@ namespace assets
 
             emscripten_fetch_close(res);
 
+            bool ok &= test_game_assets(data.asset_data);
+            if (!ok)
+            {
+                app_assert(ok && "*** Asset tests failed ***");
+                data.asset_data.status = AssetStatus::FailRead;
+                return;
+            }
+            
             read_game_assets(data);
         }
 
@@ -979,7 +585,19 @@ namespace assets
         em_load::fetch_bin_data_async(GAME_DATA_PATH, data);
     }
 
-#else
+#endif
+}
+}
+
+
+
+/* asset data */
+
+namespace game_punk
+{
+namespace assets
+{
+#ifndef GAME_PUNK_ASSETS_WEB
 
     constexpr auto GAME_DATA_PATH = "./punk_run.bin";
 
@@ -1042,10 +660,9 @@ namespace assets
         if (!ok)
         {
             app_assert(ok && "*** Asset tests failed ***");
-            data.asset_data.status = AssetStatus::FailLoad;
+            data.asset_data.status = AssetStatus::FailRead;
             return;
         }
-
 
         read_game_assets(data);
     }
@@ -1053,5 +670,3 @@ namespace assets
 #endif
 }
 }
-
-

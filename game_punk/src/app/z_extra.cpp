@@ -509,3 +509,24 @@ namespace game_punk
         }
     }
 }
+
+
+namespace game_punk
+{
+    class ActiveRef
+    {
+    private:
+        u8* ref_ = 0;
+
+    public:        
+        void set_ref(u8* ref) { ref_ = ref; }
+
+        void set_active(u8 active) { if (ref_) *ref_ = active; }
+
+        void set_on() { if (ref_) *ref_ = 1; }
+        void set_off() { if (ref_) *ref_ = 0; }
+
+        bool is_set() { return ref_ && *ref_; }
+        bool is_set() const { return ref_ && *ref_; }
+    };
+}

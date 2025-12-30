@@ -1,6 +1,7 @@
 #pragma once
 
 #include "../../res/xbin/bin_table.hpp"
+#include "../../../libs/util/stack_buffer.hpp"
 
 
 /* asset constants */
@@ -8,6 +9,10 @@
 namespace game_punk
 {
     namespace bt = bin_table;
+    namespace sb = stack_buffer;
+
+    template <bt::FileType FT>
+    using ImageInfo = bt::FileInfo_Image;
 
 
 namespace cxpr
@@ -50,7 +55,7 @@ namespace cxpr
 
     constexpr Vec2Du32 sky_overlay_dimensions()
     {
-        constexpr bt::InfoList_Image_Sky_Overlay list;
+        constexpr bt::SkyOverlay_overlay list;
 
         Vec2Du32 dims;
         
@@ -81,40 +86,6 @@ namespace cxpr
 } // cxpr    
 
 }
-
-
-/* asset data */
-
-namespace game_punk
-{
-    enum class AssetStatus : u8
-    {
-        None = 0,
-        Loading,
-        Success,
-
-        FailLoad,
-        FailRead
-    };
-
-
-    class AssetData
-    {
-    public:
-        AssetStatus status = AssetStatus::None;
-
-        cstr bin_file_path = 0;
-
-        MemoryBuffer<u8> bytes;
-    };
-
-
-    static void destroy_asset_data(AssetData& gd)
-    {
-        mb::destroy_buffer(gd.bytes);
-    }
-}
-
 
 /* helpers */
 
@@ -207,6 +178,134 @@ namespace game_punk
     static inline Span32 sub_view(Span32_cxpr<W, H> const& src, u32 offset, u32 length)
     {
         return span::sub_view(to_span(src), offset, length);
+    }
+}
+
+
+/* asset data */
+
+namespace game_punk
+{
+    enum class AssetStatus : u8
+    {
+        None = 0,
+        Loading,
+        Success,
+
+        FailLoad,
+        FailRead
+    };
+
+
+    class AssetData
+    {
+    public:
+        AssetStatus status = AssetStatus::None;
+
+        cstr bin_file_path = 0;
+
+        MemoryBuffer<u8> bytes;
+    };
+
+
+    static void destroy_asset_data(AssetData& gd)
+    {
+        mb::destroy_buffer(gd.bytes);
+    }
+
+
+    class LoadContext
+    {
+    public:
+        ImageView dst;
+        p32 color = COLOR_BLACK;
+        u32 item_id = 0;
+    };
+    
+    
+    using OnAssetLoad = void (*)(Buffer8 const&, LoadContext const&);
+
+    
+    class LoadCommand
+    {
+    public:
+
+        LoadContext ctx;
+
+        OnAssetLoad on_load;
+    };
+    
+    
+    class LoadQueue
+    {
+    public:
+        u32 capacity = 0;
+        u32 size = 0;
+
+        LoadCommand* commands = 0;
+    };
+
+
+    static void push_load(LoadQueue& q, LoadCommand cmd)
+    {
+        auto i = q.size;
+
+        if (i < q.capacity)
+        {
+            q.commands[i] = cmd;
+            q.size++;
+        }        
+    }
+
+
+    static void load_all(AssetData const& src, LoadQueue& q)
+    {
+        for (u32 i = 0; i < q.size; i++)
+        {
+            auto& cmd = q.commands[i];            
+            cmd.on_load(src.bytes, cmd.ctx);
+        }
+
+        q.size = 0;
+    }
+
+
+    template <class LIST>
+    static void load_background_image(Buffer8 const& buffer, LoadContext const& ctx)
+    {
+        constexpr LIST list;
+
+        auto filter = list.read_alpha_filter_item(buffer, (LIST::Items)ctx.item_id);
+        bt::alpha_filter_convert(filter, ctx.dst, ctx.color);
+        filter.destroy();
+    }
+
+
+    template <class LIST>
+    static void load_spritesheet_image(Buffer8 const& buffer, LoadContext const& ctx)
+    {
+        constexpr LIST list;
+
+        auto table = list.read_table(buffer);
+        auto filter = list.read_table_filter_item(buffer, (LIST::Items)ctx.item_id);
+        bt::color_table_convert(filter, table, ctx.dst);
+
+        table.destroy();
+        filter.destroy();
+    }
+
+
+    template <class LIST>
+    static void load_tile_image(Buffer8 const& buffer, LoadContext const& ctx)
+    {
+        constexpr LIST list;
+
+        auto table = list.read_table(buffer);
+        auto filter = list.read_table_filter_item(buffer, (LIST::Items)ctx.item_id);
+        bt::color_table_convert(filter, table, ctx.dst);
+
+        table.destroy();
+        filter.destroy();
     }
 }
 
@@ -374,23 +473,73 @@ namespace game_punk
     TickQty32 operator - (TickQty32 lhs, TickQty32 rhs) { return lhs.value_ - rhs.value_; }
 
 
-    /*class ActiveRef
+    template <typename uT, u64 N>
+    class uN2
     {
+    public:
+        static constexpr uT COUNT = (uT)N;
+        static constexpr uT MAX_VALUE = COUNT - 1;
+
     private:
-        u8* ref_ = 0;
+        static uT n2_add(uT a, uT b) { return (a + b) & MAX_VALUE; }
+        static uT n2_sub(uT a, uT b) { return (a - b) & MAX_VALUE; }
 
-    public:        
-        void set_ref(u8* ref) { ref_ = ref; }
+    public:
+        uT value_ = 0;
 
-        void set_active(u8 active) { if (ref_) *ref_ = active; }
 
-        void set_on() { if (ref_) *ref_ = 1; }
-        void set_off() { if (ref_) *ref_ = 0; }
+        constexpr uN2()
+        {
+            static_assert(math::cxpr::is_unsigned(uT));
+            static_assert(math::cxpr::is_power_of_2(N));
+        }
 
-        bool is_set() { return ref_ && *ref_; }
-        bool is_set() const { return ref_ && *ref_; }
-    };*/
+
+        void reset() { value_ = 0; }
+
+
+        uN2& operator ++ () { value_ = n2_add(value_, 1); return *this; }
+    };
     
+}
+
+
+/* circular buffer */
+
+namespace game_punk
+{
+    template <typename T, u32 COUNT>
+    class RingStackBuffer
+    {
+    public:
+        static constexpr u32 count = COUNT;
+
+        T data[COUNT];
+
+        uN2<u32, COUNT> cursor;
+
+        T& front() { return data[cursor.value_]; }
+
+        void next() { ++cursor; }        
+    };
+
+
+    template <typename T, u32 COUNT>
+    class RandomStackBuffer
+    {
+    public:
+        static constexpr u32 capacity = COUNT;
+
+        u32 size = 0;
+
+        T data[COUNT];
+
+        u32 id = 0;
+
+        T& get(Randomf32& rng) { id = next_random_u32(rng, 0, size - 1); return data[id]; }
+
+        void set(T value) { data[id] = value; }
+    };
 }
 
 
@@ -664,6 +813,7 @@ namespace game_punk
         return ok;
     }
 
+
 }
 
 
@@ -676,14 +826,20 @@ namespace game_punk
     public:        
 
         SpritesheetView punk_run;
+        SpritesheetView punk_idle;
     };
 
 
     static void count_spritesheet_state(SpritesheetState& ss_state, MemoryCounts& counts)
     {
-        bt::Spriteset_Punk list;
+        using Punk = bt::Spriteset_Punk;
 
-        count_view(ss_state.punk_run, counts, list.file_info.Punk_run);
+        constexpr Punk list;
+        constexpr auto run = Punk::Items::Punk_run;
+        constexpr auto idle = Punk::Items::Punk_idle;
+
+        count_view(ss_state.punk_run, counts, bt::item_at(list, run));
+        count_view(ss_state.punk_run, counts, bt::item_at(list, idle));
     }
 
 
@@ -692,6 +848,7 @@ namespace game_punk
         bool ok = true;
 
         ok &= create_view(ss_state.punk_run, memory);
+        ok &= create_view(ss_state.punk_idle, memory);
 
         return ok;
     }
@@ -712,9 +869,14 @@ namespace game_punk
 
     static void count_tile_state(TileState& tiles, MemoryCounts& counts)
     {
-        bt::Tileset_ex_zone list;
-        count_view(tiles.floor_a, counts, list.file_info.floor_02);
-        count_view(tiles.floor_b, counts, list.file_info.floor_03);
+        using Ex = bt::Tileset_ex_zone;
+
+        constexpr Ex list;
+        constexpr auto f2 = Ex::Items::floor_02;
+        constexpr auto f3 = Ex::Items::floor_03;
+
+        count_view(tiles.floor_a, counts, bt::item_at(list, f2));
+        count_view(tiles.floor_b, counts, bt::item_at(list, f3));
     }
 
 
@@ -765,16 +927,20 @@ namespace game_punk
 
     static void count_ui_state(UIState& ui, MemoryCounts& counts)
     {
-        bt::UIset_Title title;
-        auto t_info = title.file_info.title_main;
+        using Title = bt::UIset_Title;
+        using Font = bt::UIset_Font;
+        using Icons = bt::UIset_Icons;
+
+        constexpr Title title;
+        auto t_info = bt::item_at(title, Title::Items::title_main);
         count_view(ui.data.title, counts, t_info.width, t_info.height);        
         
-        bt::UIset_Font font;
+        constexpr Font font;
         u32 n_chars = 10 + 26 * 2; // 0-9, A-Z x 2
-        count_view(ui.data.font, counts, font.file_info.font, n_chars);
+        count_view(ui.data.font, counts, bt::item_at(font, Font::Items::font), n_chars);
 
-        bt::UIset_Icons icons;
-        count_view(ui.data.icons, counts, icons.file_info.icons);
+        constexpr Icons icons;
+        count_view(ui.data.icons, counts, bt::item_at(icons, Icons::Items::icons));
 
         auto length = cxpr::GAME_CAMERA_WIDTH_PX * cxpr::GAME_CAMERA_HEIGHT_PX;
         count_stack(ui.pixels, counts, length);
@@ -813,12 +979,12 @@ namespace game_punk
         bool ok = color_id < ui.CTS;
         app_assert(ok && "*** Invalid color id ***");
 
-        auto color = ui.data.colors[color_id];
-        bt::mask_update(to_image_view(ui.data.font), color);
+        /*auto color = ui.data.colors[color_id];
+        bt::filter_update(to_image_view(ui.data.font), color, COLOR_TRANSPARENT);
 
         // temp icon color
         bt::filter_update(to_image_view(ui.data.icons), color, COLOR_BLACK);
-        ui.font_color_id = color_id;
+        ui.font_color_id = color_id;*/
 
         return ok;
     }
@@ -1007,15 +1173,15 @@ namespace game_punk
     {
     public:
 
-        static constexpr u32 capacity = 50;
+        u32 capacity = 0;
         u32 size = 0;
 
-        SubView src[capacity];
-        SubView dst[capacity];
+        SubView* src;
+        SubView* dst;
     };
 
 
-    /*void count_draw(DrawQueue& dq, MemoryCounts& counts, u32 capacity)
+    void count_draw(DrawQueue& dq, MemoryCounts& counts, u32 capacity)
     {
         dq.capacity = capacity;
         add_count<SubView>(counts, 2 * capacity);
@@ -1042,7 +1208,7 @@ namespace game_punk
         }
 
         return ok;
-    }*/
+    }
 
 
     static void draw(DrawQueue const& dq)
@@ -1158,6 +1324,21 @@ namespace game_punk
             push_draw_view(dq, bmp, out, p);
         }
     }
+}
+
+
+/* load assets */
+
+namespace game_punk
+{
+    class LoadImageQueue
+    {
+    public:
+        u32 capacity = 0;
+        u32 size = 0;
+
+        
+    };
 }
 
 

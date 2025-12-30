@@ -174,6 +174,7 @@ namespace game_punk
         count_spritesheet_state(data.spritesheet, counts);
         count_tile_state(data.tiles, counts);
         count_ui_state(data.ui, counts);
+        count_draw(data.drawq, counts, 50);
         
         data.memory = create_memory(counts);
         if (!data.memory.ok)
@@ -187,6 +188,7 @@ namespace game_punk
         ok &= create_spritesheet_state(data.spritesheet, data.memory);
         ok &= create_tile_state(data.tiles, data.memory);
         ok &= create_ui_state(data.ui, data.memory);
+        ok &= create_draw(data.drawq, data.memory);
 
         ok &= verify_allocated(data.memory);
 

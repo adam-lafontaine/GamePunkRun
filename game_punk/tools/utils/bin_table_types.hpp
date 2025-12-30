@@ -14,7 +14,7 @@ namespace bin_table
 	using Buffer8 = img::Buffer8;
 
 
-	enum class FilterKey : u8
+	enum class AlphaFilter : u8
 	{
 		Transparent = 0,
 		Secondary = 50,
@@ -31,99 +31,47 @@ namespace bin_table
 		Image4C_Table,
 
         Image1C,      // 1 channel image
-		Image1C_Mask,
-		Image1C_Filter,
-		Image1C_Table,
+		Image1C_AlphaFilter,
+		Image1C_TableFilter,
 
         Music,
         SFX
     };
 
 
-	class FilterImage1C
+	class AlphaFilterImage
 	{
 	public:
-		static constexpr FileType type = FileType::Image1C_Filter;
-		
-		u32 width = 0;
-		u32 height = 0;
+		static constexpr FileType type = FileType::Image1C_AlphaFilter;
 
-		u8* data = 0;
+		ImageGray gray;
+
+		void destroy() { img::destroy_image(gray); }
 	};
 
 
-	class TableImage1C
+	class TableFilterImage
 	{
 	public:
-		static constexpr FileType type = FileType::Image1C_Table;
+		static constexpr FileType type = FileType::Image1C_TableFilter;
 
-		u32 width = 0;
-		u32 height = 0;
+		ImageGray gray;
 
-		u8* data = 0;
+		void destroy() { img::destroy_image(gray); }
 	};
 
 
-	class MaskImage1C
-	{
-	public:
-		static constexpr FileType type = FileType::Image1C_Mask;
-
-		u32 width = 0;
-		u32 height = 0;
-
-		u8* data = 0;
-	};
-
-
-	class ColorTable4C
+	class ColorTableImage
 	{
 	public:
 		static constexpr FileType type = FileType::Image4C_Table;
 
-		u32 length = 0;
+		Image rgba;
 
-		p32* data = 0;
+		p32 at(u32 id) { return rgba.data_[id]; }
+
+		void destroy() { img::destroy_image(rgba); }
 	};
-    
-
-
-	template <u8 FT>
-    class FileInfo_Image
-	{
-	public:
-		static constexpr FileType type = (FileType)FT;
-
-		u32 width = 0;
-		u32 height = 0;
-		cstr name = 0;
-		u32 offset = 0;
-		u32 size = 0;
-	};
-
-
-	template <u8 FT>
-	inline constexpr FileInfo_Image<FT> to_file_info_image(u32 width, u32 height, cstr name, u32 offset, u32 size)
-	{
-		FileInfo_Image<FT> f;
-		f.width = width;
-		f.height = height;
-		f.name = name;
-		f.offset = offset;
-		f.size = size;
-
-		return f;
-	}
-
-
-	using ImageGrayInfo = FileInfo_Image<(u8)FileType::Image1C>;
-	using ImageRGBAInfo = FileInfo_Image<(u8)FileType::Image4C>;
-	using ColorTableInfo = FileInfo_Image<(u8)FileType::Image4C_Table>;
-	using TableImageInfo = FileInfo_Image<(u8)FileType::Image1C_Table>;
-	using FilterImageInfo = FileInfo_Image<(u8)FileType::Image1C_Filter>;
-	using MaskImageInfo = FileInfo_Image<(u8)FileType::Image1C_Mask>;
-
-
 	
 }
 
@@ -142,56 +90,17 @@ namespace bin_table
 			return sizeof(p32);
 
 		case FileType::Image1C:
-		case FileType::Image1C_Mask:
-		case FileType::Image1C_Filter:
-		case FileType::Image1C_Table:
+		case FileType::Image1C_AlphaFilter:
+		case FileType::Image1C_TableFilter:
 			return sizeof(u8);
 
 		default:
 			return 0;
 		}
 	}
-	
-	
-	inline void destroy_image(auto& item)
-	{
-		switch (data_size(item.type))
-		{
-		case data_size(FileType::Image4C):
-		{
-			Image image;
-			image.data_ = (p32*)item.data;
-			img::destroy_image(image);
-		} break;
-
-		case data_size(FileType::Image1C):
-		{
-			ImageGray image;
-			image.data_ = (u8*)item.data;
-			img::destroy_image(image);
-		} break;
-
-		default:
-			// error?
-			break;
-		}
-	}
 
 
-	template <class T>
-	inline auto to_file_info_span(T const& def)
-    {
-		using F = T::FileInfo;
-
-		static_assert(sizeof(def.items[0]) == sizeof(F));
-
-        SpanView<F> view;
-
-        view.data = (F*)def.items;
-        view.length = def.count;
-
-        return view;
-    }
+	auto item_at(auto const& list, auto key) { return list.items[(u32) key]; }
 }
 
 
@@ -206,10 +115,36 @@ namespace bin_table
 		ReadError,
 		SizeError
 	};
+	
+
+	class AssetInfo_Image
+	{
+	public:
+		FileType type = FileType::Unknown;
+
+		u32 width = 0;
+		u32 height = 0;
+		cstr name = 0;
+		u32 offset = 0;
+		u32 size = 0;
+	};
 
 
-	template <u8 FT>
-    static ByteView make_byte_view(Buffer8 const& buffer, FileInfo_Image<FT> const& info)
+	inline constexpr AssetInfo_Image to_image_info(FileType type, u32 width, u32 height, cstr name, u32 offset, u32 size)
+	{
+		AssetInfo_Image f;
+		f.type = type;
+		f.width = width;
+		f.height = height;
+		f.name = name;
+		f.offset = offset;
+		f.size = size;
+
+		return f;
+	}
+
+
+	static ByteView make_byte_view(Buffer8 const& buffer, AssetInfo_Image const& info)
     {
         ByteView view{};
 
@@ -220,8 +155,7 @@ namespace bin_table
     }
 
 
-	template <u8 FT>
-	inline ReadResult read_image(Buffer8 const& buffer, FileInfo_Image<FT> const& info, ImageGray& dst)
+	inline ReadResult read_image(Buffer8 const& buffer, AssetInfo_Image const& info, ImageGray& dst)
 	{
 		auto src = make_byte_view(buffer, info);
 
@@ -230,9 +164,8 @@ namespace bin_table
 		switch (info.type)
 		{
 		case FileType::Image1C:
-		case FileType::Image1C_Mask:
-		case FileType::Image1C_Filter:
-		case FileType::Image1C_Table:
+		case FileType::Image1C_AlphaFilter:
+		case FileType::Image1C_TableFilter:
 			ok = img::read_image_from_memory(src, dst);
 			break;
 
@@ -255,8 +188,7 @@ namespace bin_table
 	}
 
 
-	template <u8 FT>
-	inline ReadResult read_image(Buffer8 const& buffer, FileInfo_Image<FT> const& info, Image& dst)
+	inline ReadResult read_image(Buffer8 const& buffer, AssetInfo_Image const& info, Image& dst)
 	{
 		auto src = make_byte_view(buffer, info);
 		
@@ -288,109 +220,7 @@ namespace bin_table
 	}
 
 
-	inline ReadResult read_gray(Buffer8 const& buffer, ImageGrayInfo info, ImageGray& dst)
-	{
-		static_assert(ImageGrayInfo::type == FileType::Image1C);
-
-		return read_image(buffer, info, dst);
-	}
-
-
-	inline ReadResult read_rgba(Buffer8 const& buffer, ImageRGBAInfo info, Image& dst)
-	{
-		static_assert(ImageRGBAInfo::type == FileType::Image4C);
-
-		return read_image(buffer, info, dst);
-	}
-
-
-	inline ReadResult read_color_table(Buffer8 const& buffer, ColorTableInfo info, ColorTable4C& out)
-	{
-		static_assert(ColorTableInfo::type == ColorTable4C::type);
-
-		Image dst;
-		auto res = read_image(buffer, info, dst);
-		if (res != ReadResult::OK)
-		{
-			return res;
-		}
-
-		if (info.height != 1)
-		{
-			return ReadResult::SizeError;
-		}
-
-		out.length = dst.width;
-		out.data = dst.data_;
-
-		return ReadResult::OK;
-	}
-
-
-	inline ReadResult read_table_image(Buffer8 const& buffer, TableImageInfo info, TableImage1C& out)
-	{
-		static_assert(TableImageInfo::type == TableImage1C::type);
-
-		ImageGray dst;
-		auto res = read_image(buffer, info, dst);
-		if (res != ReadResult::OK)
-		{
-			return res;
-		}
-
-		out.width = dst.width;
-		out.height = dst.height;
-		out.data = dst.data_;
-
-		return ReadResult::OK;
-	}
-
-
-	inline ReadResult read_filter_image(Buffer8 const& buffer, FilterImageInfo info, FilterImage1C& out)
-	{
-		static_assert(FilterImageInfo::type == FilterImage1C::type);
-
-		ImageGray dst;
-		auto res = read_image(buffer, info, dst);
-		if (res != ReadResult::OK)
-		{
-			return res;
-		}
-
-		out.width = dst.width;
-		out.height = dst.height;
-		out.data = dst.data_;
-		
-		return ReadResult::OK;
-	}
-
-
-	inline ReadResult read_mask_image(Buffer8 const& buffer, MaskImageInfo info, MaskImage1C& out)
-	{
-		static_assert(MaskImageInfo::type == MaskImage1C::type);
-
-		ImageGray dst;
-		auto res = read_image(buffer, info, dst);
-		if (res != ReadResult::OK)
-		{
-			return res;
-		}
-
-		out.width = dst.width;
-		out.height = dst.height;
-		out.data = dst.data_;
-		
-		return ReadResult::OK;
-	}
-}
-
-
-/* testing */
-
-namespace bin_table
-{
-	template <u8 FT>
-	inline bool test_read(Buffer8 const& buffer, FileInfo_Image<FT> const& info)
+	inline bool test_read(Buffer8 const& buffer, AssetInfo_Image const& info)
 	{
 		bool ok = false;
 
@@ -414,12 +244,18 @@ namespace bin_table
 			break;
 		}
 
+	#ifdef app_log
+		if (!ok)
+		{		
+			app_log("Asset read error: %s", info.name);		
+		}
+	#endif
+
 		return ok;
 	}
 
 
-	template <u8 FT>
-	inline bool test_items(Buffer8 const& buffer, FileInfo_Image<FT>* items, u32 count)
+	inline bool test_items(Buffer8 const& buffer, AssetInfo_Image* items, u32 count)
 	{
 		bool ok = true;
 
@@ -430,6 +266,46 @@ namespace bin_table
 
 		return ok;
 	}
+
+
+	inline Image read_rgba(Buffer8 const& buffer, AssetInfo_Image const& info)
+	{
+		Image rgba;
+		read_image(buffer, info, rgba);
+		return rgba;
+	}
+
+
+	inline ImageGray read_gray(Buffer8 const& buffer, AssetInfo_Image const& info)
+	{
+		ImageGray gray;
+		read_image(buffer, info, gray);
+		return gray;
+	}
+
+
+	AlphaFilterImage read_alpha_filter(Buffer8 const& buffer, AssetInfo_Image const& info)
+	{
+		AlphaFilterImage filter;
+		read_image(buffer, info, filter.gray);
+		return filter;
+	}
+
+
+	TableFilterImage read_table_filter(Buffer8 const& buffer, AssetInfo_Image const& info)
+	{
+		TableFilterImage filter;
+		read_image(buffer, info, filter.gray);
+		return filter;
+	}
+
+
+	ColorTableImage read_color_table(Buffer8 const& buffer, AssetInfo_Image const& info)
+	{
+		ColorTableImage table;
+		read_image(buffer, info, table.rgba);
+		return table;
+	}
 }
 
 
@@ -437,50 +313,10 @@ namespace bin_table
 
 namespace bin_table
 {
-	inline bool mask_convert(MaskImage1C const& src, ImageView const& dst)
+	inline bool alpha_filter_convert(AlphaFilterImage const& filter, ImageView const& dst)
 	{
-		if (src.width != dst.width || src.height != dst.height)
-		{
-			return false;
-		}
+		auto& src = filter.gray;
 		
-		constexpr auto on = img::to_pixel(255);
-		constexpr auto off = img::to_pixel(0, 0, 0, 0);
-
-		auto length = src.width * src.height;
-		auto s = src.data;
-		auto d = dst.matrix_data_;
-
-		// mask/filter preserved in alpha channel
-
-		for (u32 i = 0; i < length; i++)
-		{
-			d[i] = s[i] == (u8)FilterKey::Primary ? on : off;
-		}
-
-		return true;
-	}
-
-
-	inline void mask_update(ImageView const& dst, p32 color)
-	{
-		constexpr auto off = img::to_pixel(0, 0, 0, 0);
-
-		auto length = dst.width * dst.height;
-		auto d = dst.matrix_data_;
-
-		p32 p;
-
-		for (u32 i = 0; i < length; i++)
-		{
-			p = d[i];
-			d[i] = p.alpha == (u8)FilterKey::Primary ? color : off;
-		}
-	}
-
-
-	inline bool filter_convert(FilterImage1C const& src, ImageView const& dst)
-	{
 		if (src.width != dst.width || src.height != dst.height)
 		{
 			return false;
@@ -489,14 +325,14 @@ namespace bin_table
 		constexpr auto white = img::to_pixel(255);
 
 		auto length = src.width * src.height;
-		auto s = src.data;
+		auto s = src.data_;
 		auto d = dst.matrix_data_;
-
-		// mask/filter preserved in alpha channel
 
 		for (u32 i = 0; i < length; i++)
 		{
 			d[i] = white;
+
+			// filter preserved in alpha channel
 			d[i].alpha = s[i];
 		}
 
@@ -504,7 +340,47 @@ namespace bin_table
 	}
 
 
-	inline void filter_update(ImageView const& dst, p32 primary, p32 secondary)
+	inline bool alpha_filter_convert(AlphaFilterImage const& filter, ImageView const& dst, p32 primary)
+	{
+		auto& src = filter.gray;
+		
+		if (src.width != dst.width || src.height != dst.height)
+		{
+			return false;
+		}
+
+		constexpr auto off = img::to_pixel(0, 0, 0, 0);
+		primary.alpha = 255; // no transparency allowed
+
+		auto length = src.width * src.height;
+		auto s = src.data_;
+		auto d = dst.matrix_data_;
+
+		u8 alpha = 0;
+
+		for (u32 i = 0; i < length; i++)
+		{
+			alpha = s[i];
+			switch ((AlphaFilter)alpha)
+			{
+            case AlphaFilter::Primary:
+                d[i] = primary;
+                break;
+
+            default:
+				d[i] = off;
+                break;
+			}
+
+			// filter preserved in alpha channel
+			d[i].alpha = alpha;
+		}
+
+		return true;
+	}
+
+
+	inline void alpha_filter_update(ImageView const& dst, p32 primary, p32 secondary)
 	{
 		constexpr auto off = img::to_pixel(0, 0, 0, 0);
 
@@ -524,21 +400,21 @@ namespace bin_table
 		for (u32 i = 0; i < length; i++)
 		{
 			p = d[i];
-			switch ((FilterKey)p.alpha)
+			switch ((AlphaFilter)p.alpha)
 			{
-			case FilterKey::Transparent:
+			case AlphaFilter::Transparent:
                 d[i] = off;
                 break;
 
-            case FilterKey::Secondary:
+            case AlphaFilter::Secondary:
                 d[i] = secondary;
                 break;
 
-            case FilterKey::Blend:
+            case AlphaFilter::Blend:
                 d[i] = blend;
                 break;
 
-            case FilterKey::Primary:
+            case AlphaFilter::Primary:
                 d[i] = primary;
                 break;
 
@@ -551,20 +427,23 @@ namespace bin_table
 	}
 
 
-	inline bool color_table_convert(TableImage1C const& src, ColorTable4C const& table, ImageView const& dst)
+	inline bool color_table_convert(TableFilterImage const& filter, ColorTableImage const& table, ImageView const& dst)
 	{
+		auto& src = filter.gray;
+
 		if (src.width != dst.width || src.height != dst.height)
 		{
 			return false;
 		}
 
 		auto length = src.width * src.height;
-		auto s = src.data;
+		auto s = src.data_;
 		auto d = dst.matrix_data_;
+		auto t = table.rgba.data_;
 
 		for (u32 i = 0; i < length; i++)
 		{
-			d[i] = table.data[s[i]];
+			d[i] = t[s[i]];
 		}
 
 		return true;
