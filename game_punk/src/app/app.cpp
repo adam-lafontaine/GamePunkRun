@@ -582,8 +582,6 @@ namespace game_punk
     static void reset(DebugContext& dbg)
     {
         dbg.layers.all = 0xFF;
-        dbg.layers.hud = 0;
-        //dbg.layers.ui = 0;
     }
 
 

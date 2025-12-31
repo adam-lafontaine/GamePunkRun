@@ -1,5 +1,6 @@
 #pragma once
 
+
 /* sky animation */
 
 namespace game_punk
@@ -247,15 +248,15 @@ namespace game_punk
         auto SC = an.select_asset_ids.capacity;
 
         an.work_asset_ids.cursor.reset();
-        u32 i = 0;
-        for (; i < WC; i++)
+        
+        for (u32 i = 0; i < WC; i++)
         {
             an.work_asset_ids.data[i] = i;
         }
 
-        for (; i < SC; i++)
+        for (u32 i = 0; i < SC; i++)
         {
-            an.select_asset_ids.data[i - WC] = i;
+            an.select_asset_ids.data[i] = i + WC;
         }
     }
 
@@ -308,13 +309,12 @@ namespace game_punk
             auto& work_id = an.work_asset_ids.front();
             an.select_asset_ids.set(work_id);
             work_id = bg_id;
+            an.work_asset_ids.next();
 
             // signal load
             an.load_cmd.is_active = 1;
             an.load_cmd.ctx.item_id = bg_id.value_;
             an.load_cmd.ctx.dst = to_image_view(an.background_data[data_2]);
-            
-            an.work_asset_ids.next();
         }
 
         return bp;

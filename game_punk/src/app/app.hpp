@@ -76,15 +76,7 @@ namespace game_punk
         {
             b8 all = 0xFF;
 
-            struct
-            {
-                b8 ui : 1;
-                b8 hud : 1;
-                b8 sky : 1;
-                b8 bg1 : 1;
-                b8 bg2 : 1;
-                b8 sprite : 1;
-            };
+            
         } layers;
         
     };
