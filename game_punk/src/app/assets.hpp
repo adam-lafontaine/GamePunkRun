@@ -13,7 +13,7 @@ namespace assets
     using ImageInfo = bt::AssetInfo_Image;
 
 
-    constexpr f32 SKY_OVERLAY_ALPHA = 0.22f;
+    constexpr f32 SKY_OVERLAY_ALPHA = 0.3f;
     constexpr f32 SKY_BASE_ALPHA = 1.0f - SKY_OVERLAY_ALPHA;
 
 }
@@ -235,7 +235,8 @@ namespace assets
 
         auto table = list.read_table(buffer);
         auto color = table.at(color_id);
-        
+
+        bg.select_asset_ids.size = BG_DEF::count - bg.work_asset_ids.count;        
         bg.load_cmd.on_load = load_background_image<BG_DEF>;
         bg.load_cmd.ctx.color = color;
 

@@ -71,10 +71,6 @@ namespace game_punk
     };
 
 
-    using FnUpdate = void (*)(StateData& data, InputCommand const& cmd);
-
-
-
     class StateData
     {
     public:
@@ -83,7 +79,6 @@ namespace game_punk
         static constexpr u32 game_height = cxpr::GAME_BACKGROUND_HEIGHT_PX;
 
         GameMode game_mode;
-        FnUpdate fn_update;
 
         BackgroundState background;
         SpritesheetState spritesheet;
@@ -161,7 +156,9 @@ namespace game_punk
         count_spritesheet_state(data.spritesheet, counts);
         count_tile_state(data.tiles, counts);
         count_ui_state(data.ui, counts);
-        count_draw(data.drawq, counts, 50);
+        count_queue(data.drawq, counts, 50);
+        count_queue(data.loadq, counts, 10);
+        count_random(data.rng, counts);
         
         data.memory = create_memory(counts);
         if (!data.memory.ok)
@@ -175,7 +172,9 @@ namespace game_punk
         ok &= create_spritesheet_state(data.spritesheet, data.memory);
         ok &= create_tile_state(data.tiles, data.memory);
         ok &= create_ui_state(data.ui, data.memory);
-        ok &= create_draw(data.drawq, data.memory);
+        ok &= create_queue(data.drawq, data.memory);
+        ok &= create_queue(data.loadq, data.memory);
+        ok &= create_random(data.rng, data.memory);
 
         ok &= verify_allocated(data.memory);
 

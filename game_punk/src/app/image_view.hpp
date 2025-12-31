@@ -1,6 +1,212 @@
 #pragma once
 
 
+/* orientation context */
+
+namespace game_punk
+{
+    enum class DimCtx
+    {
+        Proc,
+        Game
+    };
+    
+    
+    class ContextDims
+    {
+    public:
+        union
+        {
+            struct { u32 width; u32 height; } proc;
+
+            struct { u32 height; u32 width; } game;
+
+            u64 any = 0;
+        };
+
+        constexpr ContextDims(u32 w, u32 h, DimCtx ctx)
+        {
+            if (ctx == DimCtx::Proc)
+            {
+                proc.width = w;
+                proc.height = h;
+            }
+            else
+            {
+                game.width = w;
+                game.height = h;
+            }
+        }
+
+
+        ContextDims() { any = 0; }
+    };
+
+
+    template <typename T>
+    class ContextVec2D
+    {
+    public:
+        union
+        {
+            Vec2D<T> proc;
+
+            struct { T y; T x; } game;
+        };
+
+
+        ContextVec2D() { proc.x = 0; proc.y = 0; }
+
+
+        ContextVec2D(T x, T y, DimCtx ctx)
+        {
+            if (ctx == DimCtx::Proc)
+            {
+                proc.x = x;
+                proc.y = y;
+            }
+            else
+            {
+                game.x = x;
+                game.y = y;
+            }
+        }
+
+
+        ContextVec2D(Vec2D<T> const& vec, DimCtx ctx)
+        {
+            ContextVec2D(vec.x, vec.y, ctx);
+        }
+    };
+
+
+    class GamePosition
+    {
+    public:
+        union
+        {
+            Point2Du64 proc;
+
+            struct { u64 y; u64 x; } game;
+        };
+
+
+        GamePosition(u64 x, u64 y, DimCtx ctx) 
+        {
+            if (ctx == DimCtx::Proc)
+            {
+                proc.x = x;
+                proc.y = y;
+            }
+            else
+            {
+                game.x = x;
+                game.y = y;
+            }
+        }
+
+
+        static GamePosition zero() { return GamePosition(0, 0, DimCtx::Proc); }
+    };
+
+
+    class BackgroundPosition
+    {
+    public:    
+        union
+        {
+            Point2Di32 proc;
+
+            struct { i32 y; i32 x; } game;
+        };
+
+
+        BackgroundPosition(i32 x, i32 y, DimCtx ctx)
+        {
+            if (ctx == DimCtx::Proc)
+            {
+                proc.x = x;
+                proc.y = y;
+            }
+            else
+            {
+                game.x = x;
+                game.y = y;
+            }
+        }
+    };
+
+
+    class ScreenPosition
+    {
+    public:
+        union
+        {
+            Point2Di32 proc;
+
+            struct { i32 y; i32 x; } game;
+        };
+
+
+        ScreenPosition(i32 x, i32 y, DimCtx ctx)
+        {
+            if (ctx == DimCtx::Proc)
+            {
+                proc.x = x;
+                proc.y = y;
+            }
+            else
+            {
+                game.x = x;
+                game.y = y;
+            }
+        }
+    };    
+
+
+    Point2Di32 delta_pos_px(BackgroundPosition a, BackgroundPosition b)
+    {
+        Point2Di32 p;
+        p.x = a.proc.x - b.proc.x;
+        p.y = a.proc.y - b.proc.y;
+
+        return p;
+    }
+
+
+    class ContextRect
+    {
+    public:
+        union
+        {
+            struct { u32 x_begin; u32 x_end; u32 y_begin; u32 y_end; } proc;
+
+            struct { u32 y_begin; u32 y_end; u32 x_begin; u32 x_end; } game;
+        };
+    };
+
+
+    static ContextRect make_rect(ContextDims dims)
+    {
+        ContextRect rect;
+
+        rect.proc.x_begin = 0;
+        rect.proc.y_begin = 0;
+        rect.proc.x_end = dims.proc.width;
+        rect.proc.y_end = dims.proc.height;
+
+        return rect;
+    }
+
+
+    constexpr auto BACKGROUND_DIMS = ContextDims(cxpr::GAME_BACKGROUND_WIDTH_PX, cxpr::GAME_BACKGROUND_HEIGHT_PX, DimCtx::Game);
+
+    constexpr auto CAMERA_DIMS = ContextDims(cxpr::GAME_CAMERA_WIDTH_PX, cxpr::GAME_CAMERA_HEIGHT_PX, DimCtx::Game);
+
+
+}
+
+
 /* sprite view */
 
 namespace game_punk

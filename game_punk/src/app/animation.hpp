@@ -243,15 +243,14 @@ namespace game_punk
 
         an.speed_shift = 0;
 
-        auto WC = an.work_asset_ids.count;
-        auto SC = an.select_asset_ids.capacity;
+        constexpr auto WC = an.work_asset_ids.count;
+        constexpr auto SC = an.select_asset_ids.capacity;
 
         an.work_asset_ids.cursor.reset();
         u32 i = 0;
         for (; i < WC; i++)
         {
-            an.work_asset_ids.front() = i;
-            an.work_asset_ids.next();
+            an.work_asset_ids.data[i] = i;
         }
 
         for (; i < SC; i++)

@@ -84,6 +84,7 @@ namespace cxpr
 
 }
 
+
 /* helpers */
 
 namespace game_punk
@@ -237,11 +238,39 @@ namespace game_punk
     class LoadAssetQueue
     {
     public:
-        static constexpr u32 capacity = 10;
+        u32 capacity = 0;
         u32 size = 0;
 
-        LoadAssetCommand commands[10];
+        LoadAssetCommand* commands;
     };
+
+
+    void count_queue(LoadAssetQueue& q, MemoryCounts& counts, u32 capacity)
+    {
+        q.capacity = capacity;
+        add_count<LoadAssetCommand>(counts, capacity);
+    }
+
+
+    bool create_queue(LoadAssetQueue& q, Memory& mem)
+    {      
+        if (!q.capacity)
+        {
+            app_assert("LoadAssetQueue not initialized" && false);
+            return false;
+        }
+
+        auto res = push_mem<LoadAssetCommand>(mem, q.capacity);
+
+        auto ok = res.ok;
+
+        if (ok)
+        {
+            q.commands = res.data;
+        }
+
+        return ok;
+    }
 
 
     static void push_load(LoadAssetQueue& q, LoadAssetCommand cmd)
@@ -320,12 +349,31 @@ namespace game_punk
     public:
         static constexpr u32 capacity = 256;
 
-        f32 values[capacity];
+        f32* values;
 
         u8 b_cursor = 0;
         u8 r_cursor = 0;
 
     };
+
+
+    static void count_random(Randomf32& rng, MemoryCounts& counts)
+    {
+        add_count<f32>(counts, rng.capacity);
+    }
+
+
+    static bool create_random(Randomf32& rng, Memory& memory)
+    {
+        auto res = push_mem<f32>(memory, rng.capacity);
+
+        if (res.ok)
+        {
+            rng.values = res.data;
+        }
+
+        return res.ok;
+    }
 
 
     static void reset_random(Randomf32& rng)
@@ -362,28 +410,6 @@ namespace game_punk
 
         return min + (u32)delta;
     }
-
-
-    /*class PickRandom
-    {
-    public:
-        u8 excluded[4] = { 0, 1, 2, 3 };
-        u8 included[10 - 4] = { 4, 5, 6, 7, 8, 9 };
-
-        u32 exc = 0;
-
-        u8 pick(Randomf32& rng)
-        {
-            auto inc = next_random_u32(rng, 0, 5);
-            auto val = included[inc];
-
-            included[inc] = excluded[exc];
-            excluded[exc] = val;
-            exc = (exc + 1) & (4 - 1);
-
-            return val;
-        }
-    };*/
 }
 
 
@@ -489,14 +515,13 @@ namespace game_punk
         uT value_ = 0;
 
 
-        constexpr uN2()
-        {
+        void reset() 
+        { 
             static_assert(math::cxpr::is_unsigned<uT>());
             static_assert(math::cxpr::is_power_of_2(N));
+
+            value_ = 0; 
         }
-
-
-        void reset() { value_ = 0; }
 
 
         uN2& operator ++ () { value_ = n2_add(value_, 1); return *this; }
@@ -531,221 +556,24 @@ namespace game_punk
     public:
         static constexpr u32 capacity = COUNT;
 
+        u32 size = 0;
+
         T data[COUNT];
 
         u32 id = 0;
 
-        T& get(Randomf32& rng) { id = next_random_u32(rng, 0, capacity - 1); return data[id]; }
+        T& get(Randomf32& rng) 
+        { 
+            app_assert(size > 0 && "*** size not set ***");
+            app_assert(size <= capacity && "*** size too large ***");
+            id = next_random_u32(rng, 0, size - 1); 
+            return data[id]; 
+        }
 
         void set(T value) { data[id] = value; }
     };
 }
 
-
-/* orientation context */
-
-namespace game_punk
-{
-    enum class DimCtx
-    {
-        Proc,
-        Game
-    };
-    
-    
-    class ContextDims
-    {
-    public:
-        union
-        {
-            struct { u32 width; u32 height; } proc;
-
-            struct { u32 height; u32 width; } game;
-
-            u64 any = 0;
-        };
-
-        constexpr ContextDims(u32 w, u32 h, DimCtx ctx)
-        {
-            if (ctx == DimCtx::Proc)
-            {
-                proc.width = w;
-                proc.height = h;
-            }
-            else
-            {
-                game.width = w;
-                game.height = h;
-            }
-        }
-
-
-        ContextDims() { any = 0; }
-    };
-
-
-    template <typename T>
-    class ContextVec2D
-    {
-    public:
-        union
-        {
-            Vec2D<T> proc;
-
-            struct { T y; T x; } game;
-        };
-
-
-        ContextVec2D() { proc.x = 0; proc.y = 0; }
-
-
-        ContextVec2D(T x, T y, DimCtx ctx)
-        {
-            if (ctx == DimCtx::Proc)
-            {
-                proc.x = x;
-                proc.y = y;
-            }
-            else
-            {
-                game.x = x;
-                game.y = y;
-            }
-        }
-
-
-        ContextVec2D(Vec2D<T> const& vec, DimCtx ctx)
-        {
-            ContextVec2D(vec.x, vec.y, ctx);
-        }
-    };
-
-
-    class GamePosition
-    {
-    public:
-        union
-        {
-            Point2Du64 proc;
-
-            struct { u64 y; u64 x; } game;
-        };
-
-
-        GamePosition(u64 x, u64 y, DimCtx ctx) 
-        {
-            if (ctx == DimCtx::Proc)
-            {
-                proc.x = x;
-                proc.y = y;
-            }
-            else
-            {
-                game.x = x;
-                game.y = y;
-            }
-        }
-
-
-        static GamePosition zero() { return GamePosition(0, 0, DimCtx::Proc); }
-    };
-
-
-    class BackgroundPosition
-    {
-    public:    
-        union
-        {
-            Point2Di32 proc;
-
-            struct { i32 y; i32 x; } game;
-        };
-
-
-        BackgroundPosition(i32 x, i32 y, DimCtx ctx)
-        {
-            if (ctx == DimCtx::Proc)
-            {
-                proc.x = x;
-                proc.y = y;
-            }
-            else
-            {
-                game.x = x;
-                game.y = y;
-            }
-        }
-    };
-
-
-    class ScreenPosition
-    {
-    public:
-        union
-        {
-            Point2Di32 proc;
-
-            struct { i32 y; i32 x; } game;
-        };
-
-
-        ScreenPosition(i32 x, i32 y, DimCtx ctx)
-        {
-            if (ctx == DimCtx::Proc)
-            {
-                proc.x = x;
-                proc.y = y;
-            }
-            else
-            {
-                game.x = x;
-                game.y = y;
-            }
-        }
-    };    
-
-
-    Point2Di32 delta_pos_px(BackgroundPosition a, BackgroundPosition b)
-    {
-        Point2Di32 p;
-        p.x = a.proc.x - b.proc.x;
-        p.y = a.proc.y - b.proc.y;
-
-        return p;
-    }
-
-
-    class ContextRect
-    {
-    public:
-        union
-        {
-            struct { u32 x_begin; u32 x_end; u32 y_begin; u32 y_end; } proc;
-
-            struct { u32 y_begin; u32 y_end; u32 x_begin; u32 x_end; } game;
-        };
-    };
-
-
-    static ContextRect make_rect(ContextDims dims)
-    {
-        ContextRect rect;
-
-        rect.proc.x_begin = 0;
-        rect.proc.y_begin = 0;
-        rect.proc.x_end = dims.proc.width;
-        rect.proc.y_end = dims.proc.height;
-
-        return rect;
-    }
-
-
-    constexpr auto BACKGROUND_DIMS = ContextDims(cxpr::GAME_BACKGROUND_WIDTH_PX, cxpr::GAME_BACKGROUND_HEIGHT_PX, DimCtx::Game);
-
-    constexpr auto CAMERA_DIMS = ContextDims(cxpr::GAME_CAMERA_WIDTH_PX, cxpr::GAME_CAMERA_HEIGHT_PX, DimCtx::Game);
-
-
-}
 
 
 #include "image_view.hpp"
@@ -1166,14 +994,14 @@ namespace game_punk
     };
 
 
-    void count_draw(DrawQueue& dq, MemoryCounts& counts, u32 capacity)
+    void count_queue(DrawQueue& dq, MemoryCounts& counts, u32 capacity)
     {
         dq.capacity = capacity;
         add_count<SubView>(counts, 2 * capacity);
     }
 
 
-    bool create_draw(DrawQueue& dq, Memory& mem)
+    bool create_queue(DrawQueue& dq, Memory& mem)
     {      
         if (!dq.capacity)
         {
