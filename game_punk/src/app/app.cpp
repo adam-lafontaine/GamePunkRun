@@ -57,6 +57,10 @@ namespace game_punk
 
 #include "memory.hpp"
 #include "app_types.hpp"
+#include "image_view.hpp"
+#include "animation.hpp"
+#include "draw.hpp"
+#include "app_state.hpp"
 
 
 /* state */

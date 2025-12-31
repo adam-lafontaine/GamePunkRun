@@ -243,8 +243,8 @@ namespace game_punk
 
         an.speed_shift = 0;
 
-        constexpr auto WC = an.work_asset_ids.count;
-        constexpr auto SC = an.select_asset_ids.capacity;
+        auto WC = an.work_asset_ids.count;
+        auto SC = an.select_asset_ids.capacity;
 
         an.work_asset_ids.cursor.reset();
         u32 i = 0;

@@ -180,166 +180,6 @@ namespace game_punk
 }
 
 
-/* asset data */
-
-namespace game_punk
-{
-    enum class AssetStatus : u8
-    {
-        None = 0,
-        Loading,
-        Success,
-
-        FailLoad,
-        FailRead
-    };
-
-
-    class AssetData
-    {
-    public:
-        AssetStatus status = AssetStatus::None;
-
-        cstr bin_file_path = 0;
-
-        MemoryBuffer<u8> bytes;
-    };
-
-
-    static void destroy_asset_data(AssetData& gd)
-    {
-        mb::destroy_buffer(gd.bytes);
-    }
-
-
-    class LoadContext
-    {
-    public:
-        ImageView dst;
-        p32 color = COLOR_BLACK;
-        u32 item_id = 0;
-    };
-    
-    
-    using OnAssetLoad = void (*)(Buffer8 const&, LoadContext const&);
-
-    
-    class LoadAssetCommand
-    {
-    public:
-        b8 is_active = 0;
-
-        LoadContext ctx;
-
-        OnAssetLoad on_load;
-    };
-    
-    
-    class LoadAssetQueue
-    {
-    public:
-        u32 capacity = 0;
-        u32 size = 0;
-
-        LoadAssetCommand* commands;
-    };
-
-
-    void count_queue(LoadAssetQueue& q, MemoryCounts& counts, u32 capacity)
-    {
-        q.capacity = capacity;
-        add_count<LoadAssetCommand>(counts, capacity);
-    }
-
-
-    bool create_queue(LoadAssetQueue& q, Memory& mem)
-    {      
-        if (!q.capacity)
-        {
-            app_assert("LoadAssetQueue not initialized" && false);
-            return false;
-        }
-
-        auto res = push_mem<LoadAssetCommand>(mem, q.capacity);
-
-        auto ok = res.ok;
-
-        if (ok)
-        {
-            q.commands = res.data;
-        }
-
-        return ok;
-    }
-
-
-    static void push_load(LoadAssetQueue& q, LoadAssetCommand cmd)
-    {
-        auto i = q.size;
-
-        if (i < q.capacity && cmd.is_active)
-        {
-            q.commands[i] = cmd;
-            q.size++;
-        }        
-    }
-
-
-    static void load_all(AssetData const& src, LoadAssetQueue& q)
-    {
-        for (u32 i = 0; i < q.size; i++)
-        {
-            auto& cmd = q.commands[i];            
-            cmd.on_load(src.bytes, cmd.ctx);
-        }
-
-        q.size = 0;
-    }
-
-
-    template <class LIST>
-    static void load_background_image(Buffer8 const& buffer, LoadContext const& ctx)
-    {
-        constexpr LIST list;
-
-        auto item = static_cast<LIST::Items>(ctx.item_id);
-        auto filter = list.read_alpha_filter_item(buffer, item);
-        bt::alpha_filter_convert(filter, ctx.dst, ctx.color);
-        filter.destroy();
-    }
-
-
-    template <class LIST>
-    static void load_spritesheet_image(Buffer8 const& buffer, LoadContext const& ctx)
-    {
-        constexpr LIST list;
-
-        auto table = list.read_table(buffer);
-        auto item = static_cast<LIST::Items>(ctx.item_id);
-        auto filter = list.read_table_filter_item(buffer, item);
-        bt::color_table_convert(filter, table, ctx.dst);
-
-        table.destroy();
-        filter.destroy();
-    }
-
-
-    template <class LIST>
-    static void load_tile_image(Buffer8 const& buffer, LoadContext const& ctx)
-    {
-        constexpr LIST list;
-
-        auto table = list.read_table(buffer);
-        auto item = static_cast<LIST::Items>(ctx.item_id);
-        auto filter = list.read_table_filter_item(buffer, item);
-        bt::color_table_convert(filter, table, ctx.dst);
-
-        table.destroy();
-        filter.destroy();
-    }
-}
-
-
 /* random */
 
 namespace game_punk
@@ -575,319 +415,209 @@ namespace game_punk
 }
 
 
-
-#include "image_view.hpp"
-#include "animation.hpp"
-
-
-/* background images */
+/* orientation context */
 
 namespace game_punk
 {
-    class BackgroundState
+    enum class DimCtx
     {
-    public:
-
-        SkyAnimation sky;
-
-        BackgroundAnimation bg_1;
-        BackgroundAnimation bg_2;
+        Proc,
+        Game
     };
-
-
-    static void reset_background_state(BackgroundState& bg)
-    {   
-        reset_sky_animation(bg.sky);
-
-        reset_background_animation(bg.bg_1);
-        reset_background_animation(bg.bg_2);
-        bg.bg_2.speed_shift = 1;
-    }
-
-
-    static void count_background_state(BackgroundState& bg, MemoryCounts& counts)
-    {  
-        count_sky_animation(bg.sky, counts);
-        
-        count_background_animation(bg.bg_1, counts);
-        count_background_animation(bg.bg_2, counts);
-    }
-
-
-    static bool create_background_state(BackgroundState& bg_state, Memory& memory)
-    {
-        bool ok = true;
-
-        ok &= create_sky_animation(bg_state.sky, memory);
-
-        ok &= create_background_animation(bg_state.bg_1, memory);
-        ok &= create_background_animation(bg_state.bg_2, memory);
-
-        return ok;
-    }
-
-
-}
-
-
-/* spritesheet state */
-
-namespace game_punk
-{
-    class SpritesheetState
-    {
-    public:        
-
-        SpritesheetView punk_run;
-        SpritesheetView punk_idle;
-    };
-
-
-    static void count_spritesheet_state(SpritesheetState& ss_state, MemoryCounts& counts)
-    {
-        using Punk = bt::Spriteset_Punk;
-
-        constexpr Punk list;
-        constexpr auto run = Punk::Items::Punk_run;
-        constexpr auto idle = Punk::Items::Punk_idle;
-
-        count_view(ss_state.punk_run, counts, bt::item_at(list, run));
-        count_view(ss_state.punk_idle, counts, bt::item_at(list, idle));
-    }
-
-
-    static bool create_spritesheet_state(SpritesheetState& ss_state, Memory& memory)
-    {
-        bool ok = true;
-
-        ok &= create_view(ss_state.punk_run, memory);
-        ok &= create_view(ss_state.punk_idle, memory);
-
-        return ok;
-    }
-}
-
-
-/* tile state */
-
-namespace game_punk
-{
-    class TileState
-    {
-    public:
-        TileView floor_a;
-        TileView floor_b;
-    };
-
-
-    static void count_tile_state(TileState& tiles, MemoryCounts& counts)
-    {
-        using Ex = bt::Tileset_ex_zone;
-
-        constexpr Ex list;
-        constexpr auto f2 = Ex::Items::floor_02;
-        constexpr auto f3 = Ex::Items::floor_03;
-
-        count_view(tiles.floor_a, counts, bt::item_at(list, f2));
-        count_view(tiles.floor_b, counts, bt::item_at(list, f3));
-    }
-
-
-    static bool create_tile_state(TileState& tiles, Memory& memory)
-    {
-        bool ok = true;
-
-        ok &= create_view(tiles.floor_a, memory);
-        ok &= create_view(tiles.floor_b, memory);
-
-        return ok;
-    }
-}
-
-
-/* ui state */
-
-namespace game_punk
-{
-    class UIState
-    {
-    public:
     
-        static constexpr u32 CTS = cxpr::color_table_size<bt::UIset_Font>();
-
-        struct
-        {
-            ImageView title;            
-            
-            SpritesheetView font; // FontView
-            SpritesheetView icons; // IconView
-
-            p32 colors[CTS];
-        } data;
-
-        MemoryStack<p32> pixels;
-
-        u8 font_color_id;
-
-        struct 
-        {
-            b8 is_on;
-            GameTick64 end_tick;
-
-        } temp_icon;        
-    };
-
-
-    static void count_ui_state(UIState& ui, MemoryCounts& counts)
+    
+    class ContextDims
     {
-        using Title = bt::UIset_Title;
-        using Font = bt::UIset_Font;
-        using Icons = bt::UIset_Icons;
-
-        constexpr Title title;
-        auto t_info = bt::item_at(title, Title::Items::title_main);
-        count_view(ui.data.title, counts, t_info.width, t_info.height);        
-        
-        constexpr Font font;
-        u32 n_chars = 10 + 26 * 2; // 0-9, A-Z x 2
-        count_view(ui.data.font, counts, bt::item_at(font, Font::Items::font), n_chars);
-
-        constexpr Icons icons;
-        count_view(ui.data.icons, counts, bt::item_at(icons, Icons::Items::icons));
-
-        auto length = cxpr::GAME_CAMERA_WIDTH_PX * cxpr::GAME_CAMERA_HEIGHT_PX;
-        count_stack(ui.pixels, counts, length);
-    }
-
-
-    static bool create_ui_state(UIState& ui, Memory& memory)
-    {
-        bool ok = true;
-
-        ok &= create_view(ui.data.title, memory);
-        ok &= create_view(ui.data.font, memory);
-        ok &= create_view(ui.data.icons, memory);
-        ok &= create_stack(ui.pixels, memory);
-
-        return ok;
-    }
-
-
-    static void reset_ui_state(UIState& ui)
-    {
-        ui.temp_icon.is_on = 0;
-        ui.temp_icon.end_tick = GameTick64::make(1);
-    }
-
-
-    static void begin_ui_frame(UIState& ui)
-    {
-        reset_stack(ui.pixels);
-        span::fill(to_span(ui.pixels), COLOR_TRANSPARENT);
-    }
-
-
-    static bool set_ui_color(UIState& ui, u8 color_id)
-    {
-        bool ok = color_id < ui.CTS;
-        app_assert(ok && "*** Invalid color id ***");
-
-        /*auto color = ui.data.colors[color_id];
-        bt::filter_update(to_image_view(ui.data.font), color, COLOR_TRANSPARENT);
-
-        // temp icon color
-        bt::filter_update(to_image_view(ui.data.icons), color, COLOR_BLACK);
-        ui.font_color_id = color_id;*/
-
-        return ok;
-    }
-
-
-    static SpriteView get_ui_alpha_num(UIState& ui, u32 set_id, char c)
-    {
-        auto& font = ui.data.font;
-        auto dims = font.bitmap_dims;
-        auto length = dims.proc.width * dims.proc.height;
-
-        auto data = font.data;
-        auto set = (set_id % 2) * 26;
-        int id = 0;
-
-        if ('0' <= c && c <= '9')
+    public:
+        union
         {
-            id = (c - '0');
-            data = font.data + length * id;
-        }
-        else if ('A' <= c && c <= 'Z')
-        {
-            id = 10 + set + (c - 'A');
-            data = font.data + length * id;
-        }
-        else if ('a' <= c && c <= 'z')
-        {
-            id = 10 + set + (c - 'a');
-            data = font.data + length * id;
-        }
-        else
-        {
-            data = 0;
-        }
+            struct { u32 width; u32 height; } proc;
 
-        SpriteView view;
-        view.dims = dims;
-        view.data = data;
+            struct { u32 height; u32 width; } game;
 
-        return view;
-    }
-
-
-    static SpriteView get_ui_icon(UIState& ui, Randomf32& rng, GameTick64 game_tick)
-    {
-        auto& icons = ui.data.icons;
-        auto dims = icons.bitmap_dims;
-        auto width = dims.proc.width;
-        auto height = dims.proc.height;
-        auto length = width * height;
-
-        auto id = 29;
-
-        SpriteView view;
-        view.dims = dims;
-        view.data = push_elements(ui.pixels, length);
-
-        auto dst = to_image_view(view);
-
-        auto do_icon = [&](u8 color_id)
-        {
-            set_ui_color(ui, color_id);
-            auto src = img::make_view(width, height, icons.data); // Frame
-            img::copy_if_alpha(src, dst);
-
-            src.matrix_data_ += id * length; // Icon
-            img::copy_if_alpha(src, dst);
+            u64 any = 0;
         };
 
-        auto& icon = ui.temp_icon;
-
-        if (game_tick >= icon.end_tick)
+        constexpr ContextDims(u32 w, u32 h, DimCtx ctx)
         {
-            icon.is_on = !icon.is_on;
-
-            auto delta = icon.is_on ? TickQty32::random(rng, 3, 40) : TickQty32::random(rng, 2, 10);
-            icon.end_tick = game_tick + delta;
+            if (ctx == DimCtx::Proc)
+            {
+                proc.width = w;
+                proc.height = h;
+            }
+            else
+            {
+                game.width = w;
+                game.height = h;
+            }
         }
 
-        if (icon.is_on)
+
+        ContextDims() { any = 0; }
+    };
+
+
+    template <typename T>
+    class ContextVec2D
+    {
+    public:
+        union
         {
-            do_icon(20);
-        }
-        else
+            Vec2D<T> proc;
+
+            struct { T y; T x; } game;
+        };
+
+
+        ContextVec2D() { proc.x = 0; proc.y = 0; }
+
+
+        ContextVec2D(T x, T y, DimCtx ctx)
         {
-            do_icon(7);
+            if (ctx == DimCtx::Proc)
+            {
+                proc.x = x;
+                proc.y = y;
+            }
+            else
+            {
+                game.x = x;
+                game.y = y;
+            }
         }
 
-        return view;
+
+        ContextVec2D(Vec2D<T> const& vec, DimCtx ctx)
+        {
+            ContextVec2D(vec.x, vec.y, ctx);
+        }
+    };
+
+
+    class GamePosition
+    {
+    public:
+        union
+        {
+            Point2Du64 proc;
+
+            struct { u64 y; u64 x; } game;
+        };
+
+
+        GamePosition(u64 x, u64 y, DimCtx ctx) 
+        {
+            if (ctx == DimCtx::Proc)
+            {
+                proc.x = x;
+                proc.y = y;
+            }
+            else
+            {
+                game.x = x;
+                game.y = y;
+            }
+        }
+
+
+        static GamePosition zero() { return GamePosition(0, 0, DimCtx::Proc); }
+    };
+
+
+    class BackgroundPosition
+    {
+    public:    
+        union
+        {
+            Point2Di32 proc;
+
+            struct { i32 y; i32 x; } game;
+        };
+
+
+        BackgroundPosition(i32 x, i32 y, DimCtx ctx)
+        {
+            if (ctx == DimCtx::Proc)
+            {
+                proc.x = x;
+                proc.y = y;
+            }
+            else
+            {
+                game.x = x;
+                game.y = y;
+            }
+        }
+    };
+
+
+    class ScreenPosition
+    {
+    public:
+        union
+        {
+            Point2Di32 proc;
+
+            struct { i32 y; i32 x; } game;
+        };
+
+
+        ScreenPosition(i32 x, i32 y, DimCtx ctx)
+        {
+            if (ctx == DimCtx::Proc)
+            {
+                proc.x = x;
+                proc.y = y;
+            }
+            else
+            {
+                game.x = x;
+                game.y = y;
+            }
+        }
+    };    
+
+
+    Point2Di32 delta_pos_px(BackgroundPosition a, BackgroundPosition b)
+    {
+        Point2Di32 p;
+        p.x = a.proc.x - b.proc.x;
+        p.y = a.proc.y - b.proc.y;
+
+        return p;
     }
+
+
+    class ContextRect
+    {
+    public:
+        union
+        {
+            struct { u32 x_begin; u32 x_end; u32 y_begin; u32 y_end; } proc;
+
+            struct { u32 y_begin; u32 y_end; u32 x_begin; u32 x_end; } game;
+        };
+    };
+
+
+    static ContextRect make_rect(ContextDims dims)
+    {
+        ContextRect rect;
+
+        rect.proc.x_begin = 0;
+        rect.proc.y_begin = 0;
+        rect.proc.x_end = dims.proc.width;
+        rect.proc.y_end = dims.proc.height;
+
+        return rect;
+    }
+
+
+    constexpr auto BACKGROUND_DIMS = ContextDims(cxpr::GAME_BACKGROUND_WIDTH_PX, cxpr::GAME_BACKGROUND_HEIGHT_PX, DimCtx::Game);
+
+    constexpr auto CAMERA_DIMS = ContextDims(cxpr::GAME_CAMERA_WIDTH_PX, cxpr::GAME_CAMERA_HEIGHT_PX, DimCtx::Game);
+
+
 }
 
 
@@ -978,164 +708,164 @@ namespace game_punk
 }
 
 
-/* draw */
+/* asset data */
 
 namespace game_punk
 {
-    class DrawQueue
+    enum class AssetStatus : u8
     {
-    public:
+        None = 0,
+        Loading,
+        Success,
 
-        u32 capacity = 0;
-        u32 size = 0;
-
-        SubView* src;
-        SubView* dst;
+        FailLoad,
+        FailRead
     };
 
 
-    void count_queue(DrawQueue& dq, MemoryCounts& counts, u32 capacity)
+    class AssetData
     {
-        dq.capacity = capacity;
-        add_count<SubView>(counts, 2 * capacity);
+    public:
+        AssetStatus status = AssetStatus::None;
+
+        cstr bin_file_path = 0;
+
+        MemoryBuffer<u8> bytes;
+    };
+
+
+    static void destroy_asset_data(AssetData& gd)
+    {
+        mb::destroy_buffer(gd.bytes);
     }
 
 
-    bool create_queue(DrawQueue& dq, Memory& mem)
+    class LoadContext
+    {
+    public:
+        ImageView dst;
+        p32 color = COLOR_BLACK;
+        u32 item_id = 0;
+    };
+    
+    
+    using OnAssetLoad = void (*)(Buffer8 const&, LoadContext const&);
+
+    
+    class LoadAssetCommand
+    {
+    public:
+        b8 is_active = 0;
+
+        LoadContext ctx;
+
+        OnAssetLoad on_load;
+    };
+    
+    
+    class LoadAssetQueue
+    {
+    public:
+        u32 capacity = 0;
+        u32 size = 0;
+
+        LoadAssetCommand* commands;
+    };
+
+
+    void count_queue(LoadAssetQueue& q, MemoryCounts& counts, u32 capacity)
+    {
+        q.capacity = capacity;
+        add_count<LoadAssetCommand>(counts, capacity);
+    }
+
+
+    bool create_queue(LoadAssetQueue& q, Memory& mem)
     {      
-        if (!dq.capacity)
+        if (!q.capacity)
         {
-            app_assert("DrawQueue not initialized" && false);
+            app_assert("LoadAssetQueue not initialized" && false);
             return false;
         }
 
-        auto res_src = push_mem<SubView>(mem, dq.capacity);
-        auto res_dst = push_mem<SubView>(mem, dq.capacity);
+        auto res = push_mem<LoadAssetCommand>(mem, q.capacity);
 
-        auto ok = res_src.ok && res_dst.ok;
+        auto ok = res.ok;
 
         if (ok)
         {
-            dq.src = res_src.data;
-            dq.dst = res_dst.data;
+            q.commands = res.data;
         }
 
         return ok;
     }
 
 
-    static void draw(DrawQueue const& dq)
+    static void push_load(LoadAssetQueue& q, LoadAssetCommand cmd)
     {
-        for (u32 i = 0; i < dq.size; i++)
+        auto i = q.size;
+
+        if (i < q.capacity && cmd.is_active)
         {
-            img::copy_if_alpha(dq.src[i], dq.dst[i]);
-        }
+            q.commands[i] = cmd;
+            q.size++;
+        }        
     }
 
 
-    static void reset_draw(DrawQueue& dq)
+    static void load_all(AssetData const& src, LoadAssetQueue& q)
     {
-        dq.size = 0;
-    }
-
-
-    static void push_draw_view(DrawQueue& dq, ImageView const& bmp, ImageView const& out, Point2Di32 out_pos)
-    {
-        if (!bmp.matrix_data_)
+        for (u32 i = 0; i < q.size; i++)
         {
-            return;
+            auto& cmd = q.commands[i];            
+            cmd.on_load(src.bytes, cmd.ctx);
         }
 
-        i32 w = (i32)out.width;
-        i32 h = (i32)out.height;
-        i32 x = out_pos.x;
-        i32 y = out_pos.y;
-
-        Rect2Di32 screen_rect{};
-        screen_rect.x_begin = 0;
-        screen_rect.y_begin = 0;
-        screen_rect.x_end = w;
-        screen_rect.y_end = h;
-
-        Rect2Di32 dst_rect{};
-        dst_rect.x_begin = x;
-        dst_rect.y_begin = y;
-        dst_rect.x_end = x + bmp.width;
-        dst_rect.y_end = y + bmp.height;
-
-        if (!rect_intersect(screen_rect, dst_rect))
-        {
-            return;
-        }
-
-        auto dr = clamp_rect(dst_rect, screen_rect);
-
-        Rect2Du32 sr{};
-        sr.x_begin = (u32)math::max(0 - x, 0);
-        sr.y_begin = (u32)math::max(0 - y, 0);
-        sr.x_end = sr.x_begin + dr.x_end - dr.x_begin;
-        sr.y_end = sr.y_begin + dr.y_end - dr.y_begin;
-
-        auto i = dq.size;
-        dq.size++;
-
-        app_assert(dq.size <= dq.capacity && "Draw capacity");
-
-        dq.src[i] = img::sub_view(bmp, sr);
-        dq.dst[i] = img::sub_view(out, dr);
-    }
-   
-
-    static void push_draw(DrawQueue& dq, BackgroundView const& bg, ScreenCamera const& camera)
-    {
-        auto bmp = to_image_view(bg);
-        auto out = to_image_view(camera);
-
-        BackgroundPosition pos(0, 0, DimCtx::Proc);
-
-        auto p = delta_pos_px(pos, camera.bg_pos);
-
-        push_draw_view(dq, bmp, out, p);
-    }
-    
-    
-    static void push_draw(DrawQueue& dq, SpriteView const& sprite, BackgroundPosition pos, ScreenCamera const& camera)
-    {
-        auto bmp = to_image_view(sprite);
-        auto out = to_image_view(camera);
-        auto p = delta_pos_px(pos, camera.bg_pos);
-
-        push_draw_view(dq, bmp, out, p);
+        q.size = 0;
     }
 
 
-    static void push_draw(DrawQueue& dq, TileView const& tile, BackgroundPosition pos, ScreenCamera const& camera)
+    template <class LIST>
+    static void load_background_image(Buffer8 const& buffer, LoadContext const& ctx)
     {
-        auto bmp = to_image_view(tile);
-        auto out = to_image_view(camera);
-        auto p = delta_pos_px(pos, camera.bg_pos);
+        constexpr LIST list;
 
-        push_draw_view(dq, bmp, out, p);
+        auto item = static_cast<LIST::Items>(ctx.item_id);
+        auto filter = list.read_alpha_filter_item(buffer, item);
+        bt::alpha_filter_convert(filter, ctx.dst, ctx.color);
+        filter.destroy();
+
+        img::fill_row(ctx.dst, 0, img::to_pixel(255, 0, 0));
     }
 
 
-    static void push_draw(DrawQueue& dq, BackgroundPartPair const& pair, ScreenCamera const& camera)
+    template <class LIST>
+    static void load_spritesheet_image(Buffer8 const& buffer, LoadContext const& ctx)
     {
-        auto out = to_image_view(camera);
+        constexpr LIST list;
 
-        auto pos = BackgroundPosition(0, 0, DimCtx::Proc);
-        auto p = delta_pos_px(pos, camera.bg_pos);
-        auto bmp = to_image_view_first(pair);
+        auto table = list.read_table(buffer);
+        auto item = static_cast<LIST::Items>(ctx.item_id);
+        auto filter = list.read_table_filter_item(buffer, item);
+        bt::color_table_convert(filter, table, ctx.dst);
 
-        push_draw_view(dq, bmp, out, p);
+        table.destroy();
+        filter.destroy();
+    }
 
-        pos.proc.y = pair.height1;
-        p = delta_pos_px(pos, camera.bg_pos);
-        bmp = to_image_view_second(pair);
-        if (bmp.height)
-        {
-            push_draw_view(dq, bmp, out, p);
-        }
+
+    template <class LIST>
+    static void load_tile_image(Buffer8 const& buffer, LoadContext const& ctx)
+    {
+        constexpr LIST list;
+
+        auto table = list.read_table(buffer);
+        auto item = static_cast<LIST::Items>(ctx.item_id);
+        auto filter = list.read_table_filter_item(buffer, item);
+        bt::color_table_convert(filter, table, ctx.dst);
+
+        table.destroy();
+        filter.destroy();
     }
 }
 
