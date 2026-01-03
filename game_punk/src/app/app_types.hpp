@@ -713,7 +713,7 @@ namespace game_punk
     }
 
 
-    static void process_sprites(SpriteTable const& table)
+    static void move_sprites(SpriteTable const& table)
     {
         auto beg = table.tick_begin;
         auto end = table.tick_end;
@@ -975,7 +975,7 @@ namespace game_punk
         bt::alpha_filter_convert(filter, ctx.dst, ctx.color);
         filter.destroy();
 
-        img::fill_row(ctx.dst, 0, img::to_pixel(255, 0, 0));
+        //img::fill_row(ctx.dst, 0, img::to_pixel(255, 0, 0));
     }
 
 

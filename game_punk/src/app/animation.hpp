@@ -1,6 +1,14 @@
 #pragma once
 
 
+/* bitmap table */
+
+namespace game_punk
+{
+    
+}
+
+
 /* sky animation */
 
 namespace game_punk

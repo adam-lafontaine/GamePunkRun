@@ -150,4 +150,13 @@ namespace game_punk
             push_draw_view(dq, bmp, out, p);
         }
     }
+
+
+    static void push_draw(DrawQueue& dq, ImageView const& view, ScenePosition pos, SceneCamera const& camera)
+    {
+        auto out = to_image_view(camera);
+        auto p = delta_pos_px(pos, camera.scene_position);
+
+        push_draw_view(dq, view, out, p);
+    }
 }

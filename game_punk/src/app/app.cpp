@@ -71,7 +71,7 @@ namespace game_punk
 
 
     constexpr SpriteID PLAYER_ID = {0}; // ?
-    constexpr u32 PLAYER_SCENE_OFFSET = cxpr::GAME_BACKGROUND_WIDTH_PX / 2;
+    constexpr u32 PLAYER_SCENE_OFFSET = cxpr::GAME_CAMERA_WIDTH_PX / 2 + 10;
     
     
     enum class GameMode : int
@@ -432,7 +432,9 @@ namespace game_punk
         update_game_camera(data, cmd);
         update_text_color(data, cmd);
 
+        move_sprites(data.sprites);
 
+        data.scene.game_position.game.x = data.sprites.position_at(data.sprite_punk).x - PLAYER_SCENE_OFFSET;
 
         draw_background(data);
         //draw_tiles(data);
