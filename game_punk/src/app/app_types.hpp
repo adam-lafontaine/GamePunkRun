@@ -555,15 +555,29 @@ namespace game_punk
                 game.y = y;
             }
         }
+
+
+        ContextPosition(Vec2D<T> pos, DimCtx ctx)
+        {
+            if (ctx == DimCtx::Proc)
+            {
+                proc.x = pos.x;
+                proc.y = pos.y;
+            }
+            else
+            {
+                game.x = pos.x;
+                game.y = pos.y;
+            }
+        }
     };
 
 
-    using GamePosition = ContextPosition<u64>;
+    using GamePosition = ContextPosition<i64>;
     using ScenePosition = ContextPosition<i32>;
 
-
-    template <typename T>
-    Point2Di32 delta_pos_px(ContextPosition<T> a, ContextPosition<T> b)
+    
+    static Point2Di32 delta_pos_px(ScenePosition a, ScenePosition b)
     {
         Point2Di32 p;
         p.x = a.proc.x - b.proc.x;
@@ -590,7 +604,7 @@ namespace game_punk
     class Sprite
     {
     public:
-        Vec2Du64 game_pos;
+        Vec2Di64 game_pos;
         Vec2Di32 velocity_px;
 
         ImageView view;
@@ -605,15 +619,18 @@ namespace game_punk
         u32 capacity = 0;
         u32 first_id = 0;
 
-        b8* is_active = 0;
-
         GameTick64* tick_begin = 0;
         GameTick64* tick_end = 0;
-
-        Vec2Du64* position = 0;
+        
         Vec2Di32* velocity_px = 0;
+        Vec2Di64* position = 0;
 
         //u32* animation_id = 0;
+        
+        GameTick64& tick_begin_at(ID id) { return tick_begin[id.value_]; }
+        GameTick64& tick_end_at(ID id) { return tick_end[id.value_]; }
+        Vec2Di64& position_at(ID id) { return position[id.value_]; }
+        Vec2Di32& velocity_px_at(ID id) { return velocity_px[id.value_]; }
         
     };
 
@@ -621,19 +638,15 @@ namespace game_punk
     static void reset_sprite_table(SpriteTable& table)
     {
         table.first_id = 0;
-
-        auto is_active = span::make_view(table.is_active, table.capacity);
-        span::fill(is_active, (u8)0);
     }
 
 
     static void count_table(SpriteTable& table, MemoryCounts& counts, u32 capacity)
     {
         table.capacity = capacity;
-
-        add_count<b8>(counts, capacity);
+        
         add_count<GameTick64>(counts, 2 * capacity);
-        add_count<Vec2Du64>(counts, capacity);
+        add_count<Vec2Di64>(counts, capacity);
         add_count<Vec2Di32>(counts, capacity);
     }
 
@@ -650,16 +663,13 @@ namespace game_punk
 
         bool ok = true;
 
-        auto is_active = push_mem<b8>(memory, n);
-        ok &= is_active.ok;
-
         auto tick_begin = push_mem<GameTick64>(memory, n);
         ok &= tick_begin.ok;
 
         auto tick_end = push_mem<GameTick64>(memory, n);
         ok &= tick_end.ok;
 
-        auto position = push_mem<Vec2Du64>(memory, n);
+        auto position = push_mem<Vec2Di64>(memory, n);
         ok &= position.ok;
 
         auto velocity = push_mem<Vec2Di32>(memory, n);
@@ -667,7 +677,6 @@ namespace game_punk
 
         if (ok)
         {
-            table.is_active = is_active.data;
             table.tick_begin = tick_begin.data;
             table.tick_end = tick_end.data;
             table.position = position.data;
@@ -680,28 +689,32 @@ namespace game_punk
 
     static SpriteTable::ID spawn_sprite(SpriteTable& table, GameTick64 tick)
     {
+        auto beg = table.tick_begin;
+        auto end = table.tick_end;
+
         SpriteTable::ID id;
 
-        for (u32 i = table.first_id; i < table.capacity; i++)
-        {
-            if (!table.is_active[i])
-            {
-                id.value_ = i;
-                table.first_id = i;
+        u32 i = table.first_id;
+        for (; i < table.capacity && beg[i] < end[i]; i++)
+        { }
 
-                table.is_active[i] = 1;
-                table.tick_begin[i] = tick;
-                break;
-            }
-        }
+        id.value_ = i;
+        table.first_id = i;
+        table.tick_begin[i] = tick;
+        table.tick_end[i] = GameTick64::forever();
 
         return id;
     }
 
 
+    static void despawn_sprite(SpriteTable& table, SpriteTable::ID id)
+    {
+        table.tick_begin_at(id) = GameTick64::none();
+    }
+
+
     static void process_sprites(SpriteTable const& table)
     {
-        auto act = table.is_active;
         auto beg = table.tick_begin;
         auto end = table.tick_end;
         auto pos = table.position;
@@ -709,7 +722,6 @@ namespace game_punk
 
         for (u32 i = 0; i < table.capacity; i++)
         {
-            act[i] &= (end[i] != GameTick64::none()) && (beg[i] < end[i]);
             pos[i].x += vel[i].x;
             pos[i].y += vel[i].y;
         }
@@ -733,6 +745,19 @@ namespace game_punk
     static void reset_game_scene(GameScene& scene)
     {
         scene.game_position = GamePosition(0, 0, DimCtx::Game);
+    }
+
+
+    static ScenePosition delta_pos_scene(GamePosition const& pos, GameScene const& scene)
+    {
+        constexpr u32 dmax = 10 * math::cxpr::max(cxpr::GAME_BACKGROUND_WIDTH_PX, cxpr::GAME_BACKGROUND_HEIGHT_PX);
+        
+        auto dx = pos.proc.x - scene.game_position.proc.x;
+        auto dy = pos.proc.y - scene.game_position.proc.y;
+
+        app_assert(math::abs(dx) < dmax && math::abs(dy) < dmax);
+
+        return ScenePosition((i32)dx, (i32)dy, DimCtx::Proc);        
     }
 }
 

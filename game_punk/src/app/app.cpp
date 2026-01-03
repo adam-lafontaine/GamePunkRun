@@ -68,6 +68,10 @@ namespace game_punk
 namespace game_punk
 {
     using SpriteID = SpriteTable::ID;
+
+
+    constexpr SpriteID PLAYER_ID = {0}; // ?
+    constexpr u32 PLAYER_SCENE_OFFSET = cxpr::GAME_BACKGROUND_WIDTH_PX / 2;
     
     
     enum class GameMode : int
@@ -133,6 +137,15 @@ namespace game_punk
         set_ui_color(data.ui, 20);
 
         reset_sprite_table(data.sprites);
+
+        data.sprite_punk = spawn_sprite(data.sprites, data.game_tick);
+        app_assert(data.sprite_punk.value_ == PLAYER_ID.value_ && "*** Player not first sprite ***");
+
+        constexpr auto tile_h = bt::Tileset_ex_zone().items[0].height;
+
+        auto pos = data.scene.game_position.game;
+        data.sprites.position_at(data.sprite_punk) = { pos.x + PLAYER_SCENE_OFFSET, tile_h };
+        data.sprites.velocity_px_at(data.sprite_punk) = { 1, 0 };
     }
 
 
@@ -327,20 +340,28 @@ namespace game_punk
 
         auto& dq = data.drawq;
         auto& camera = data.camera;
+        auto& sprites = data.sprites;
 
-        // draw sprite
-        auto begin = GameTick64::zero();
-        auto time = data.game_tick - begin;
-        auto frame = get_animation_bitmap(data.punk_animation, time);
-        auto camera_w = CAMERA_DIMS.game.width;
-        auto sprite_w = frame.dims.game.width;
+        auto tick = data.game_tick;
+        auto N = sprites.capacity;
 
-        auto x = 16 + (i32)(camera_w - sprite_w) / 2;        
-        auto y = (i32)tile_h;
+        auto beg = sprites.tick_begin;
+        auto end = sprites.tick_end;
+        auto pos = sprites.position;
 
-        auto pos = ScenePosition(x, y, DimCtx::Game);
+        for (u32 i = 0; i < N; i++)
+        {
+            if (tick >= end[i])
+            {
+                continue;
+            }
 
-        push_draw(dq, frame, pos, camera);
+            auto dps = delta_pos_scene(GamePosition(pos[i], DimCtx::Game), data.scene);
+
+            auto time = tick - beg[i];
+            auto frame = get_animation_bitmap(data.punk_animation, time);
+            push_draw(dq, frame, dps, camera);
+        }
     }
 
 
@@ -411,8 +432,10 @@ namespace game_punk
         update_game_camera(data, cmd);
         update_text_color(data, cmd);
 
+
+
         draw_background(data);
-        draw_tiles(data);
+        //draw_tiles(data);
         draw_sprites(data);
     }
 

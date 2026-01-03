@@ -67,7 +67,7 @@ namespace game_punk
     static void reset_sky_animation(SkyAnimation& sky)
     {
         sky.ov_pos.proc = { 0, 0 };
-        sky.ov_vel = { 2, 1 };
+        sky.ov_vel = { 4, 2 };
 
         bool ok = true;
         ok &= has_data(sky.base);
@@ -307,7 +307,7 @@ namespace game_punk
         if (bp.height2 == 0 && pos != an.load_pos)
         { 
             an.load_pos = pos;
-            
+
             // select next background to load
             auto bg_id = an.select_asset_ids.get(rng);
 
