@@ -67,8 +67,6 @@ namespace game_punk
 
 namespace game_punk
 {
-    using SpriteID = SpriteTable::ID;
-
 
     constexpr SpriteID PLAYER_ID = {0}; // ?
     constexpr u32 PLAYER_SCENE_OFFSET = cxpr::GAME_CAMERA_WIDTH_PX / 2 + 10;
@@ -102,7 +100,11 @@ namespace game_punk
         DrawQueue drawq;
 
         BitmapTable bitmaps;
+        SpriteTable sprites;
+
         SpriteAnimation punk_animation;
+        SpriteID punk_sprite;
+        BitmapID punk_bitmap;
 
         Memory memory;
 
@@ -112,14 +114,6 @@ namespace game_punk
         GameTick64 game_tick;
 
         Randomf32 rng;
-
-        SpriteTable sprites;
-
-        SpriteID sprite_punk;
-
-        
-
-
     };
 
 
@@ -136,22 +130,37 @@ namespace game_punk
 
         reset_ui_state(data.ui);
         set_ui_color(data.ui, 20);
-        
-        reset_sprite_table(data.sprites);
 
-        reset_table(data.bitmaps);
-        data.punk_animation.bitmap_id = data.bitmaps.push();
+        reset_table(data.bitmaps);        
+        reset_sprite_table(data.sprites);        
 
-        data.sprite_punk = spawn_sprite(data.sprites, data.punk_animation.bitmap_id, data.game_tick);
-        app_assert(data.sprite_punk.value_ == PLAYER_ID.value_ && "*** Player not first sprite ***");
+        data.punk_bitmap = data.bitmaps.push();        
 
         constexpr auto tile_h = bt::Tileset_ex_zone().items[0].height;
+        constexpr auto tile_w = bt::Tileset_ex_zone().items[0].width;
 
-        auto pos = data.scene.game_position.game;
-        data.sprites.position_at(data.sprite_punk) = { pos.x + PLAYER_SCENE_OFFSET, tile_h };
-        data.sprites.velocity_px_at(data.sprite_punk) = { 1, 0 };
+        auto pos = data.scene.game_position.pos_game();
+        pos.x += PLAYER_SCENE_OFFSET;
+        pos.y = tile_h;
 
-        
+        auto punk = SpriteDef(data.game_tick, pos, data.punk_bitmap);
+        punk.velocity = { 1, 0 };
+
+        data.punk_sprite = spawn_sprite(data.sprites, punk);
+        app_assert(data.punk_sprite.value_ == PLAYER_ID.value_ && "*** Player not first sprite ***");
+
+        BitmapID tiles[2];
+        tiles[0] = data.bitmaps.push(to_image_view(data.tiles.floor_a));
+        tiles[1] = data.bitmaps.push(to_image_view(data.tiles.floor_b));
+        u32 tile_id = 0;
+        pos = { 0, 0 };
+        for (u32 i = 0; i < 20; i++)
+        {
+            auto tile = SpriteDef(data.game_tick, pos, tiles[tile_id]);
+            spawn_sprite(data.sprites, tile);
+            pos.x += tile_w;
+            tile_id = !tile_id;
+        }
     }
 
 
@@ -301,8 +310,15 @@ namespace game_punk
 
     static void update_animation_bitmaps(StateData& data)
     {
-        auto time = data.game_tick - data.sprites.tick_begin_at(data.sprite_punk);
-        update_animation_bitmap(data.punk_animation, time, data.bitmaps);
+        auto time = data.game_tick - data.sprites.tick_begin_at(data.punk_sprite);
+        auto view = get_animation_bitmap(data.punk_animation, time);
+        data.bitmaps.at(data.punk_bitmap) = to_image_view(view);
+    }
+
+
+    static void update_tiles(StateData& data)
+    {
+
     }
 
 
@@ -450,7 +466,7 @@ namespace game_punk
 
         move_sprites(data.sprites);
 
-        data.scene.game_position.game.x = data.sprites.position_at(data.sprite_punk).x - PLAYER_SCENE_OFFSET;
+        data.scene.game_position.game.x = data.sprites.position_at(data.punk_sprite).x - PLAYER_SCENE_OFFSET;
 
         update_animation_bitmaps(data);
 

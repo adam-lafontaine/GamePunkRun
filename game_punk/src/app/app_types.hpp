@@ -590,6 +590,9 @@ namespace game_punk
                 game.y = pos.y;
             }
         }
+
+
+        Vec2D<T> pos_game() { return { game.x, game.y }; }
     };
 
 
@@ -617,7 +620,7 @@ namespace game_punk
 }
 
 
-/* soa */
+/* sprite table */
 
 namespace game_punk
 {
@@ -652,6 +655,32 @@ namespace game_punk
         Vec2Di64& position_at(ID id) { return position[id.value_]; }
         Vec2Di32& velocity_px_at(ID id) { return velocity_px[id.value_]; }
         
+    };
+
+
+    using SpriteID = SpriteTable::ID;
+
+
+    class SpriteDef
+    {
+    public:
+        GameTick64 tick_begin = GameTick64::none();
+        GameTick64 tick_end = GameTick64::forever();
+        Vec2D<i64> position;
+
+        Vec2D<i32> velocity;
+        BitmapID bitmap_id;
+
+
+        SpriteDef() = delete;
+
+        SpriteDef(GameTick64 begin, Vec2D<i64> pos, BitmapID bmp)
+        {
+            tick_begin = begin;
+            position = pos;
+            bitmap_id = bmp;
+            velocity = {0};
+        }
     };
 
 
@@ -712,12 +741,12 @@ namespace game_punk
     }
 
 
-    static SpriteTable::ID spawn_sprite(SpriteTable& table, BitmapID bmp, GameTick64 tick)
+    static SpriteID spawn_sprite(SpriteTable& table, SpriteDef const& def)
     {
         auto beg = table.tick_begin;
         auto end = table.tick_end;
 
-        SpriteTable::ID id;
+        SpriteID id;
 
         u32 i = table.first_id;
         for (; i < table.capacity && beg[i] < end[i]; i++)
@@ -725,15 +754,17 @@ namespace game_punk
 
         id.value_ = i;
         table.first_id = i;
-        table.tick_begin[i] = tick;
-        table.tick_end[i] = GameTick64::forever();
-        table.bitmap_id[i] = bmp;
+        table.tick_begin[i] = def.tick_begin;
+        table.tick_end[i] = def.tick_end;
+        table.position[i] = def.position;
+        table.velocity_px[i] = def.velocity;
+        table.bitmap_id[i] = def.bitmap_id;
 
         return id;
     }
 
 
-    static void despawn_sprite(SpriteTable& table, SpriteTable::ID id)
+    static void despawn_sprite(SpriteTable& table, SpriteID id)
     {
         table.tick_begin_at(id) = GameTick64::none();
     }

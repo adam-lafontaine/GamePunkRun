@@ -349,9 +349,7 @@ namespace game_punk
 
         p32* spritesheet_data = 0;
 
-        ContextDims bitmap_dims;        
-
-        BitmapID bitmap_id;
+        ContextDims bitmap_dims;
     };
 
 
@@ -402,9 +400,4 @@ namespace game_punk
         return view;
     }
 
-
-    static void update_animation_bitmap(SpriteAnimation const& an, TickQty32 time, BitmapTable& dst)
-    {
-        dst.at(an.bitmap_id) = to_image_view(get_animation_bitmap(an, time));
-    }
 }
