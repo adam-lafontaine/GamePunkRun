@@ -20,6 +20,14 @@ namespace game_punk
 
         return img::make_view(ctx.width, ctx.height, view.data);
     }
+
+
+    static Span32 to_span(GameImageView const& view)
+    {
+        auto length = view.dims.proc.width * view.dims.proc.height;
+
+        return span::make_view(view.data, length);
+    }
     
     
     class SpriteView : public GameImageView {};
@@ -71,20 +79,7 @@ namespace game_punk
     }
 
 
-    static Span32 to_span(TileView const& view)
-    {
-        auto length = view.dims.proc.width * view.dims.proc.height;
-
-        return span::make_view(view.data, length);
-    }
-
-
-    static ImageView to_image_view(TileView const& view)
-    {
-        auto dims = view.dims.proc;
-
-        return img::make_view(dims.width, dims.height, view.data);
-    }
+    
 }
 
 
@@ -226,7 +221,7 @@ namespace game_punk
     }
 
 
-    static SubView sub_view(SkyOverlayView const& view, BackgroundPosition pos)
+    static SubView sub_view(SkyOverlayView const& view, ScenePosition pos)
     {
         return sub_view(view, pos.proc);
     }
@@ -288,7 +283,7 @@ namespace game_punk
 
         if (!view.dims.any || !view.bitmap_dims.any || !view.bitmap_count)
         {
-            app_assert("SpritesheetView not initialized" && false);
+            app_crash("*** SpritesheetView not initialized ***");
             return false;
         }
 

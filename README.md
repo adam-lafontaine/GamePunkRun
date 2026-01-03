@@ -22,7 +22,7 @@ Position is the game tick
 * [x] Moving backgrounds
 * [x] Randomized backgrounds
 * [x] Dynamically load backgrounds
-* [ ] Moving sprites, tiles, background
+* [ ] Moving sprites, tiles
 * [ ] Automate release builds
 * [ ] Release files
 * [ ] Itch.io

@@ -67,6 +67,9 @@ namespace game_punk
 
 namespace game_punk
 {
+    using SpriteID = SpriteTable::ID;
+    
+    
     enum class GameMode : int
     {
         Error,
@@ -89,7 +92,8 @@ namespace game_punk
         TileState tiles;
         UIState ui;
 
-        ScreenCamera camera;
+        GameScene scene;
+        SceneCamera camera;
 
         DrawQueue drawq;
 
@@ -102,9 +106,15 @@ namespace game_punk
 
         GameTick64 game_tick;
 
-        u8 camera_speed_px;
-
         Randomf32 rng;
+
+        SpriteTable sprites;
+
+        SpriteID sprite_punk;
+
+        
+
+
     };
 
 
@@ -113,14 +123,16 @@ namespace game_punk
         data.game_mode = GameMode::Title;
 
         data.game_tick = GameTick64::zero();
-        data.camera_speed_px = 2;
 
         reset_background_state(data.background);
+        reset_game_scene(data.scene);
         reset_screen_camera(data.camera);
         reset_random(data.rng);
 
         reset_ui_state(data.ui);
         set_ui_color(data.ui, 20);
+
+        reset_sprite_table(data.sprites);
     }
 
 
@@ -163,6 +175,7 @@ namespace game_punk
         count_queue(data.drawq, counts, 50);
         count_queue(data.loadq, counts, 10);
         count_random(data.rng, counts);
+        count_table(data.sprites, counts, 50);
         
         data.memory = create_memory(counts);
         if (!data.memory.ok)
@@ -179,6 +192,7 @@ namespace game_punk
         ok &= create_queue(data.drawq, data.memory);
         ok &= create_queue(data.loadq, data.memory);
         ok &= create_random(data.rng, data.memory);
+        ok &= create_table(data.sprites, data.memory);
 
         ok &= verify_allocated(data.memory);
 
@@ -239,8 +253,8 @@ namespace game_punk
     {
         if (cmd.camera.move)
         {
-            auto dx = ((i32)cmd.camera.east - (i32)cmd.camera.west) * data.camera_speed_px;
-            auto dy = ((i32)cmd.camera.north - (i32)cmd.camera.south) * data.camera_speed_px;
+            auto dx = ((i32)cmd.camera.east - (i32)cmd.camera.west) * data.camera.speed_px;
+            auto dy = ((i32)cmd.camera.north - (i32)cmd.camera.south) * data.camera.speed_px;
 
             Vec2Di8 delta_px;
             delta_px.x = (i8)dx;
@@ -271,9 +285,11 @@ namespace game_punk
         auto& camera = data.camera;
         auto& rng = data.rng;
 
+        auto pos = data.scene.game_position.game.x;
+
         auto sky = get_sky_animation(bg.sky, data.game_tick);
-        auto bg1 = get_animation_pair(bg.bg_1, rng, data.game_tick.value_);
-        auto bg2 = get_animation_pair(bg.bg_2, rng, data.game_tick.value_);
+        auto bg1 = get_animation_pair(bg.bg_1, rng, pos);
+        auto bg2 = get_animation_pair(bg.bg_2, rng, pos);
         
         push_draw(dq, sky, camera);
         push_draw(dq, bg1, camera);
@@ -286,7 +302,7 @@ namespace game_punk
         auto& dq = data.drawq;
         auto& camera = data.camera;
 
-        auto pos = BackgroundPosition(0, 0, DimCtx::Game);
+        auto pos = ScenePosition(0, 0, DimCtx::Game);
         auto& gpos = pos.game;
 
         // draw floor tiles
@@ -313,14 +329,16 @@ namespace game_punk
         auto& camera = data.camera;
 
         // draw sprite
-        auto frame = get_animation_bitmap(data.punk_animation, data.game_tick.value_);
+        auto begin = GameTick64::zero();
+        auto time = data.game_tick - begin;
+        auto frame = get_animation_bitmap(data.punk_animation, time);
         auto camera_w = CAMERA_DIMS.game.width;
         auto sprite_w = frame.dims.game.width;
 
         auto x = 16 + (i32)(camera_w - sprite_w) / 2;        
         auto y = (i32)tile_h;
 
-        auto pos = BackgroundPosition(x, y, DimCtx::Game);
+        auto pos = ScenePosition(x, y, DimCtx::Game);
 
         push_draw(dq, frame, pos, camera);
     }

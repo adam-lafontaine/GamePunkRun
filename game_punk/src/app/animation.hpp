@@ -11,7 +11,7 @@ namespace game_punk
         BackgroundView base;
         SkyOverlayView overlay_src;
 
-        BackgroundPosition ov_pos;
+        ScenePosition ov_pos;
         Vec2Di32 ov_vel;
         BackgroundView ov_bg;
 
@@ -222,6 +222,7 @@ namespace game_punk
         };        
         
         u32 speed_shift = 0;
+        u64 load_pos = 0;
 
         BackgroundView background_data[2] = { 0 };
 
@@ -243,6 +244,7 @@ namespace game_punk
         app_assert(ok && "*** BackgroundAnimation not created ***");
 
         an.speed_shift = 0;
+        an.load_pos = 0;
 
         auto WC = an.work_asset_ids.count;
         auto SC = an.select_asset_ids.capacity;
@@ -288,24 +290,28 @@ namespace game_punk
         auto W = BACKGROUND_DIMS.proc.width;
         auto H = BACKGROUND_DIMS.proc.height;
 
-        pos <<= an.speed_shift; // speed
-        pos %= (2 * H);
+        auto p = pos << an.speed_shift; // speed
+        p %= (2 * H);
 
-        u32 data_1 = pos / H;
+        u32 data_1 = p / H;
         u32 data_2 = !data_1;
 
-        pos %= H;
+        p %= H;
         
-        bp.height2 = pos;
+        bp.height2 = p;
         bp.height1 = H - bp.height2;
 
         bp.data1 = an.background_data[data_1].data + bp.height2 * W;
         bp.data2 = an.background_data[data_2].data;
 
-        if (bp.height2 == 0)
+        if (bp.height2 == 0 && pos != an.load_pos)
         { 
+            an.load_pos = pos;
+            
             // select next background to load
             auto bg_id = an.select_asset_ids.get(rng);
+
+            // swap selected id with working id
             auto& work_id = an.work_asset_ids.front();
             an.select_asset_ids.set(work_id);
             work_id = bg_id;
@@ -370,11 +376,11 @@ namespace game_punk
     }
 
 
-    static SpriteView get_animation_bitmap(SpriteAnimation const& an, u64 pos)
+    static SpriteView get_animation_bitmap(SpriteAnimation const& an, TickQty32 time)
     {
         p32* data = 0;
 
-        auto t = pos % (an.bitmap_count * an.ticks_per_bitmap);
+        auto t = time.value_ % (an.bitmap_count * an.ticks_per_bitmap);
 
         auto dims = an.bitmap_dims.proc;
 

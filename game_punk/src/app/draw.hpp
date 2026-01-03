@@ -109,51 +109,41 @@ namespace game_punk
     }
    
 
-    static void push_draw(DrawQueue& dq, BackgroundView const& bg, ScreenCamera const& camera)
+    static void push_draw(DrawQueue& dq, BackgroundView const& bg, SceneCamera const& camera)
     {
         auto bmp = to_image_view(bg);
         auto out = to_image_view(camera);
 
-        BackgroundPosition pos(0, 0, DimCtx::Proc);
+        ScenePosition pos(0, 0, DimCtx::Proc);
 
-        auto p = delta_pos_px(pos, camera.bg_pos);
+        auto p = delta_pos_px(pos, camera.scene_position);
 
         push_draw_view(dq, bmp, out, p);
     }
     
     
-    static void push_draw(DrawQueue& dq, SpriteView const& sprite, BackgroundPosition pos, ScreenCamera const& camera)
+    static void push_draw(DrawQueue& dq, GameImageView const& sprite, ScenePosition pos, SceneCamera const& camera)
     {
         auto bmp = to_image_view(sprite);
         auto out = to_image_view(camera);
-        auto p = delta_pos_px(pos, camera.bg_pos);
+        auto p = delta_pos_px(pos, camera.scene_position);
 
         push_draw_view(dq, bmp, out, p);
     }
 
 
-    static void push_draw(DrawQueue& dq, TileView const& tile, BackgroundPosition pos, ScreenCamera const& camera)
-    {
-        auto bmp = to_image_view(tile);
-        auto out = to_image_view(camera);
-        auto p = delta_pos_px(pos, camera.bg_pos);
-
-        push_draw_view(dq, bmp, out, p);
-    }
-
-
-    static void push_draw(DrawQueue& dq, BackgroundPartPair const& pair, ScreenCamera const& camera)
+    static void push_draw(DrawQueue& dq, BackgroundPartPair const& pair, SceneCamera const& camera)
     {
         auto out = to_image_view(camera);
 
-        auto pos = BackgroundPosition(0, 0, DimCtx::Proc);
-        auto p = delta_pos_px(pos, camera.bg_pos);
+        auto pos = ScenePosition(0, 0, DimCtx::Proc);
+        auto p = delta_pos_px(pos, camera.scene_position);
         auto bmp = to_image_view_first(pair);
 
         push_draw_view(dq, bmp, out, p);
 
         pos.proc.y = pair.height1;
-        p = delta_pos_px(pos, camera.bg_pos);
+        p = delta_pos_px(pos, camera.scene_position);
         bmp = to_image_view_second(pair);
         if (bmp.height)
         {

@@ -71,7 +71,7 @@ namespace internal
     {
         ImGui::SeparatorText("Camera");
 
-        auto dims = data.camera.bg_pos.game;
+        auto dims = data.camera.scene_position.game;
 
         ImGui::Text("Position: (%u, %u)", dims.x, dims.y);
     }

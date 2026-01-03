@@ -79,7 +79,6 @@ namespace cxpr
     constexpr u32 BACKGROUND_COUNT_MAX = math::cxpr::max(BACKGROUND_1_COUNT, BACKGROUND_2_COUNT);
 
 
-
 } // cxpr    
 
 }
@@ -277,7 +276,9 @@ namespace game_punk
 
         static constexpr GameTick64 zero() { return make(0u); }
 
-        static constexpr GameTick64 last() { return make((u64)0 - (u64)1); }    
+        static constexpr GameTick64 none() { return make((u64)0 - (u64)1); }
+
+        static constexpr GameTick64 forever() { return make((u64)0 - (u64)2); }
         
 
         GameTick64& operator ++ () { ++value_; return *this; }
@@ -286,6 +287,10 @@ namespace game_punk
         bool operator == (GameTick64 other) const { return value_ == other.value_; }
 
         bool operator >= (GameTick64 other) const { return value_ >= other.value_; }
+
+        bool operator <= (GameTick64 other) const { return value_ <= other.value_; }
+
+        bool operator < (GameTick64 other) const { return value_ < other.value_; }
         
     };
 
@@ -326,6 +331,10 @@ namespace game_punk
 
     GameTick64 operator + (GameTick64 lhs, TickQty32 rhs) { return GameTick64::make(lhs.value_ + rhs.value_); }
 
+    TickQty32 operator + (TickQty32 lhs, TickQty32 rhs) { return lhs.value_ + rhs.value_; }
+
+    TickQty32 operator - (GameTick64 lhs, GameTick64 rhs) { return lhs.value_ - rhs.value_; }
+
     TickQty32 operator - (GameTick64 lhs, TickQty32 rhs) { return lhs.value_ - rhs.value_; }
 
     TickQty32 operator % (GameTick64 lhs, TickQty32 rhs) { return lhs.value_ % rhs.value_; }
@@ -335,7 +344,7 @@ namespace game_punk
 
     //bool operator >= (TickQty lhs, u32 rhs) { return lhs.value_ >= (u64)rhs; }
 
-    TickQty32 operator + (TickQty32 lhs, TickQty32 rhs) { return lhs.value_ + rhs.value_; }
+    
 
     TickQty32 operator - (TickQty32 lhs, TickQty32 rhs) { return lhs.value_ - rhs.value_; }
 
@@ -347,9 +356,11 @@ namespace game_punk
         static constexpr uT COUNT = (uT)N;
         static constexpr uT MAX_VALUE = COUNT - 1;
 
+        static constexpr auto is_valid = math::cxpr::is_unsigned<uT>() && math::cxpr::is_power_of_2(N);
+
     private:
-        static uT n2_add(uT a, uT b) { return (a + b) & MAX_VALUE; }
-        static uT n2_sub(uT a, uT b) { return (a - b) & MAX_VALUE; }
+        static uT n2_add(uT a, uT b) { static_assert(is_valid); return (a + b) & MAX_VALUE; }
+        static uT n2_sub(uT a, uT b) { static_assert(is_valid); return (a - b) & MAX_VALUE; }
 
     public:
         uT value_ = 0;
@@ -357,8 +368,7 @@ namespace game_punk
 
         void reset() 
         { 
-            static_assert(math::cxpr::is_unsigned<uT>());
-            static_assert(math::cxpr::is_power_of_2(N));
+            static_assert(is_valid);
 
             value_ = 0; 
         }
@@ -412,6 +422,75 @@ namespace game_punk
 
         void set(T value) { data[id] = value; }
     };
+
+
+    template <typename T, u32 TAG>
+    class ObjectTable
+    {
+    public:
+        static constexpr u32 tag = TAG;
+
+        struct ID { u16 value_; };
+
+        u32 capacity = 0;
+        u32 size = 0;
+
+        T error;
+
+        T* data;
+
+        ID push(T const& obj)
+        {
+            ID id = { capacity };
+            
+            if (size < capacity)
+            {
+                id.value_ = size;
+                data[size++] = obj;
+            }
+
+            return id;
+        }
+
+
+        T& at(ID id)
+        {
+            if (id.value_ >= capacity)
+            {
+                return error;
+            }
+
+            return data[id.value_];
+        }
+    };
+
+
+    template <typename T, u32 TAG>
+    static void count_table(ObjectTable<T, TAG>& table, MemoryCounts& counts, u32 capacity)
+    {
+        table.capacity = capacity;
+
+        add_count<T>(counts, capacity);
+    }
+
+
+    template <typename T, u32 TAG>
+    static bool create_table(ObjectTable<T, TAG>& table, Memory& memory)
+    {
+        if (!table.capacity)
+        {
+            app_crash("*** ObjectTable not initialized ***");
+            return false;
+        }
+
+        auto res = push_mem<T>(memory, table.capacity);
+        if (res.ok)
+        {
+            table.data = res.data;
+        }
+
+        return res.ok;
+    }
 }
 
 
@@ -458,84 +537,12 @@ namespace game_punk
 
 
     template <typename T>
-    class ContextVec2D
+    class ContextPosition
     {
     public:
-        union
-        {
-            Vec2D<T> proc;
+        union { Point2D<T> proc; struct { T y; T x; } game; };
 
-            struct { T y; T x; } game;
-        };
-
-
-        ContextVec2D() { proc.x = 0; proc.y = 0; }
-
-
-        ContextVec2D(T x, T y, DimCtx ctx)
-        {
-            if (ctx == DimCtx::Proc)
-            {
-                proc.x = x;
-                proc.y = y;
-            }
-            else
-            {
-                game.x = x;
-                game.y = y;
-            }
-        }
-
-
-        ContextVec2D(Vec2D<T> const& vec, DimCtx ctx)
-        {
-            ContextVec2D(vec.x, vec.y, ctx);
-        }
-    };
-
-
-    class GamePosition
-    {
-    public:
-        union
-        {
-            Point2Du64 proc;
-
-            struct { u64 y; u64 x; } game;
-        };
-
-
-        GamePosition(u64 x, u64 y, DimCtx ctx) 
-        {
-            if (ctx == DimCtx::Proc)
-            {
-                proc.x = x;
-                proc.y = y;
-            }
-            else
-            {
-                game.x = x;
-                game.y = y;
-            }
-        }
-
-
-        static GamePosition zero() { return GamePosition(0, 0, DimCtx::Proc); }
-    };
-
-
-    class BackgroundPosition
-    {
-    public:    
-        union
-        {
-            Point2Di32 proc;
-
-            struct { i32 y; i32 x; } game;
-        };
-
-
-        BackgroundPosition(i32 x, i32 y, DimCtx ctx)
+        ContextPosition(T x, T y, DimCtx ctx)
         {
             if (ctx == DimCtx::Proc)
             {
@@ -551,34 +558,12 @@ namespace game_punk
     };
 
 
-    class ScreenPosition
-    {
-    public:
-        union
-        {
-            Point2Di32 proc;
-
-            struct { i32 y; i32 x; } game;
-        };
+    using GamePosition = ContextPosition<u64>;
+    using ScenePosition = ContextPosition<i32>;
 
 
-        ScreenPosition(i32 x, i32 y, DimCtx ctx)
-        {
-            if (ctx == DimCtx::Proc)
-            {
-                proc.x = x;
-                proc.y = y;
-            }
-            else
-            {
-                game.x = x;
-                game.y = y;
-            }
-        }
-    };    
-
-
-    Point2Di32 delta_pos_px(BackgroundPosition a, BackgroundPosition b)
+    template <typename T>
+    Point2Di32 delta_pos_px(ContextPosition<T> a, ContextPosition<T> b)
     {
         Point2Di32 p;
         p.x = a.proc.x - b.proc.x;
@@ -588,57 +573,188 @@ namespace game_punk
     }
 
 
-    class ContextRect
-    {
-    public:
-        union
-        {
-            struct { u32 x_begin; u32 x_end; u32 y_begin; u32 y_end; } proc;
-
-            struct { u32 y_begin; u32 y_end; u32 x_begin; u32 x_end; } game;
-        };
-    };
-
-
-    static ContextRect make_rect(ContextDims dims)
-    {
-        ContextRect rect;
-
-        rect.proc.x_begin = 0;
-        rect.proc.y_begin = 0;
-        rect.proc.x_end = dims.proc.width;
-        rect.proc.y_end = dims.proc.height;
-
-        return rect;
-    }
-
-
     constexpr auto BACKGROUND_DIMS = ContextDims(cxpr::GAME_BACKGROUND_WIDTH_PX, cxpr::GAME_BACKGROUND_HEIGHT_PX, DimCtx::Game);
 
     constexpr auto CAMERA_DIMS = ContextDims(cxpr::GAME_CAMERA_WIDTH_PX, cxpr::GAME_CAMERA_HEIGHT_PX, DimCtx::Game);
+
+    constexpr auto SCENE_DIMS = BACKGROUND_DIMS;
 
 
 }
 
 
-/* screen camera */
+/* soa */
 
 namespace game_punk
-{ 
-    
-    class ScreenCamera
+{
+    class Sprite
     {
     public:
+        Vec2Du64 game_pos;
+        Vec2Di32 velocity_px;
 
+        ImageView view;
+    };
+    
+    
+    class SpriteTable
+    {
+    public:
+        struct ID { u32 value_ = 0; };
+
+        u32 capacity = 0;
+        u32 first_id = 0;
+
+        b8* is_active = 0;
+
+        GameTick64* tick_begin = 0;
+        GameTick64* tick_end = 0;
+
+        Vec2Du64* position = 0;
+        Vec2Di32* velocity_px = 0;
+
+        //u32* animation_id = 0;
+        
+    };
+
+
+    static void reset_sprite_table(SpriteTable& table)
+    {
+        table.first_id = 0;
+
+        auto is_active = span::make_view(table.is_active, table.capacity);
+        span::fill(is_active, (u8)0);
+    }
+
+
+    static void count_table(SpriteTable& table, MemoryCounts& counts, u32 capacity)
+    {
+        table.capacity = capacity;
+
+        add_count<b8>(counts, capacity);
+        add_count<GameTick64>(counts, 2 * capacity);
+        add_count<Vec2Du64>(counts, capacity);
+        add_count<Vec2Di32>(counts, capacity);
+    }
+
+
+    static bool create_table(SpriteTable& table, Memory& memory)
+    {
+        if (!table.capacity)
+        {
+            app_crash("*** SpriteTable not initialized ***");
+            return false;
+        }
+
+        auto n = table.capacity;
+
+        bool ok = true;
+
+        auto is_active = push_mem<b8>(memory, n);
+        ok &= is_active.ok;
+
+        auto tick_begin = push_mem<GameTick64>(memory, n);
+        ok &= tick_begin.ok;
+
+        auto tick_end = push_mem<GameTick64>(memory, n);
+        ok &= tick_end.ok;
+
+        auto position = push_mem<Vec2Du64>(memory, n);
+        ok &= position.ok;
+
+        auto velocity = push_mem<Vec2Di32>(memory, n);
+        ok &= velocity.ok;
+
+        if (ok)
+        {
+            table.is_active = is_active.data;
+            table.tick_begin = tick_begin.data;
+            table.tick_end = tick_end.data;
+            table.position = position.data;
+            table.velocity_px = velocity.data;
+        }
+
+        return ok;
+    }
+
+
+    static SpriteTable::ID spawn_sprite(SpriteTable& table, GameTick64 tick)
+    {
+        SpriteTable::ID id;
+
+        for (u32 i = table.first_id; i < table.capacity; i++)
+        {
+            if (!table.is_active[i])
+            {
+                id.value_ = i;
+                table.first_id = i;
+
+                table.is_active[i] = 1;
+                table.tick_begin[i] = tick;
+                break;
+            }
+        }
+
+        return id;
+    }
+
+
+    static void process_sprites(SpriteTable const& table)
+    {
+        auto act = table.is_active;
+        auto beg = table.tick_begin;
+        auto end = table.tick_end;
+        auto pos = table.position;
+        auto vel = table.velocity_px;
+
+        for (u32 i = 0; i < table.capacity; i++)
+        {
+            act[i] &= (end[i] != GameTick64::none()) && (beg[i] < end[i]);
+            pos[i].x += vel[i].x;
+            pos[i].y += vel[i].y;
+        }
+    }
+}
+
+
+/* game scene */
+
+namespace game_punk
+{
+    class GameScene
+    {
+    public:
+        static constexpr auto dims = SCENE_DIMS;
+
+        GamePosition game_position;
+    };
+
+
+    static void reset_game_scene(GameScene& scene)
+    {
+        scene.game_position = GamePosition(0, 0, DimCtx::Game);
+    }
+}
+
+
+/* scene camera */
+
+namespace game_punk
+{     
+    class SceneCamera
+    {
+    public:
         static constexpr auto dims = CAMERA_DIMS;
 
         p32* pixels;
 
-        BackgroundPosition bg_pos;
+        ScenePosition scene_position;
+
+        u8 speed_px;
     };
 
 
-    static bool init_screen_camera(ScreenCamera& camera, ImageView screen)
+    static bool init_screen_camera(SceneCamera& camera, ImageView screen)
     {
         bool ok = true;
 
@@ -657,33 +773,32 @@ namespace game_punk
     }
 
 
-    static void reset_screen_camera(ScreenCamera& camera)
+    static void reset_screen_camera(SceneCamera& camera)
     {
-        camera.bg_pos = BackgroundPosition(10, 16, DimCtx::Game);
+        camera.scene_position = ScenePosition(10, 16, DimCtx::Game);
+        camera.speed_px = 2;
     }
 
 
-    static void move_camera(ScreenCamera& camera, Vec2Di8 delta_px)
-    {
-        auto max_dims = BACKGROUND_DIMS.game;
+    static void move_camera(SceneCamera& camera, Vec2Di8 delta_px)
+    {        
         auto cam_dims = CAMERA_DIMS.game;
-        auto& pos = camera.bg_pos.game;
+        auto& pos = camera.scene_position.game;
+
+        auto pos_x = (i32)pos.x + delta_px.x;
+        auto pos_y = (i32)pos.y + delta_px.y;
+
+        auto max_dims = SCENE_DIMS.game;
 
         auto x_max = (i32)(max_dims.width - cam_dims.width);
-        auto y_max = (i32)(max_dims.height - cam_dims.height);        
-
-        auto pos_x = (i32)pos.x;
-        auto pos_y = (i32)pos.y;
-
-        pos_x += delta_px.x;
-        pos_y += delta_px.y;
+        auto y_max = (i32)(max_dims.height - cam_dims.height);
 
         pos.x = (u32)math::cxpr::clamp(pos_x, 0, x_max);
         pos.y = (u32)math::cxpr::clamp(pos_y, 0, y_max);
     }
 
 
-    static ImageView to_image_view(ScreenCamera const& camera)
+    static ImageView to_image_view(SceneCamera const& camera)
     {
         ImageView view;
 
@@ -697,7 +812,7 @@ namespace game_punk
     }
 
 
-    static Span32 to_span(ScreenCamera const& camera)
+    static Span32 to_span(SceneCamera const& camera)
     {
         Span32 view;
         auto dims = CAMERA_DIMS.proc;
