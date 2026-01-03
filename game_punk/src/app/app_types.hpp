@@ -287,10 +287,10 @@ namespace game_punk
         bool operator == (GameTick64 other) const { return value_ == other.value_; }
 
         bool operator >= (GameTick64 other) const { return value_ >= other.value_; }
-
         bool operator <= (GameTick64 other) const { return value_ <= other.value_; }
 
         bool operator < (GameTick64 other) const { return value_ < other.value_; }
+        bool operator > (GameTick64 other) const { return value_ > other.value_; }
         
     };
 
@@ -424,6 +424,14 @@ namespace game_punk
     };
 
 
+    
+}
+
+
+/* object table */
+
+namespace game_punk
+{
     template <typename T, u32 TAG>
     class ObjectTable
     {
@@ -439,9 +447,10 @@ namespace game_punk
 
         T* data;
 
-        ID push(T const& obj)
+        ID push(T const& obj = {})
         {
-            ID id = { capacity };
+            ID id;
+            id.value_ = capacity;
             
             if (size < capacity)
             {
@@ -463,6 +472,13 @@ namespace game_punk
             return data[id.value_];
         }
     };
+
+
+    template <typename T, u32 TAG>
+    static void reset_table(ObjectTable<T, TAG>& table)
+    {
+        table.size = 0;
+    }
 
 
     template <typename T, u32 TAG>
@@ -491,6 +507,10 @@ namespace game_punk
 
         return res.ok;
     }
+
+
+    using BitmapTable = ObjectTable<ImageView, 0>;
+    using BitmapID = BitmapTable::ID;
 }
 
 
@@ -625,10 +645,10 @@ namespace game_punk
         Vec2Di32* velocity_px = 0;
         Vec2Di64* position = 0;
 
-        //u32* animation_id = 0;
+        BitmapID* bitmap_id = 0;
         
         GameTick64& tick_begin_at(ID id) { return tick_begin[id.value_]; }
-        GameTick64& tick_end_at(ID id) { return tick_end[id.value_]; }
+        //GameTick64& tick_end_at(ID id) { return tick_end[id.value_]; }
         Vec2Di64& position_at(ID id) { return position[id.value_]; }
         Vec2Di32& velocity_px_at(ID id) { return velocity_px[id.value_]; }
         
@@ -648,6 +668,7 @@ namespace game_punk
         add_count<GameTick64>(counts, 2 * capacity);
         add_count<Vec2Di64>(counts, capacity);
         add_count<Vec2Di32>(counts, capacity);
+        add_count<BitmapID>(counts, capacity);
     }
 
 
@@ -675,19 +696,23 @@ namespace game_punk
         auto velocity = push_mem<Vec2Di32>(memory, n);
         ok &= velocity.ok;
 
+        auto bmp = push_mem<BitmapID>(memory, n);
+        ok &= bmp.ok;
+
         if (ok)
         {
             table.tick_begin = tick_begin.data;
             table.tick_end = tick_end.data;
             table.position = position.data;
             table.velocity_px = velocity.data;
+            table.bitmap_id = bmp.data;
         }
 
         return ok;
     }
 
 
-    static SpriteTable::ID spawn_sprite(SpriteTable& table, GameTick64 tick)
+    static SpriteTable::ID spawn_sprite(SpriteTable& table, BitmapID bmp, GameTick64 tick)
     {
         auto beg = table.tick_begin;
         auto end = table.tick_end;
@@ -702,6 +727,7 @@ namespace game_punk
         table.first_id = i;
         table.tick_begin[i] = tick;
         table.tick_end[i] = GameTick64::forever();
+        table.bitmap_id[i] = bmp;
 
         return id;
     }

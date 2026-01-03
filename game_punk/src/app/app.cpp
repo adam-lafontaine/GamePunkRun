@@ -101,6 +101,7 @@ namespace game_punk
 
         DrawQueue drawq;
 
+        BitmapTable bitmaps;
         SpriteAnimation punk_animation;
 
         Memory memory;
@@ -135,10 +136,13 @@ namespace game_punk
 
         reset_ui_state(data.ui);
         set_ui_color(data.ui, 20);
-
+        
         reset_sprite_table(data.sprites);
 
-        data.sprite_punk = spawn_sprite(data.sprites, data.game_tick);
+        reset_table(data.bitmaps);
+        data.punk_animation.bitmap_id = data.bitmaps.push();
+
+        data.sprite_punk = spawn_sprite(data.sprites, data.punk_animation.bitmap_id, data.game_tick);
         app_assert(data.sprite_punk.value_ == PLAYER_ID.value_ && "*** Player not first sprite ***");
 
         constexpr auto tile_h = bt::Tileset_ex_zone().items[0].height;
@@ -146,6 +150,8 @@ namespace game_punk
         auto pos = data.scene.game_position.game;
         data.sprites.position_at(data.sprite_punk) = { pos.x + PLAYER_SCENE_OFFSET, tile_h };
         data.sprites.velocity_px_at(data.sprite_punk) = { 1, 0 };
+
+        
     }
 
 
@@ -189,6 +195,7 @@ namespace game_punk
         count_queue(data.loadq, counts, 10);
         count_random(data.rng, counts);
         count_table(data.sprites, counts, 50);
+        count_table(data.bitmaps, counts, 50);
         
         data.memory = create_memory(counts);
         if (!data.memory.ok)
@@ -206,6 +213,7 @@ namespace game_punk
         ok &= create_queue(data.loadq, data.memory);
         ok &= create_random(data.rng, data.memory);
         ok &= create_table(data.sprites, data.memory);
+        ok &= create_table(data.bitmaps, data.memory);
 
         ok &= verify_allocated(data.memory);
 
@@ -291,6 +299,13 @@ namespace game_punk
     }
 
 
+    static void update_animation_bitmaps(StateData& data)
+    {
+        auto time = data.game_tick - data.sprites.tick_begin_at(data.sprite_punk);
+        update_animation_bitmap(data.punk_animation, time, data.bitmaps);
+    }
+
+
     static void draw_background(StateData& data)
     {
         auto& bg = data.background;
@@ -348,10 +363,11 @@ namespace game_punk
         auto beg = sprites.tick_begin;
         auto end = sprites.tick_end;
         auto pos = sprites.position;
+        auto bmp = sprites.bitmap_id;
 
         for (u32 i = 0; i < N; i++)
         {
-            if (tick >= end[i])
+            if (tick >= end[i] || beg[i] > end[i])
             {
                 continue;
             }
@@ -359,8 +375,8 @@ namespace game_punk
             auto dps = delta_pos_scene(GamePosition(pos[i], DimCtx::Game), data.scene);
 
             auto time = tick - beg[i];
-            auto frame = get_animation_bitmap(data.punk_animation, time);
-            push_draw(dq, frame, dps, camera);
+            auto view = data.bitmaps.at(bmp[i]);
+            push_draw(dq, view, dps, camera);
         }
     }
 
@@ -435,6 +451,8 @@ namespace game_punk
         move_sprites(data.sprites);
 
         data.scene.game_position.game.x = data.sprites.position_at(data.sprite_punk).x - PLAYER_SCENE_OFFSET;
+
+        update_animation_bitmaps(data);
 
         draw_background(data);
         //draw_tiles(data);
