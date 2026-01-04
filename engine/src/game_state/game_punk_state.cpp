@@ -93,8 +93,29 @@ namespace internal
 
         ImGui::Text(" Select (%2u): %2u, %2u, %2u, %2u, %2u, %2u, %2u, %2u, %2u, %2u, %2u, %2u", sc, us(0), us(1), us(2), us(3), us(4), us(5), us(6), us(7), us(8), us(9), us(10), us(11));
         ImGui::Text("Working (%2u): %2u, %2u, %2u, %2u", wc, uw(0), uw(1), uw(2), uw(3));
-        ImGui::Text("Last: %u", id);
-        
+        ImGui::Text("Last: %u", id);        
+    }
+
+
+    static void player(game::StateData& data)
+    {
+        ImGui::SeparatorText("Player");
+
+        auto id = data.punk_sprite;
+
+        auto pos = data.sprites.position_at(id);
+        auto& vel = data.sprites.velocity_px_at(id);
+
+        ImGui::Text("Position: (%u, %u)", (u32)pos.x, (u32)pos.y);
+        ImGui::Text("Velocity: (%d, %d), ", vel.x, vel.y);
+
+        static int v = 0;
+
+        v = vel.x;
+
+        ImGui::InputInt("Vel x", &v);
+
+        vel.x = v;
     }
 }
 }
@@ -112,6 +133,7 @@ namespace game_state
         internal::camera(data);
         internal::background_animation(data.background.bg_1, "Background 1");
         internal::background_animation(data.background.bg_2, "Background 2");
+        internal::player(data);
 
         ImGui::End();
     }

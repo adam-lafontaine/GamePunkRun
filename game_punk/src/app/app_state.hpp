@@ -22,7 +22,8 @@ namespace game_punk
 
         reset_background_animation(bg.bg_1);
         reset_background_animation(bg.bg_2);
-        bg.bg_2.speed_shift = 1;
+        bg.bg_1.speed_shift = 1;
+        bg.bg_2.speed_shift = 0;
     }
 
 

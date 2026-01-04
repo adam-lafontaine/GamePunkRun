@@ -290,7 +290,7 @@ namespace game_punk
         auto W = BACKGROUND_DIMS.proc.width;
         auto H = BACKGROUND_DIMS.proc.height;
 
-        auto p = pos << an.speed_shift; // speed
+        auto p = pos >> an.speed_shift; // speed
         p %= (2 * H);
 
         u32 data_1 = p / H;
@@ -370,7 +370,7 @@ namespace game_punk
 
         an.bitmap_count = ss.bitmap_count;
 
-        an.ticks_per_bitmap = 7; // Magic!
+        an.ticks_per_bitmap = 6; // Magic!
 
         return ok;
     }

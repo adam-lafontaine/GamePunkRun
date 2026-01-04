@@ -147,7 +147,7 @@ namespace game_punk
         pos.y = tile_h;
 
         auto punk = SpriteDef(data.game_tick, pos, data.punk_bitmap);
-        punk.velocity = { 1, 0 };
+        punk.velocity = { 2, 0 };
 
         data.punk_sprite = spawn_sprite(data.sprites, punk);
         app_assert(data.punk_sprite.value_ == PLAYER_ID.value_ && "*** Player not first sprite ***");
@@ -469,7 +469,6 @@ namespace game_punk
         update_tiles(data);
 
         draw_background(data);
-        //draw_tiles(data);
         draw_sprites(data);
     }
 
