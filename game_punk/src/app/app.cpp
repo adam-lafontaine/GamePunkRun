@@ -106,6 +106,9 @@ namespace game_punk
         SpriteID punk_sprite;
         BitmapID punk_bitmap;
 
+        GamePosition next_tile_position;
+        RingStackBuffer<BitmapID, 2> tile_bitmaps;
+
         Memory memory;
 
         AssetData asset_data;
@@ -148,19 +151,19 @@ namespace game_punk
 
         data.punk_sprite = spawn_sprite(data.sprites, punk);
         app_assert(data.punk_sprite.value_ == PLAYER_ID.value_ && "*** Player not first sprite ***");
-
-        BitmapID tiles[2];
-        tiles[0] = data.bitmaps.push(to_image_view(data.tiles.floor_a));
-        tiles[1] = data.bitmaps.push(to_image_view(data.tiles.floor_b));
-        u32 tile_id = 0;
+        
+        data.tile_bitmaps.data[0] = data.bitmaps.push(to_image_view(data.tiles.floor_a));
+        data.tile_bitmaps.data[1] = data.bitmaps.push(to_image_view(data.tiles.floor_b));
         pos = { 0, 0 };
         for (u32 i = 0; i < 20; i++)
         {
-            auto tile = SpriteDef(data.game_tick, pos, tiles[tile_id]);
+            auto tile = SpriteDef(data.game_tick, pos, data.tile_bitmaps.front());
             spawn_sprite(data.sprites, tile);
             pos.x += tile_w;
-            tile_id = !tile_id;
+            data.tile_bitmaps.next();
         }
+
+        data.next_tile_position = GamePosition(pos, DimCtx::Game);
     }
 
 
@@ -318,7 +321,16 @@ namespace game_punk
 
     static void update_tiles(StateData& data)
     {
-
+        constexpr auto tile_w = bt::Tileset_ex_zone().items[0].width;
+        
+        auto pos = data.scene.game_position.game.x;
+        if (pos % tile_w == 0)
+        {
+            auto tile = SpriteDef(data.game_tick, data.next_tile_position.pos_game(), data.tile_bitmaps.front());
+            spawn_sprite(data.sprites, tile);
+            data.next_tile_position.game.x += tile_w;
+            data.tile_bitmaps.next();
+        }
     }
 
 
@@ -341,33 +353,10 @@ namespace game_punk
     }
     
     
-    static void draw_tiles(StateData& data)
-    {
-        auto& dq = data.drawq;
-        auto& camera = data.camera;
-
-        auto pos = ScenePosition(0, 0, DimCtx::Game);
-        auto& gpos = pos.game;
-
-        // draw floor tiles
-        TileView tiles[2] = { data.tiles.floor_a, data.tiles.floor_b };
-        auto tile_w = tiles[0].dims.game.width;
-        
-        gpos.x = 0;
-        gpos.y = 0;
-
-        u32 tile_id = 0;
-        for (; pos.game.x < data.game_width; pos.game.x += tile_w)
-        {
-            push_draw(dq, tiles[tile_id], pos, camera);
-            tile_id = !tile_id;
-        }
-    }
-
-
     static void draw_sprites(StateData& data)
     {
-        constexpr auto tile_h = bt::Tileset_ex_zone().items[0].height;
+        constexpr i32 xmin = -cxpr::GAME_BACKGROUND_WIDTH_PX;
+        constexpr i32 ymin = -cxpr::GAME_BACKGROUND_HEIGHT_PX;
 
         auto& dq = data.drawq;
         auto& camera = data.camera;
@@ -389,6 +378,14 @@ namespace game_punk
             }
 
             auto dps = delta_pos_scene(GamePosition(pos[i], DimCtx::Game), data.scene);
+            auto pos = dps.pos_game();
+
+            if (pos.x < xmin || pos.y < ymin)
+            {
+                beg[i] = GameTick64::none();
+                sprites.first_id = math::min(i, sprites.first_id);
+                continue;
+            }
 
             auto time = tick - beg[i];
             auto view = data.bitmaps.at(bmp[i]);
@@ -469,6 +466,7 @@ namespace game_punk
         data.scene.game_position.game.x = data.sprites.position_at(data.punk_sprite).x - PLAYER_SCENE_OFFSET;
 
         update_animation_bitmaps(data);
+        update_tiles(data);
 
         draw_background(data);
         //draw_tiles(data);

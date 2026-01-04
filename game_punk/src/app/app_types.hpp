@@ -767,6 +767,7 @@ namespace game_punk
     static void despawn_sprite(SpriteTable& table, SpriteID id)
     {
         table.tick_begin_at(id) = GameTick64::none();
+        table.first_id = math::min(id.value_, table.first_id);
     }
 
 
@@ -1121,19 +1122,12 @@ namespace game_punk
         InputCommand cmd;
 
         cmd.camera.move = 0;
-        /*cmd.camera.north = input.keyboard.kbd_up.is_down;
+        cmd.camera.north = input.keyboard.kbd_up.is_down;
         cmd.camera.south = input.keyboard.kbd_down.is_down;
         cmd.camera.east = input.keyboard.kbd_right.is_down;
-        cmd.camera.west = input.keyboard.kbd_left.is_down;*/
+        cmd.camera.west = input.keyboard.kbd_left.is_down;
 
-        cmd.text.changed = 0;
-        cmd.text.up = input.keyboard.npd_plus.pressed;
-
-        cmd.icon.move = 0;
-        cmd.icon.north = input.keyboard.kbd_up.pressed;
-        cmd.icon.south = input.keyboard.kbd_down.pressed;
-        cmd.icon.east = input.keyboard.kbd_right.pressed;
-        cmd.icon.west = input.keyboard.kbd_left.pressed;
+        cmd.camera.move = 0; // disable
 
         return cmd;
     }
