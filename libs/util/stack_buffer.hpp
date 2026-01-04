@@ -1,9 +1,6 @@
 #pragma once
 
-#include <cassert>
-#include <cstddef>
-
-using u32 = unsigned;
+#include "types.hpp"
 
 
 template <class T, u32 N>
@@ -79,12 +76,12 @@ namespace stack_buffer
     }
 
 
-    template <class T, u32 N, class FN>
+    /*template <class T, u32 N, class FN>
     inline void for_each(StackBuffer<T, N> const& buffer, FN const& func)
     {
         for (u32 i = 0; i < buffer.size; i++)
         {
             func(buffer.data_[i]);
         }
-    }
+    }*/
 }

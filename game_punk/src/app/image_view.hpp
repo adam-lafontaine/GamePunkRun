@@ -20,6 +20,14 @@ namespace game_punk
 
         return img::make_view(ctx.width, ctx.height, view.data);
     }
+
+
+    static Span32 to_span(GameImageView const& view)
+    {
+        auto length = view.dims.proc.width * view.dims.proc.height;
+
+        return span::make_view(view.data, length);
+    }
     
     
     class SpriteView : public GameImageView {};
@@ -35,7 +43,7 @@ namespace game_punk
 
     static void count_view(TileView& view, MemoryCounts& counts, auto const& info)
     {
-        bool ok = info.type == bt::FileType::Image1C_Table;
+        bool ok = bt::data_size(info.type) == bt::data_size(bt::FileType::Image1C);
         app_assert(ok && "*** Unexpected tile image ***");
 
         auto& ctx = view.dims.proc;
@@ -71,20 +79,7 @@ namespace game_punk
     }
 
 
-    static Span32 to_span(TileView const& view)
-    {
-        auto length = view.dims.proc.width * view.dims.proc.height;
-
-        return span::make_view(view.data, length);
-    }
-
-
-    static ImageView to_image_view(TileView const& view)
-    {
-        auto dims = view.dims.proc;
-
-        return img::make_view(dims.width, dims.height, view.data);
-    }
+    
 }
 
 
@@ -226,7 +221,7 @@ namespace game_punk
     }
 
 
-    static SubView sub_view(SkyOverlayView const& view, BackgroundPosition pos)
+    static SubView sub_view(SkyOverlayView const& view, ScenePosition pos)
     {
         return sub_view(view, pos.proc);
     }
@@ -251,7 +246,8 @@ namespace game_punk
 
     static void count_view(SpritesheetView& view, MemoryCounts& counts, auto const& info, u32 count_h = 0)
     {
-        bool ok = info.type == bt::FileType::Image1C_Table || info.type == bt::FileType::Image1C_Filter;
+        bool ok = bt::data_size(info.type) == bt::data_size(bt::FileType::Image1C);
+
         app_assert(ok && "*** Unexpected spritesheet image ***");
 
         auto& ctx = view.dims.proc;
@@ -287,7 +283,7 @@ namespace game_punk
 
         if (!view.dims.any || !view.bitmap_dims.any || !view.bitmap_count)
         {
-            app_assert("SpritesheetView not initialized" && false);
+            app_crash("*** SpritesheetView not initialized ***");
             return false;
         }
 

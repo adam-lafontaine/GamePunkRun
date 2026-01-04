@@ -7,8 +7,8 @@
 namespace game_punk
 {
     constexpr auto APP_TITLE = "Punk Run";
-    constexpr auto VERSION = "0.1.1";
-    constexpr auto DATE = "2025-12-18";
+    constexpr auto VERSION = "0.2.0";
+    constexpr auto DATE = "2026-01-03";
 
 
     class StateData;
@@ -76,15 +76,7 @@ namespace game_punk
         {
             b8 all = 0xFF;
 
-            struct
-            {
-                b8 ui : 1;
-                b8 hud : 1;
-                b8 sky : 1;
-                b8 bg1 : 1;
-                b8 bg2 : 1;
-                b8 sprite : 1;
-            };
+            
         } layers;
         
     };

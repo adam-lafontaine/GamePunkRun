@@ -231,14 +231,14 @@ namespace sky
             auto table = util::generate_color_table(src);
             auto dst = util::convert_image(src, table);            
 
-            auto name = file.filename();
+            auto name = std::string("ov_") + file.filename().c_str();
             
             util::write_color_table(table, (table_dir / name));
             util::write_image(dst, (ov_dir / name));
 
             img::destroy_image(src);
-            util::destroy_color_table(table);
-            util::destroy_image(dst);
+            table.destroy();
+            dst.destroy();
             count++;
         }
 

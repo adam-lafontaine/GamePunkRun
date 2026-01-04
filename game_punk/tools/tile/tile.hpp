@@ -73,7 +73,7 @@ namespace tile
             n_tile += util::count_write_convert_image_files(res.files, res.list, table, out_files);
             
             print_result(res, n_tile);
-            util::destroy_color_table(table);
+            table.destroy();
         }        
         
         printf("\n"); 

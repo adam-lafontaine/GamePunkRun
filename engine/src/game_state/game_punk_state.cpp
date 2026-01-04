@@ -71,60 +71,51 @@ namespace internal
     {
         ImGui::SeparatorText("Camera");
 
-        auto dims = data.camera.bg_pos.game;
+        auto dims = data.camera.scene_position.game;
 
         ImGui::Text("Position: (%u, %u)", dims.x, dims.y);
-        ImGui::Text("Color: %u", data.ui.font_color_id);
     }
-    
-    
-    static void render_layers()
+
+
+    static void background_animation(game::BackgroundAnimation const& an, cstr label)
     {        
-        static bool sky;
-        static bool bg1;
-        static bool bg2;
-        static bool sprite;
-        static bool hud;
-        static bool ui;
-        
-        auto& layers = game_dbg.layers;
+        ImGui::SeparatorText(label);
 
-        sky = (bool)layers.sky;
-        bg1 = (bool)layers.bg1;
-        bg2 = (bool)layers.bg2;
-        sprite = (bool)layers.sprite;
-        hud = (bool)layers.hud;
-        ui = (bool)layers.ui;
+        auto& w = an.work_asset_ids.data;
+        auto& s = an.select_asset_ids.data;
 
-        bool updated = false;
+        auto wc = an.work_asset_ids.count;
+        auto sc = an.select_asset_ids.size;
+        auto id = an.load_cmd.ctx.item_id;
 
-        ImGui::SeparatorText("Render Layers");
+        auto uw = [&](int i) { return (u32)w[i].value_; };
+        auto us = [&](int i) { return (u32)s[i].value_; };
 
-        ImGui::Checkbox("Sky##LayerSky", &sky);
-        ImGui::Checkbox("Background 1##LayerBG1", &bg1);
-        ImGui::Checkbox("Background 2##LayerBG2", &bg2);
-        ImGui::Checkbox("Sprites/Tiles##LayerSprite", &sprite);
-        ImGui::Checkbox("HUD##LayerHUD", &hud);
-        ImGui::Checkbox("UI##LayerUI", &ui);
+        ImGui::Text(" Select (%2u): %2u, %2u, %2u, %2u, %2u, %2u, %2u, %2u, %2u, %2u, %2u, %2u", sc, us(0), us(1), us(2), us(3), us(4), us(5), us(6), us(7), us(8), us(9), us(10), us(11));
+        ImGui::Text("Working (%2u): %2u, %2u, %2u, %2u", wc, uw(0), uw(1), uw(2), uw(3));
+        ImGui::Text("Last: %u", id);        
+    }
 
-        updated = 
-            sky != (bool)layers.sky ||
-            bg1 != (bool)layers.bg1 ||
-            bg2 != (bool)layers.bg2 ||
-            sprite != (bool)layers.sprite ||
-            hud != (bool)layers.hud ||
-            ui != (bool)layers.ui;
 
-        if (updated)
-        {
-            layers.sky = sky;
-            layers.bg1 = bg1;
-            layers.bg2 = bg2;
-            layers.sprite = sprite;
-            layers.hud = hud;
-            layers.ui = ui;
-        }
-        
+    static void player(game::StateData& data)
+    {
+        ImGui::SeparatorText("Player");
+
+        auto id = data.punk_sprite;
+
+        auto pos = data.sprites.position_at(id);
+        auto& vel = data.sprites.velocity_px_at(id);
+
+        ImGui::Text("Position: (%u, %u)", (u32)pos.x, (u32)pos.y);
+        ImGui::Text("Velocity: (%d, %d), ", vel.x, vel.y);
+
+        static int v = 0;
+
+        v = vel.x;
+
+        ImGui::InputInt("Vel x", &v);
+
+        vel.x = v;
     }
 }
 }
@@ -140,7 +131,9 @@ namespace game_state
         ImGui::Begin("Game State");
 
         internal::camera(data);
-        internal::render_layers();
+        internal::background_animation(data.background.bg_1, "Background 1");
+        internal::background_animation(data.background.bg_2, "Background 2");
+        internal::player(data);
 
         ImGui::End();
     }

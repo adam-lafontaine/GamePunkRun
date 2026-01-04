@@ -13,23 +13,39 @@ namespace game_punk
         u32 count_16 = 0;
         u32 count_32 = 0;
         u32 count_64 = 0;
-        u32 count_misc = 0;
     };
 
 
     template <typename T>
     void add_count(MemoryCounts& mc, u32 n)
     {
+        constexpr auto s8 = sizeof(u8);
+        constexpr auto s16 = sizeof(u16);
+        constexpr auto s32 = sizeof(u32);
+        constexpr auto s64 = sizeof(u64);
+
         auto s = sizeof(T);
 
-        switch (s)
+        if (s % s64 == 0)
         {
-        case sizeof(u8): mc.count_8 += n; break;
-        case sizeof(u16): mc.count_16 += n; break;
-        case sizeof(u32): mc.count_32 += n; break;
-        case sizeof(u64): mc.count_64 += n; break;
-        default: mc.count_misc += s * n; break;
+            n *= s / s64;
+            mc.count_64 += n;
         }
+        else if (s % s32 == 0)
+        {
+            n *= s / s32;
+            mc.count_32 += n;
+        }
+        else if (s % s16 == 0)
+        {
+            n *= s / s16;
+            mc.count_16 += n;
+        }
+        else
+        {
+            n *= s / s8;
+            mc.count_8 += n;
+        }        
     }
 
 
@@ -42,9 +58,6 @@ namespace game_punk
         Buffer16 mem_16;
         Buffer32 mem_32;
         Buffer64 mem_64;
-        Buffer8 mem_misc;
-
-        Buffer32 render32;
     };
 
 
@@ -54,9 +67,6 @@ namespace game_punk
         mb::destroy_buffer(mem.mem_16);
         mb::destroy_buffer(mem.mem_32);
         mb::destroy_buffer(mem.mem_64);
-        mb::destroy_buffer(mem.mem_misc);
-
-        mb::destroy_buffer(mem.render32);
 
         mem.ok = false;
     }
@@ -86,7 +96,6 @@ namespace game_punk
         create(mem.mem_16, counts.count_16, "16");
         create(mem.mem_32, counts.count_32, "32");
         create(mem.mem_64, counts.count_64, "64");
-        create(mem.mem_misc, counts.count_misc, "misc");
 
         if (!ok)
         {
@@ -106,32 +115,35 @@ namespace game_punk
         Result<T*> res{};
         res.ok = false;
 
+        constexpr auto s8 = sizeof(u8);
+        constexpr auto s16 = sizeof(u16);
+        constexpr auto s32 = sizeof(u32);
+        constexpr auto s64 = sizeof(u64);
+
         auto s = sizeof(T);
+        auto n = n_elements;
 
-        switch (s)
+        if (s % s64 == 0)
         {
-        case sizeof(u8): res.data = (T*)mb::push_elements(mem.mem_8, n_elements); break;
-        case sizeof(u16): res.data = (T*)mb::push_elements(mem.mem_16, n_elements); break;
-        case sizeof(u32): res.data = (T*)mb::push_elements(mem.mem_32, n_elements); break;
-        case sizeof(u64): res.data = (T*)mb::push_elements(mem.mem_64, n_elements); break;
-        default: res.data = (T*)mb::push_elements(mem.mem_misc, s * n_elements); break;
+            n *= s / s64;
+            res.data = (T*)mb::push_elements(mem.mem_64, n);
+        }
+        else if (s % s32 == 0)
+        {
+            n *= s / s32;
+            res.data = (T*)mb::push_elements(mem.mem_32, n);
+        }
+        else if (s % s16 == 0)
+        {
+            n *= s / s16;
+           res.data = (T*)mb::push_elements(mem.mem_16, n);
+        }
+        else
+        {
+            n *= s / s8;
+            res.data = (T*)mb::push_elements(mem.mem_8, n);
         }
 
-        if (res.data)
-        {
-            res.ok = true;
-        }
-
-        return res;
-    }
-
-
-    static Result<p32*> push_mem_render(Memory& mem, u32 n_elements)
-    {
-        Result<p32*> res{};
-        res.ok = false;
-
-        res.data = (p32*)mb::push_elements(mem.render32, n_elements);
         if (res.data)
         {
             res.ok = true;
@@ -153,7 +165,6 @@ namespace game_punk
         write("  16", mem.mem_16, mc.count_16);
         write("  32", mem.mem_32, mc.count_32);
         write("  64", mem.mem_64, mc.count_64);
-        write("misc", mem.mem_misc, mc.count_misc);
         app_log("\n");
     }
 
@@ -175,12 +186,6 @@ namespace game_punk
 
         ok &= is_ok(memory.mem_64);        
         app_assert(ok && "*** 64 bit Memory not allocated ***");
-
-        ok &= is_ok(memory.mem_misc);
-        app_assert(ok && "*** Misc Memory not allocated ***");
-
-        ok &= is_ok(memory.render32);
-        app_assert(ok && "*** Render Memory not allocated ***");
 
         return ok;
     }
@@ -263,7 +268,7 @@ namespace game_punk
     {
         if (!view.length)
         {
-            app_assert("SpanView not initialized" && false);
+            app_crash("*** SpanView not initialized ***");
             return false;
         }
 
@@ -320,7 +325,7 @@ namespace game_punk
     {
         if (!stack.capacity_)
         {
-            app_assert(false && "*** MemoryStack not initialized ***");
+            app_crash("*** MemoryStack not initialized ***");
             return false;
         }
 

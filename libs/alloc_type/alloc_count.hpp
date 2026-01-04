@@ -14,6 +14,8 @@
 
 #include "../span/span.hpp"
 
+#include <vector>
+
 
 namespace counts
 {
@@ -39,15 +41,31 @@ namespace counts
     class AllocLog
     {
     public:
-        static constexpr u32 capacity = MAX_SLOTS;
+        //static constexpr u32 capacity = MAX_SLOTS;
 
         u32 size = 0;
 
-        cstr tags[capacity] = {0};
+        /*cstr tags[capacity] = {0};
         cstr actions[capacity] = {0};
         u32 sizes[capacity] = {0};
         u32 n_allocs[capacity] = {0};
-        u32 n_bytes[capacity] = {0};
+        u32 n_bytes[capacity] = {0};*/
+
+        std::vector<cstr> tags;
+        std::vector<cstr> actions;
+        std::vector<u32> sizes;
+        std::vector<u32> n_allocs;
+        std::vector<u32> n_bytes;
+
+        AllocLog()
+        {
+            auto N = 100;
+            tags.reserve(N);
+            actions.reserve(N);
+            sizes.reserve(N);
+            n_allocs.reserve(N);
+            n_bytes.reserve(N);
+        }
     };
 
 
@@ -120,11 +138,17 @@ namespace counts
             auto i = log.size;
             log.size++;
 
-            log.tags[i] = tags[slot];
+            log.tags.push_back(tags[slot]);
+            log.actions.push_back(action);
+            log.sizes.push_back(byte_counts[slot]);
+            log.n_allocs.push_back(n_allocations);
+            log.n_bytes.push_back(bytes_allocated);
+
+            /*log.tags[i] = tags[slot];
             log.actions[i] = action;
             log.sizes[i] = byte_counts[slot];
             log.n_allocs[i] = n_allocations;
-            log.n_bytes[i] = bytes_allocated;
+            log.n_bytes[i] = bytes_allocated;*/
 
             alloc_type_log("%s<%u>(%s) | %s(%p) | %u/%u (%u)\n", action, element_size, type_name, tags[slot], ptr, n_allocations, max_allocations, bytes_allocated);
         }
@@ -193,8 +217,6 @@ namespace counts
                 return false;
             }
 
-            log_alloc("free", i, ptr);
-
             mem::aligned_free(keys[i], element_size);
             n_allocations--;
             bytes_allocated -= byte_counts[i];
@@ -202,7 +224,8 @@ namespace counts
             tags[i] = 0;
             byte_counts[i] = 0;
 
-            update_element_counts(i);            
+            update_element_counts(i);
+            log_alloc("free", i, ptr);
 
             return true;
         }
@@ -357,11 +380,11 @@ namespace mem
 
         if (dst.n_items)
         {
-            dst.tags = (cstr*)log.tags;
-            dst.actions = (cstr*)log.actions;
-            dst.sizes = (u32*)log.sizes;
-            dst.n_allocs = (u32*)log.n_allocs;
-            dst.n_bytes = (u32*)log.n_bytes;
+            dst.tags = (cstr*)log.tags.data();
+            dst.actions = (cstr*)log.actions.data();
+            dst.sizes = (u32*)log.sizes.data();
+            dst.n_allocs = (u32*)log.n_allocs.data();
+            dst.n_bytes = (u32*)log.n_bytes.data();
         }
     }
 }

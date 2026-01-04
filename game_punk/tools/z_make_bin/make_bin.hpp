@@ -15,77 +15,7 @@ namespace bin
 {
     constexpr u32 KILO = 1024;
     constexpr u32 MEGA = 1024 * KILO;
-    constexpr u32 GIGA = 1024 * MEGA;    
-    
-
-    // old
-    u32 load_directory(u32 offset, cstr dir, InfoList_Image& list, std::ofstream& bin_file, cstr prefix)
-    {
-        list.offset = offset;
-
-        u32 item_offset = offset;
-
-        auto& items = list.items;
-
-        assert(items.empty() && "*** InfoList_Image must be empty ***");
-
-        if (!items.empty())
-        {
-            return 0;
-        }
-
-        img::Image image;
-        for (auto const& entry : sfs::directory_iterator(dir))
-        {
-            auto& path = entry.path();
-
-            if (!sfs::is_regular_file(path) || path.extension() != ".png")
-            {
-                continue;
-            }
-
-            if (!img::read_image_from_file(path.string().c_str(), image))
-            {
-                continue;
-            }
-
-            FileInfo_Image item;
-            item.path = path;
-            item.name = util::get_variable_name(path.string().c_str(), prefix);
-            item.size = 0;
-            item.offset = 0;
-
-            item.width = image.width;
-            item.height = image.height;
-
-            img::destroy_image(image);
-
-            items.push_back(item);
-        }        
-
-        // sort by name
-        std::sort(items.begin(), items.end(), [](auto const& a, auto const& b) { return a.name < b.name; });
-        
-        for (auto& item : items)
-        {
-            auto buffer = fs::read_bytes(item.path.string().c_str());
-            if (!buffer.ok)
-            {                
-                continue;
-            }
-
-            item.size = buffer.size_;
-            item.offset = item_offset;
-
-            item_offset += item.size;
-            list.size += item.size;
-
-            util::write_buffer(buffer, bin_file);
-            mb::destroy_buffer(buffer);
-        }
-
-        return item_offset - list.offset; // list.size
-    }
+    constexpr u32 GIGA = 1024 * MEGA;  
 
 
     u32 load_image_file(u32 offset, sfs::path const& path, FileInfo_Image& info, std::ofstream& bin_file)
@@ -189,9 +119,9 @@ namespace bin
 
     u32 load_sky_info(u32 offset, SkyInfo& info, std::ofstream& bin_file)
     {
-        constexpr auto base_dir = sky::OUT_SKY_BASE_DIR;
-        constexpr auto ov_dir = sky::OUT_SKY_OVERLAY_DIR;
-        constexpr auto table_dir = sky::OUT_SKY_TABLE_DIR;
+        auto base_dir = sfs::path(sky::OUT_SKY_BASE_DIR);
+        auto ov_dir = sfs::path(sky::OUT_SKY_OVERLAY_DIR);
+        auto table_dir = sfs::path(sky::OUT_SKY_TABLE_DIR);
 
         u32 size = 0;
 
@@ -200,17 +130,24 @@ namespace bin
 
         auto& base = info.sky_base;
         auto& overlay = info.sky_overlay;
-        auto& table = info.sky_table;
-        
-        size = load_directory(offset, base_dir, base, bin_file, "base");
+
+        base.name = base_dir.filename();
+        overlay.name = ov_dir.filename();
+
+        size = load_directory(offset, base_dir, base.list, bin_file);
+        base.size = size;
+        base.offset = offset;
         info.size += size;
         offset += size;
 
-        size = load_directory(offset, ov_dir, overlay, bin_file, "ov");
+        size = load_directory(offset, ov_dir, overlay.list, bin_file);
+        overlay.size = size;
+        overlay.offset = offset;
         info.size += size;
         offset += size;
 
-        size = load_directory(offset, table_dir, table, bin_file, "ct");
+        size = load_directory(offset, table_dir, overlay.tables, bin_file);
+        overlay.size += size;
         info.size += size;
         offset += size;
 
@@ -384,9 +321,9 @@ namespace bin
 
         out_file << file_top();
         out_file << define_types();
-        out_file << define_info_list_image(table.sky.sky_base, FT::Image4C, "Sky_Base");
-        out_file << define_info_list_image(table.sky.sky_overlay, FT::Image1C_Table, "Sky_Overlay");
-        out_file << define_info_list_image(table.sky.sky_table, FT::Image4C_Table, "Sky_ColorTable");
+
+        out_file << define_sky_base_set(table.sky.sky_base);
+        out_file << define_sky_overlay_set(table.sky.sky_overlay);
 
         for (auto const& info : table.backgrounds)
         {
@@ -407,6 +344,8 @@ namespace bin
         {
             out_file << define_ui_set(info);
         }
+
+        out_file << define_class_count();
 
         out_file.close();
     }

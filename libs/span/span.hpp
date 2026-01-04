@@ -93,6 +93,13 @@ namespace span
 
         return make_view(view.data + offset, length);
     }
+
+
+    template <typename T>
+    inline SpanView<T> sub_view(MemoryBuffer<T> const& buffer, u32 offset, u32 length)
+    {
+        return make_view(buffer.data_ + offset, length);
+    }
 }
 
 

@@ -1,5 +1,6 @@
 #pragma once
 
+
 /* sky animation */
 
 namespace game_punk
@@ -10,13 +11,12 @@ namespace game_punk
         BackgroundView base;
         SkyOverlayView overlay_src;
 
-        BackgroundPosition ov_pos;
+        ScenePosition ov_pos;
         Vec2Di32 ov_vel;
         BackgroundView ov_bg;
 
         BackgroundView out[2];
         u8 out_id = 0;
-
 
         BackgroundView& out_front() { return out[out_id]; }
 
@@ -67,7 +67,7 @@ namespace game_punk
     static void reset_sky_animation(SkyAnimation& sky)
     {
         sky.ov_pos.proc = { 0, 0 };
-        sky.ov_vel = { 2, 1 };
+        sky.ov_vel = { 4, 2 };
 
         bool ok = true;
         ok &= has_data(sky.base);
@@ -208,37 +208,65 @@ namespace game_punk
         return view;
     }
 
-
+    
     class BackgroundAnimation
     {
     public:
+        class AssetID
+        {
+        public:
+            u8 value_ = (u8)cxpr::BACKGROUND_COUNT_MAX;
 
-        BackgroundView data[1];
+            AssetID(){}
+            AssetID(u8 v) { value_ = v; }
+        };        
+        
+        u32 speed_shift = 0;
+        u64 load_pos = 0;
 
-        p32* list[4] = { 0 };
+        BackgroundView background_data[2] = { 0 };
 
-        u32 shift = 0;        
+        RingStackBuffer<AssetID, 4> work_asset_ids;
+        RandomStackBuffer<AssetID, cxpr::BACKGROUND_COUNT_MAX - 4> select_asset_ids;
+
+        LoadAssetCommand load_cmd;
     };
 
 
     static void reset_background_animation(BackgroundAnimation& an)
     {
-        bool ok = has_data(an.data[0]);
+        using AssetID = BackgroundAnimation::AssetID;
+
+        bool ok = true;
+        ok &= has_data(an.background_data[0]);
+        ok &= has_data(an.background_data[1]);
 
         app_assert(ok && "*** BackgroundAnimation not created ***");
 
-        an.shift = 0;
+        an.speed_shift = 0;
+        an.load_pos = 0;
 
-        for (u32 i = 0; i < 4; i++)
+        auto WC = an.work_asset_ids.count;
+        auto SC = an.select_asset_ids.capacity;
+
+        an.work_asset_ids.cursor.reset();
+        
+        for (u32 i = 0; i < WC; i++)
         {
-            an.list[i] = an.data[0].data;
+            an.work_asset_ids.data[i] = i;
+        }
+
+        for (u32 i = 0; i < SC; i++)
+        {
+            an.select_asset_ids.data[i] = i + WC;
         }
     }
 
 
     static void count_background_animation(BackgroundAnimation& an, MemoryCounts& counts)
     {
-        count_view(an.data[0], counts);
+        count_view(an.background_data[0], counts);
+        count_view(an.background_data[1], counts);
     }
 
 
@@ -246,34 +274,63 @@ namespace game_punk
     {
         bool ok = true;
 
-        ok &= create_view(an.data[0], memory);
+        ok &= create_view(an.background_data[0], memory);
+        ok &= create_view(an.background_data[1], memory);
 
         return ok;
     }
 
 
-    static BackgroundPartPair get_animation_pair(BackgroundAnimation const& an, u64 pos)
+    static BackgroundPartPair get_animation_pair(BackgroundAnimation& an, Randomf32& rng, u64 pos)
     {
+        using AssetID = BackgroundAnimation::AssetID;
+
         BackgroundPartPair bp;
 
         auto W = BACKGROUND_DIMS.proc.width;
         auto H = BACKGROUND_DIMS.proc.height;
 
-        pos <<= an.shift; // speed
-        pos %= (4 * H);
+        auto p = pos >> an.speed_shift; // speed
+        p %= (2 * H);
 
-        auto list_id1 = pos / H;
-        auto list_id2 = (list_id1 + 1) & (4 - 1);
+        u32 data_1 = p / H;
+        u32 data_2 = !data_1;
 
-        pos %= H;
+        p %= H;
         
-        bp.height2 = pos;
+        bp.height2 = p;
         bp.height1 = H - bp.height2;
 
-        bp.data1 = an.list[list_id1] + bp.height2 * W;
-        bp.data2 = an.list[list_id2];
+        bp.data1 = an.background_data[data_1].data + bp.height2 * W;
+        bp.data2 = an.background_data[data_2].data;
+
+        if (bp.height2 == 0 && pos != an.load_pos)
+        { 
+            an.load_pos = pos;
+
+            // select next background to load
+            auto bg_id = an.select_asset_ids.get(rng);
+
+            // swap selected id with working id
+            auto& work_id = an.work_asset_ids.front();
+            an.select_asset_ids.set(work_id);
+            work_id = bg_id;
+            an.work_asset_ids.next();
+
+            // signal load
+            an.load_cmd.is_active = 1;
+            an.load_cmd.ctx.item_id = bg_id.value_;
+            an.load_cmd.ctx.dst = to_image_view(an.background_data[data_2]);
+        }
 
         return bp;
+    }
+
+
+    static void push_load_background(BackgroundAnimation& an, LoadAssetQueue& lq)
+    {
+        push_load(lq, an.load_cmd);
+        an.load_cmd.is_active = 0;
     }
 }
 
@@ -313,17 +370,17 @@ namespace game_punk
 
         an.bitmap_count = ss.bitmap_count;
 
-        an.ticks_per_bitmap = 7; // Magic!
+        an.ticks_per_bitmap = 6; // Magic!
 
         return ok;
     }
 
 
-    static SpriteView get_animation_bitmap(SpriteAnimation const& an, u64 pos)
+    static SpriteView get_animation_bitmap(SpriteAnimation const& an, TickQty32 time)
     {
         p32* data = 0;
 
-        auto t = pos % (an.bitmap_count * an.ticks_per_bitmap);
+        auto t = time.value_ % (an.bitmap_count * an.ticks_per_bitmap);
 
         auto dims = an.bitmap_dims.proc;
 
@@ -342,4 +399,5 @@ namespace game_punk
 
         return view;
     }
+
 }

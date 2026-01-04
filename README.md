@@ -15,10 +15,14 @@ Position is the game tick
 ### TODO
 * [ ] Refactor font and icons
 * [ ] Name UI icons
+* [ ] Allocator for stbi/assets
 
 
 ### v0.2.0
-* [ ] Moving sprites, tiles, background
+* [x] Moving backgrounds
+* [x] Randomized backgrounds
+* [x] Dynamically load backgrounds
+* [x] Moving sprites, tiles
 * [ ] Automate release builds
 * [ ] Release files
 * [ ] Itch.io
