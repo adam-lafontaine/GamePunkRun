@@ -492,7 +492,13 @@ namespace assets
 }
 
 
-//#define GAME_PUNK_WASM
+#define GAME_PUNK_EDITING_WASM
+
+#ifdef GAME_PUNK_EDITING_WASM
+#ifndef GAME_PUNK_WASM
+#define GAME_PUNK_WASM
+#endif
+#endif
 
 
 #if defined(__EMSCRIPTEN__) || defined(GAME_PUNK_WASM)
@@ -666,29 +672,35 @@ namespace em_load
 
     static void fetch_asset_data_fallback_fail(FetchResponse* res)
     {
-        auto ctx = (FetchContext*)(res->userData);        
-        emscripten_fetch_close(res);
+        auto ctx = (FetchContext*)(res->userData);
+        auto url = ctx->url_fallback;
+
+        app_log("fetch_asset_data_fallback_fail(): %s\n", url);
 
         process_asset_data_fail(ctx);
+        emscripten_fetch_close(res);
     }
 
 
     static void fetch_asset_data_fallback_success(FetchResponse* res)
     {
         auto ctx = (FetchContext*)(res->userData);
+        auto status = res->status;
+        auto url = ctx->url_fallback;
 
-        if (res->status == 200)
+        app_log("fetch_asset_data_fallback_success(): %u/%s\n", status, url);
+
+        if (status == 200)
         {
             auto bytes = make_byte_view(res);
-            emscripten_fetch_close(res);
-
-            process_asset_data_success(ctx, bytes, res->url);
-            return;
+            process_asset_data_success(ctx, bytes, url);
+        }
+        else
+        {
+            process_asset_data_fail(ctx);
         }
         
         emscripten_fetch_close(res);
-
-        process_asset_data_fail(ctx);        
     }
     
     
@@ -712,6 +724,10 @@ namespace em_load
     static void fetch_asset_data_fail(FetchResponse* res)
     {
         auto ctx = (FetchContext*)(res->userData);
+        auto url = ctx->url;
+
+        app_log("fetch_asset_data_fail(): %s\n", url);
+
         emscripten_fetch_close(res);
 
         // try next url
@@ -722,25 +738,29 @@ namespace em_load
     static void fetch_asset_data_success(FetchResponse* res)
     {
         auto ctx = (FetchContext*)(res->userData);
+        auto status = res->status;
+        auto url = ctx->url;
 
-        if (res->status == 200)
+        app_log("fetch_asset_data_success(): %u/%s\n", status, url);
+
+        if (status == 200)
         {
             auto bytes = make_byte_view(res);
-            emscripten_fetch_close(res);
-
-            process_asset_data_success(ctx, bytes, res->url);
-            return;
+            process_asset_data_success(ctx, bytes, url);
+        }
+        else
+        {
+            fetch_asset_data_fallback(ctx);
         }
         
-        emscripten_fetch_close(res);
-
-        // try next url
-        fetch_asset_data_fallback(ctx);
+        emscripten_fetch_close(res);        
     }
 
 
     static void fetch_asset_data_async(FetchContext* ctx)
     {  
+        app_log("fetch_asset_data_async()\n");
+
         auto url = ctx->url;
 
         FetchAttr attr;
@@ -760,10 +780,10 @@ namespace em_load
 static void load_game_assets(StateData& data)
 {   
     data.asset_data.status = AssetStatus::Loading;
-    em_load::fetch_bin_data_async(GAME_DATA_PATH, data);
+    //em_load::fetch_bin_data_async(GAME_DATA_PATH, data);
 
-    //auto ctx = em_load::FetchContext::create(&data);
-    //em_load::fetch_asset_data_async(ctx);
+    auto ctx = em_load::FetchContext::create(&data);
+    em_load::fetch_asset_data_async(ctx);
 }
 
 #endif
