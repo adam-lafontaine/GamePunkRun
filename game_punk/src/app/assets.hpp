@@ -492,7 +492,7 @@ namespace assets
 }
 
 
-#define GAME_PUNK_EDITING_WASM
+//#define GAME_PUNK_EDITING_WASM
 
 #ifdef GAME_PUNK_EDITING_WASM
 #ifndef GAME_PUNK_WASM
@@ -526,83 +526,13 @@ namespace assets
     constexpr auto GAME_DATA_PATH_FALLBACK = "https://raw.githubusercontent.com/adam-lafontaine/CMS/punk-run-v0.2.0/sm/wasm/punk_run.bin";
 
 
-    
 
 namespace em_load
 {
     using FetchAttr = emscripten_fetch_attr_t;
-    using FetchResponse = emscripten_fetch_t;   
-
-
-    static ByteView make_byte_view(FetchResponse* res)
-    {
-        ByteView bytes;
-        bytes.data = (u8*)res->data;
-        bytes.length = res->numBytes;
-
-        return bytes;
-    }
-
-
-    static void fetch_bin_data_fail(FetchResponse* res)
-    {                
-        auto& data = *(StateData*)(res->userData);
-
-        data.asset_data.bin_file_path = 0;
-        data.asset_data.status = AssetStatus::FailLoad;
-        
-        emscripten_fetch_close(res);
-    }
-
-
-    static void fetch_bin_data_success(FetchResponse* res)
-    {
-        auto& data = *(StateData*)(res->userData);
-
-        auto bytes = make_byte_view(res);
-
-        auto& buffer = data.asset_data.bytes;
-        if (!mb::create_buffer(buffer, bytes.length, fs::get_file_name(res->url)))
-        {
-            emscripten_fetch_close(res);
-            return;
-        }
-
-        span::copy(bytes, span::make_view(buffer));
-
-        emscripten_fetch_close(res);
-
-        bool ok = test_game_assets(data.asset_data);
-        if (!ok)
-        {
-            app_crash("*** Asset tests failed ***");
-            data.asset_data.status = AssetStatus::FailRead;
-            return;
-        }
-        
-        read_game_assets(data);
-    }
-
-
-    static void fetch_bin_data_async(cstr url, StateData& data)
-    {            
-        FetchAttr attr;
-        emscripten_fetch_attr_init(&attr);
-        //stb::qsnprintf(attr.requestMethod, 4, "GET");
-        strcpy(attr.requestMethod, "GET");
-        attr.attributes = EMSCRIPTEN_FETCH_LOAD_TO_MEMORY;
-        attr.userData = (void*)&data;
-        attr.onsuccess = fetch_bin_data_success;
-        attr.onerror = fetch_bin_data_fail;
-
-        emscripten_fetch(&attr, url);
-    }
-
-}
-
-
-namespace em_load
-{
+    using FetchResponse = emscripten_fetch_t;
+    
+    
     class FetchContext
     {
     public:
@@ -628,7 +558,17 @@ namespace em_load
 
 
         static void destroy(FetchContext* ctx) { mem::free(ctx); }
-    };
+    };   
+
+
+    static ByteView make_byte_view(FetchResponse* res)
+    {
+        ByteView bytes;
+        bytes.data = (u8*)res->data;
+        bytes.length = res->numBytes;
+
+        return bytes;
+    }
 
 
     static void process_asset_data_fail(FetchContext* ctx)

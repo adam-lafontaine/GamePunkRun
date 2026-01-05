@@ -450,11 +450,11 @@ int main(int argc, char* argv[])
         return EXIT_FAILURE;
     }
 
-    emscripten_set_main_loop(main_loop, 0, 1);
-
     print_controls();
     print_credits();
     print_messages();
+
+    emscripten_set_main_loop(main_loop, 0, 1);
 
     mv::run_state = RunState::Run;
     
