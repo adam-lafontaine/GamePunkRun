@@ -48,7 +48,7 @@ namespace bg
 
         u32 count = ok;
 
-        util::destroy_color_table(table);
+        table.destroy();
 
         return count;
     }
@@ -78,7 +78,7 @@ namespace bg
         u32 count = 0;
 
         u32 N = res.files.size();
-        MaskImage dst;
+        AlphaFilterImage dst;
 
         for (u32 i = 0; i < N; i++)
         {
@@ -96,7 +96,7 @@ namespace bg
             auto path = out_dir / file.filename();
             bool ok = util::write_image(dst, path);
 
-            util::destroy_image(dst);
+            dst.destroy();
             img::destroy_image(src);
             count += ok;
         }

@@ -360,6 +360,12 @@ namespace image
     }
 
 
+    void fill_row(ImageView const& view, u32 y, Pixel color)
+    {
+        sp::fill_32(row_span(view, y), color);
+    }
+
+
     void fill_row(SubView const& view, u32 y, Pixel color)
     {
         sp::fill_32(row_span(view, y), color);

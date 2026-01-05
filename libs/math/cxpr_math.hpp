@@ -287,12 +287,6 @@ namespace cxpr
     }
 
 
-    inline constexpr bool is_power_of_2(u64 num)
-    {
-        return (num && !(num & (num - 1)));
-    }
-
-
     template <typename SRC, typename DST>
     inline constexpr DST lerp(SRC val, MinMax<SRC> mm_src, MinMax<DST> mm_dst)
     {
@@ -301,6 +295,18 @@ namespace cxpr
         f64 s = val - mm_src.min;        
 
         return mm_dst.min + (DST)(D * s / S);
+    }
+
+
+    inline constexpr bool is_power_of_2(u64 num)
+    {
+        return (num && !(num & (num - 1)));
+    }
+
+
+    inline constexpr bool is_even(u64 num)
+    {
+        return num % 2 == 0;
     }
 }
 }

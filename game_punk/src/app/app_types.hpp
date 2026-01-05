@@ -1,6 +1,7 @@
 #pragma once
 
 #include "../../res/xbin/bin_table.hpp"
+#include "../../../libs/util/stack_buffer.hpp"
 
 
 /* asset constants */
@@ -8,6 +9,7 @@
 namespace game_punk
 {
     namespace bt = bin_table;
+    namespace sb = stack_buffer;
 
 
 namespace cxpr
@@ -50,7 +52,7 @@ namespace cxpr
 
     constexpr Vec2Du32 sky_overlay_dimensions()
     {
-        constexpr bt::InfoList_Image_Sky_Overlay list;
+        constexpr bt::SkyOverlay_overlay list;
 
         Vec2Du32 dims;
         
@@ -72,42 +74,13 @@ namespace cxpr
     }
 
 
+    constexpr u32 BACKGROUND_1_COUNT = bt::Background_Bg1::count;
+    constexpr u32 BACKGROUND_2_COUNT = bt::Background_Bg2::count;
+    constexpr u32 BACKGROUND_COUNT_MAX = math::cxpr::max(BACKGROUND_1_COUNT, BACKGROUND_2_COUNT);
+
 
 } // cxpr    
 
-}
-
-
-/* asset data */
-
-namespace game_punk
-{
-    enum class AssetStatus : u8
-    {
-        None = 0,
-        Loading,
-        Success,
-
-        FailLoad,
-        FailRead
-    };
-
-
-    class AssetData
-    {
-    public:
-        AssetStatus status = AssetStatus::None;
-
-        cstr bin_file_path = 0;
-
-        MemoryBuffer<u8> bytes;
-    };
-
-
-    static void destroy_asset_data(AssetData& gd)
-    {
-        mb::destroy_buffer(gd.bytes);
-    }
 }
 
 
@@ -215,12 +188,31 @@ namespace game_punk
     public:
         static constexpr u32 capacity = 256;
 
-        f32 values[capacity];
+        f32* values;
 
         u8 b_cursor = 0;
         u8 r_cursor = 0;
 
     };
+
+
+    static void count_random(Randomf32& rng, MemoryCounts& counts)
+    {
+        add_count<f32>(counts, rng.capacity);
+    }
+
+
+    static bool create_random(Randomf32& rng, Memory& memory)
+    {
+        auto res = push_mem<f32>(memory, rng.capacity);
+
+        if (res.ok)
+        {
+            rng.values = res.data;
+        }
+
+        return res.ok;
+    }
 
 
     static void reset_random(Randomf32& rng)
@@ -237,7 +229,7 @@ namespace game_punk
     }
 
 
-    static void begin_random_frame(Randomf32& rng)
+    static void refresh_random(Randomf32& rng)
     {
         for (u8 i = rng.b_cursor; i < rng.r_cursor; i++)
         {
@@ -248,15 +240,14 @@ namespace game_punk
     }
 
 
-    template <typename T>
-    T next_random(Randomf32& rng, T min, T max)
+    u32 next_random_u32(Randomf32& rng, u32 min, u32 max)
     {
         auto val = rng.values[rng.r_cursor++];
         app_assert(rng.r_cursor != rng.b_cursor && "*** Frame RNG exceded ***");
 
-        auto delta = val * (max - min);
+        auto delta = val * (max - min) + 0.5f;
 
-        return min + (T)delta;
+        return min + (u32)delta;
     }
 }
 
@@ -285,7 +276,9 @@ namespace game_punk
 
         static constexpr GameTick64 zero() { return make(0u); }
 
-        static constexpr GameTick64 last() { return make((u64)0 - (u64)1); }    
+        static constexpr GameTick64 none() { return make((u64)0 - (u64)1); }
+
+        static constexpr GameTick64 forever() { return make((u64)0 - (u64)2); }
         
 
         GameTick64& operator ++ () { ++value_; return *this; }
@@ -294,6 +287,10 @@ namespace game_punk
         bool operator == (GameTick64 other) const { return value_ == other.value_; }
 
         bool operator >= (GameTick64 other) const { return value_ >= other.value_; }
+        bool operator <= (GameTick64 other) const { return value_ <= other.value_; }
+
+        bool operator < (GameTick64 other) const { return value_ < other.value_; }
+        bool operator > (GameTick64 other) const { return value_ > other.value_; }
         
     };
 
@@ -328,11 +325,15 @@ namespace game_punk
         bool operator >= (TickQty32 other) const { return value_ >= other.value_; }
 
 
-        static TickQty32 random(Randomf32& rng, u32 min, u32 max) { return TickQty32(next_random(rng, min, max)); }
+        static TickQty32 random(Randomf32& rng, u32 min, u32 max) { return TickQty32(next_random_u32(rng, min, max)); }
     };
 
 
     GameTick64 operator + (GameTick64 lhs, TickQty32 rhs) { return GameTick64::make(lhs.value_ + rhs.value_); }
+
+    TickQty32 operator + (TickQty32 lhs, TickQty32 rhs) { return lhs.value_ + rhs.value_; }
+
+    TickQty32 operator - (GameTick64 lhs, GameTick64 rhs) { return lhs.value_ - rhs.value_; }
 
     TickQty32 operator - (GameTick64 lhs, TickQty32 rhs) { return lhs.value_ - rhs.value_; }
 
@@ -343,28 +344,173 @@ namespace game_punk
 
     //bool operator >= (TickQty lhs, u32 rhs) { return lhs.value_ >= (u64)rhs; }
 
-    TickQty32 operator + (TickQty32 lhs, TickQty32 rhs) { return lhs.value_ + rhs.value_; }
+    
 
     TickQty32 operator - (TickQty32 lhs, TickQty32 rhs) { return lhs.value_ - rhs.value_; }
 
 
-    /*class ActiveRef
+    template <typename uT, u64 N>
+    class uN2
     {
+    public:
+        static constexpr uT COUNT = (uT)N;
+        static constexpr uT MAX_VALUE = COUNT - 1;
+
+        static constexpr auto is_valid = math::cxpr::is_unsigned<uT>() && math::cxpr::is_power_of_2(N);
+
     private:
-        u8* ref_ = 0;
+        static uT n2_add(uT a, uT b) { static_assert(is_valid); return (a + b) & MAX_VALUE; }
+        static uT n2_sub(uT a, uT b) { static_assert(is_valid); return (a - b) & MAX_VALUE; }
 
-    public:        
-        void set_ref(u8* ref) { ref_ = ref; }
+    public:
+        uT value_ = 0;
 
-        void set_active(u8 active) { if (ref_) *ref_ = active; }
 
-        void set_on() { if (ref_) *ref_ = 1; }
-        void set_off() { if (ref_) *ref_ = 0; }
+        void reset() 
+        { 
+            static_assert(is_valid);
 
-        bool is_set() { return ref_ && *ref_; }
-        bool is_set() const { return ref_ && *ref_; }
-    };*/
+            value_ = 0; 
+        }
+
+
+        uN2& operator ++ () { value_ = n2_add(value_, 1); return *this; }
+    };
     
+}
+
+
+/* circular buffer */
+
+namespace game_punk
+{
+    template <typename T, u32 COUNT>
+    class RingStackBuffer
+    {
+    public:
+        static constexpr u32 count = COUNT;
+
+        T data[COUNT];
+
+        uN2<u32, COUNT> cursor;
+
+        T& front() { return data[cursor.value_]; }
+
+        void next() { ++cursor; }        
+    };
+
+
+    template <typename T, u32 COUNT>
+    class RandomStackBuffer
+    {
+    public:
+        static constexpr u32 capacity = COUNT;
+
+        u32 size = 0;
+
+        T data[COUNT];
+
+        u32 id = 0;
+
+        T& get(Randomf32& rng) 
+        { 
+            app_assert(size > 0 && "*** size not set ***");
+            app_assert(size <= capacity && "*** size too large ***");
+            id = next_random_u32(rng, 0, size - 1); 
+            return data[id]; 
+        }
+
+        void set(T value) { data[id] = value; }
+    };
+
+
+    
+}
+
+
+/* object table */
+
+namespace game_punk
+{
+    template <typename T, u32 TAG>
+    class ObjectTable
+    {
+    public:
+        static constexpr u32 tag = TAG;
+
+        struct ID { u16 value_; };
+
+        u32 capacity = 0;
+        u32 size = 0;
+
+        T error;
+
+        T* data;
+
+        ID push(T const& obj = {})
+        {
+            ID id;
+            id.value_ = capacity;
+            
+            if (size < capacity)
+            {
+                id.value_ = size;
+                data[size++] = obj;
+            }
+
+            return id;
+        }
+
+
+        T& at(ID id)
+        {
+            if (id.value_ >= capacity)
+            {
+                return error;
+            }
+
+            return data[id.value_];
+        }
+    };
+
+
+    template <typename T, u32 TAG>
+    static void reset_table(ObjectTable<T, TAG>& table)
+    {
+        table.size = 0;
+    }
+
+
+    template <typename T, u32 TAG>
+    static void count_table(ObjectTable<T, TAG>& table, MemoryCounts& counts, u32 capacity)
+    {
+        table.capacity = capacity;
+
+        add_count<T>(counts, capacity);
+    }
+
+
+    template <typename T, u32 TAG>
+    static bool create_table(ObjectTable<T, TAG>& table, Memory& memory)
+    {
+        if (!table.capacity)
+        {
+            app_crash("*** ObjectTable not initialized ***");
+            return false;
+        }
+
+        auto res = push_mem<T>(memory, table.capacity);
+        if (res.ok)
+        {
+            table.data = res.data;
+        }
+
+        return res.ok;
+    }
+
+
+    using BitmapTable = ObjectTable<ImageView, 0>;
+    using BitmapID = BitmapTable::ID;
 }
 
 
@@ -411,21 +557,12 @@ namespace game_punk
 
 
     template <typename T>
-    class ContextVec2D
+    class ContextPosition
     {
     public:
-        union
-        {
-            Vec2D<T> proc;
+        union { Point2D<T> proc; struct { T y; T x; } game; };
 
-            struct { T y; T x; } game;
-        };
-
-
-        ContextVec2D() { proc.x = 0; proc.y = 0; }
-
-
-        ContextVec2D(T x, T y, DimCtx ctx)
+        ContextPosition(T x, T y, DimCtx ctx)
         {
             if (ctx == DimCtx::Proc)
             {
@@ -440,98 +577,30 @@ namespace game_punk
         }
 
 
-        ContextVec2D(Vec2D<T> const& vec, DimCtx ctx)
+        ContextPosition(Vec2D<T> pos, DimCtx ctx)
         {
-            ContextVec2D(vec.x, vec.y, ctx);
+            if (ctx == DimCtx::Proc)
+            {
+                proc.x = pos.x;
+                proc.y = pos.y;
+            }
+            else
+            {
+                game.x = pos.x;
+                game.y = pos.y;
+            }
         }
+
+
+        Vec2D<T> pos_game() { return { game.x, game.y }; }
     };
 
 
-    class GamePosition
-    {
-    public:
-        union
-        {
-            Point2Du64 proc;
+    using GamePosition = ContextPosition<i64>;
+    using ScenePosition = ContextPosition<i32>;
 
-            struct { u64 y; u64 x; } game;
-        };
-
-
-        GamePosition(u64 x, u64 y, DimCtx ctx) 
-        {
-            if (ctx == DimCtx::Proc)
-            {
-                proc.x = x;
-                proc.y = y;
-            }
-            else
-            {
-                game.x = x;
-                game.y = y;
-            }
-        }
-
-
-        static GamePosition zero() { return GamePosition(0, 0, DimCtx::Proc); }
-    };
-
-
-    class BackgroundPosition
-    {
-    public:    
-        union
-        {
-            Point2Di32 proc;
-
-            struct { i32 y; i32 x; } game;
-        };
-
-
-        BackgroundPosition(i32 x, i32 y, DimCtx ctx)
-        {
-            if (ctx == DimCtx::Proc)
-            {
-                proc.x = x;
-                proc.y = y;
-            }
-            else
-            {
-                game.x = x;
-                game.y = y;
-            }
-        }
-    };
-
-
-    class ScreenPosition
-    {
-    public:
-        union
-        {
-            Point2Di32 proc;
-
-            struct { i32 y; i32 x; } game;
-        };
-
-
-        ScreenPosition(i32 x, i32 y, DimCtx ctx)
-        {
-            if (ctx == DimCtx::Proc)
-            {
-                proc.x = x;
-                proc.y = y;
-            }
-            else
-            {
-                game.x = x;
-                game.y = y;
-            }
-        }
-    };    
-
-
-    Point2Di32 delta_pos_px(BackgroundPosition a, BackgroundPosition b)
+    
+    static Point2Di32 delta_pos_px(ScenePosition a, ScenePosition b)
     {
         Point2Di32 p;
         p.x = a.proc.x - b.proc.x;
@@ -541,355 +610,234 @@ namespace game_punk
     }
 
 
-    class ContextRect
-    {
-    public:
-        union
-        {
-            struct { u32 x_begin; u32 x_end; u32 y_begin; u32 y_end; } proc;
-
-            struct { u32 y_begin; u32 y_end; u32 x_begin; u32 x_end; } game;
-        };
-    };
-
-
-    static ContextRect make_rect(ContextDims dims)
-    {
-        ContextRect rect;
-
-        rect.proc.x_begin = 0;
-        rect.proc.y_begin = 0;
-        rect.proc.x_end = dims.proc.width;
-        rect.proc.y_end = dims.proc.height;
-
-        return rect;
-    }
-
-
     constexpr auto BACKGROUND_DIMS = ContextDims(cxpr::GAME_BACKGROUND_WIDTH_PX, cxpr::GAME_BACKGROUND_HEIGHT_PX, DimCtx::Game);
 
     constexpr auto CAMERA_DIMS = ContextDims(cxpr::GAME_CAMERA_WIDTH_PX, cxpr::GAME_CAMERA_HEIGHT_PX, DimCtx::Game);
 
+    constexpr auto SCENE_DIMS = BACKGROUND_DIMS;
+
 
 }
 
 
-#include "image_view.hpp"
-#include "animation.hpp"
-
-
-/* background images */
+/* sprite table */
 
 namespace game_punk
 {
-    class BackgroundState
+    class Sprite
     {
     public:
+        Vec2Di64 game_pos;
+        Vec2Di32 velocity_px;
 
-        SkyAnimation sky;
-
-        BackgroundAnimation bg_1;
-        BackgroundAnimation bg_2;
+        ImageView view;
     };
-
-
-    static void reset_background_state(BackgroundState& bg)
-    {   
-        reset_sky_animation(bg.sky);
-        reset_background_animation(bg.bg_1);
-        reset_background_animation(bg.bg_2);
-
-        bg.bg_2.shift = 1;
-    }
-
-
-    static void count_background_state(BackgroundState& bg, MemoryCounts& counts)
-    {  
-        count_sky_animation(bg.sky, counts);
-        
-        count_background_animation(bg.bg_1, counts);
-        count_background_animation(bg.bg_2, counts);
-    }
-
-
-    static bool create_background_state(BackgroundState& bg_state, Memory& memory)
-    {
-        bool ok = true;
-
-        ok &= create_sky_animation(bg_state.sky, memory);
-
-        ok &= create_background_animation(bg_state.bg_1, memory);
-        ok &= create_background_animation(bg_state.bg_2, memory);
-
-        return ok;
-    }
-
-}
-
-
-/* spritesheet state */
-
-namespace game_punk
-{
-    class SpritesheetState
-    {
-    public:        
-
-        SpritesheetView punk_run;
-    };
-
-
-    static void count_spritesheet_state(SpritesheetState& ss_state, MemoryCounts& counts)
-    {
-        bt::Spriteset_Punk list;
-
-        count_view(ss_state.punk_run, counts, list.file_info.Punk_run);
-    }
-
-
-    static bool create_spritesheet_state(SpritesheetState& ss_state, Memory& memory)
-    {
-        bool ok = true;
-
-        ok &= create_view(ss_state.punk_run, memory);
-
-        return ok;
-    }
-}
-
-
-/* tile state */
-
-namespace game_punk
-{
-    class TileState
-    {
-    public:
-        TileView floor_a;
-        TileView floor_b;
-    };
-
-
-    static void count_tile_state(TileState& tiles, MemoryCounts& counts)
-    {
-        bt::Tileset_ex_zone list;
-        count_view(tiles.floor_a, counts, list.file_info.floor_02);
-        count_view(tiles.floor_b, counts, list.file_info.floor_03);
-    }
-
-
-    static bool create_tile_state(TileState& tiles, Memory& memory)
-    {
-        bool ok = true;
-
-        ok &= create_view(tiles.floor_a, memory);
-        ok &= create_view(tiles.floor_b, memory);
-
-        return ok;
-    }
-}
-
-
-/* ui state */
-
-namespace game_punk
-{
-    class UIState
-    {
-    public:
     
-        static constexpr u32 CTS = cxpr::color_table_size<bt::UIset_Font>();
+    
+    class SpriteTable
+    {
+    public:
+        struct ID { u32 value_ = 0; };
 
-        struct
-        {
-            ImageView title;            
-            
-            SpritesheetView font; // FontView
-            SpritesheetView icons; // IconView
+        u32 capacity = 0;
+        u32 first_id = 0;
 
-            p32 colors[CTS];
-        } data;
+        GameTick64* tick_begin = 0;
+        GameTick64* tick_end = 0;
+        
+        Vec2Di32* velocity_px = 0;
+        Vec2Di64* position = 0;
 
-        MemoryStack<p32> pixels;
-
-        u8 font_color_id;
-
-        struct 
-        {
-            b8 is_on;
-            GameTick64 end_tick;
-
-        } temp_icon;        
+        BitmapID* bitmap_id = 0;
+        
+        GameTick64& tick_begin_at(ID id) { return tick_begin[id.value_]; }
+        //GameTick64& tick_end_at(ID id) { return tick_end[id.value_]; }
+        Vec2Di64& position_at(ID id) { return position[id.value_]; }
+        Vec2Di32& velocity_px_at(ID id) { return velocity_px[id.value_]; }
+        
     };
 
 
-    static void count_ui_state(UIState& ui, MemoryCounts& counts)
+    using SpriteID = SpriteTable::ID;
+
+
+    class SpriteDef
     {
-        bt::UIset_Title title;
-        auto t_info = title.file_info.title_main;
-        count_view(ui.data.title, counts, t_info.width, t_info.height);        
-        
-        bt::UIset_Font font;
-        u32 n_chars = 10 + 26 * 2; // 0-9, A-Z x 2
-        count_view(ui.data.font, counts, font.file_info.font, n_chars);
+    public:
+        GameTick64 tick_begin = GameTick64::none();
+        GameTick64 tick_end = GameTick64::forever();
+        Vec2D<i64> position;
 
-        bt::UIset_Icons icons;
-        count_view(ui.data.icons, counts, icons.file_info.icons);
+        Vec2D<i32> velocity;
+        BitmapID bitmap_id;
 
-        auto length = cxpr::GAME_CAMERA_WIDTH_PX * cxpr::GAME_CAMERA_HEIGHT_PX;
-        count_stack(ui.pixels, counts, length);
+
+        SpriteDef() = delete;
+
+        SpriteDef(GameTick64 begin, Vec2D<i64> pos, BitmapID bmp)
+        {
+            tick_begin = begin;
+            position = pos;
+            bitmap_id = bmp;
+            velocity = {0};
+        }
+    };
+
+
+    static void reset_sprite_table(SpriteTable& table)
+    {
+        table.first_id = 0;
     }
 
 
-    static bool create_ui_state(UIState& ui, Memory& memory)
+    static void count_table(SpriteTable& table, MemoryCounts& counts, u32 capacity)
     {
+        table.capacity = capacity;
+        
+        add_count<GameTick64>(counts, 2 * capacity);
+        add_count<Vec2Di64>(counts, capacity);
+        add_count<Vec2Di32>(counts, capacity);
+        add_count<BitmapID>(counts, capacity);
+    }
+
+
+    static bool create_table(SpriteTable& table, Memory& memory)
+    {
+        if (!table.capacity)
+        {
+            app_crash("*** SpriteTable not initialized ***");
+            return false;
+        }
+
+        auto n = table.capacity;
+
         bool ok = true;
 
-        ok &= create_view(ui.data.title, memory);
-        ok &= create_view(ui.data.font, memory);
-        ok &= create_view(ui.data.icons, memory);
-        ok &= create_stack(ui.pixels, memory);
+        auto tick_begin = push_mem<GameTick64>(memory, n);
+        ok &= tick_begin.ok;
+
+        auto tick_end = push_mem<GameTick64>(memory, n);
+        ok &= tick_end.ok;
+
+        auto position = push_mem<Vec2Di64>(memory, n);
+        ok &= position.ok;
+
+        auto velocity = push_mem<Vec2Di32>(memory, n);
+        ok &= velocity.ok;
+
+        auto bmp = push_mem<BitmapID>(memory, n);
+        ok &= bmp.ok;
+
+        if (ok)
+        {
+            table.tick_begin = tick_begin.data;
+            table.tick_end = tick_end.data;
+            table.position = position.data;
+            table.velocity_px = velocity.data;
+            table.bitmap_id = bmp.data;
+        }
 
         return ok;
     }
 
 
-    static void reset_ui_state(UIState& ui)
+    static SpriteID spawn_sprite(SpriteTable& table, SpriteDef const& def)
     {
-        ui.temp_icon.is_on = 0;
-        ui.temp_icon.end_tick = GameTick64::make(1);
+        auto beg = table.tick_begin;
+        auto end = table.tick_end;
+
+        SpriteID id;
+
+        u32 i = table.first_id;
+        for (; i < table.capacity && beg[i] < end[i]; i++)
+        { }
+
+        id.value_ = i;
+        table.first_id = i;
+        table.tick_begin[i] = def.tick_begin;
+        table.tick_end[i] = def.tick_end;
+        table.position[i] = def.position;
+        table.velocity_px[i] = def.velocity;
+        table.bitmap_id[i] = def.bitmap_id;
+
+        return id;
     }
 
 
-    static void begin_ui_frame(UIState& ui)
+    static void despawn_sprite(SpriteTable& table, SpriteID id)
     {
-        reset_stack(ui.pixels);
-        span::fill(to_span(ui.pixels), COLOR_TRANSPARENT);
+        table.tick_begin_at(id) = GameTick64::none();
+        table.first_id = math::min(id.value_, table.first_id);
     }
 
 
-    static bool set_ui_color(UIState& ui, u8 color_id)
+    static void move_sprites(SpriteTable const& table)
     {
-        bool ok = color_id < ui.CTS;
-        app_assert(ok && "*** Invalid color id ***");
+        auto beg = table.tick_begin;
+        auto end = table.tick_end;
+        auto pos = table.position;
+        auto vel = table.velocity_px;
 
-        auto color = ui.data.colors[color_id];
-        bt::mask_update(to_image_view(ui.data.font), color);
-
-        // temp icon color
-        bt::filter_update(to_image_view(ui.data.icons), color, COLOR_BLACK);
-        ui.font_color_id = color_id;
-
-        return ok;
-    }
-
-
-    static SpriteView get_ui_alpha_num(UIState& ui, u32 set_id, char c)
-    {
-        auto& font = ui.data.font;
-        auto dims = font.bitmap_dims;
-        auto length = dims.proc.width * dims.proc.height;
-
-        auto data = font.data;
-        auto set = (set_id % 2) * 26;
-        int id = 0;
-
-        if ('0' <= c && c <= '9')
+        for (u32 i = 0; i < table.capacity; i++)
         {
-            id = (c - '0');
-            data = font.data + length * id;
+            pos[i].x += vel[i].x;
+            pos[i].y += vel[i].y;
         }
-        else if ('A' <= c && c <= 'Z')
-        {
-            id = 10 + set + (c - 'A');
-            data = font.data + length * id;
-        }
-        else if ('a' <= c && c <= 'z')
-        {
-            id = 10 + set + (c - 'a');
-            data = font.data + length * id;
-        }
-        else
-        {
-            data = 0;
-        }
-
-        SpriteView view;
-        view.dims = dims;
-        view.data = data;
-
-        return view;
-    }
-
-
-    static SpriteView get_ui_icon(UIState& ui, Randomf32& rng, GameTick64 game_tick)
-    {
-        auto& icons = ui.data.icons;
-        auto dims = icons.bitmap_dims;
-        auto width = dims.proc.width;
-        auto height = dims.proc.height;
-        auto length = width * height;
-
-        auto id = 29;
-
-        SpriteView view;
-        view.dims = dims;
-        view.data = push_elements(ui.pixels, length);
-
-        auto dst = to_image_view(view);
-
-        auto do_icon = [&](u8 color_id)
-        {
-            set_ui_color(ui, color_id);
-            auto src = img::make_view(width, height, icons.data); // Frame
-            img::copy_if_alpha(src, dst);
-
-            src.matrix_data_ += id * length; // Icon
-            img::copy_if_alpha(src, dst);
-        };
-
-        auto& icon = ui.temp_icon;
-
-        if (game_tick >= icon.end_tick)
-        {
-            icon.is_on = !icon.is_on;
-
-            auto delta = icon.is_on ? TickQty32::random(rng, 3, 40) : TickQty32::random(rng, 2, 10);
-            icon.end_tick = game_tick + delta;
-        }
-
-        if (icon.is_on)
-        {
-            do_icon(20);
-        }
-        else
-        {
-            do_icon(7);
-        }
-
-        return view;
     }
 }
 
 
-/* screen camera */
+/* game scene */
 
 namespace game_punk
-{ 
-    
-    class ScreenCamera
+{
+    class GameScene
     {
     public:
+        static constexpr auto dims = SCENE_DIMS;
 
+        GamePosition game_position;
+    };
+
+
+    static void reset_game_scene(GameScene& scene)
+    {
+        scene.game_position = GamePosition(0, 0, DimCtx::Game);
+    }
+
+
+    static ScenePosition delta_pos_scene(GamePosition const& pos, GameScene const& scene)
+    {
+        constexpr u32 dmax = 10 * math::cxpr::max(cxpr::GAME_BACKGROUND_WIDTH_PX, cxpr::GAME_BACKGROUND_HEIGHT_PX);
+        
+        auto dx = pos.proc.x - scene.game_position.proc.x;
+        auto dy = pos.proc.y - scene.game_position.proc.y;
+
+        app_assert(math::abs(dx) < dmax && math::abs(dy) < dmax);
+
+        return ScenePosition((i32)dx, (i32)dy, DimCtx::Proc);        
+    }
+}
+
+
+/* scene camera */
+
+namespace game_punk
+{     
+    class SceneCamera
+    {
+    public:
         static constexpr auto dims = CAMERA_DIMS;
 
         p32* pixels;
 
-        BackgroundPosition bg_pos;
+        ScenePosition scene_position;
+
+        u8 speed_px;
     };
 
 
-    static bool init_screen_camera(ScreenCamera& camera, ImageView screen)
+    static bool init_screen_camera(SceneCamera& camera, ImageView screen)
     {
         bool ok = true;
 
@@ -908,33 +856,32 @@ namespace game_punk
     }
 
 
-    static void reset_screen_camera(ScreenCamera& camera)
+    static void reset_screen_camera(SceneCamera& camera)
     {
-        camera.bg_pos = BackgroundPosition(10, 16, DimCtx::Game);
+        camera.scene_position = ScenePosition(10, 16, DimCtx::Game);
+        camera.speed_px = 2;
     }
 
 
-    static void move_camera(ScreenCamera& camera, Vec2Di8 delta_px)
-    {
-        auto max_dims = BACKGROUND_DIMS.game;
+    static void move_camera(SceneCamera& camera, Vec2Di8 delta_px)
+    {        
         auto cam_dims = CAMERA_DIMS.game;
-        auto& pos = camera.bg_pos.game;
+        auto& pos = camera.scene_position.game;
+
+        auto pos_x = (i32)pos.x + delta_px.x;
+        auto pos_y = (i32)pos.y + delta_px.y;
+
+        auto max_dims = SCENE_DIMS.game;
 
         auto x_max = (i32)(max_dims.width - cam_dims.width);
-        auto y_max = (i32)(max_dims.height - cam_dims.height);        
-
-        auto pos_x = (i32)pos.x;
-        auto pos_y = (i32)pos.y;
-
-        pos_x += delta_px.x;
-        pos_y += delta_px.y;
+        auto y_max = (i32)(max_dims.height - cam_dims.height);
 
         pos.x = (u32)math::cxpr::clamp(pos_x, 0, x_max);
         pos.y = (u32)math::cxpr::clamp(pos_y, 0, y_max);
     }
 
 
-    static ImageView to_image_view(ScreenCamera const& camera)
+    static ImageView to_image_view(SceneCamera const& camera)
     {
         ImageView view;
 
@@ -948,7 +895,7 @@ namespace game_punk
     }
 
 
-    static Span32 to_span(ScreenCamera const& camera)
+    static Span32 to_span(SceneCamera const& camera)
     {
         Span32 view;
         auto dims = CAMERA_DIMS.proc;
@@ -959,164 +906,164 @@ namespace game_punk
 }
 
 
-/* draw */
+/* asset data */
 
 namespace game_punk
 {
-    class DrawQueue
+    enum class AssetStatus : u8
     {
-    public:
+        None = 0,
+        Loading,
+        Success,
 
-        static constexpr u32 capacity = 50;
-        u32 size = 0;
-
-        SubView src[capacity];
-        SubView dst[capacity];
+        FailLoad,
+        FailRead
     };
 
 
-    /*void count_draw(DrawQueue& dq, MemoryCounts& counts, u32 capacity)
+    class AssetData
     {
-        dq.capacity = capacity;
-        add_count<SubView>(counts, 2 * capacity);
+    public:
+        AssetStatus status = AssetStatus::None;
+
+        cstr bin_file_path = 0;
+
+        MemoryBuffer<u8> bytes;
+    };
+
+
+    static void destroy_asset_data(AssetData& gd)
+    {
+        mb::destroy_buffer(gd.bytes);
     }
 
 
-    bool create_draw(DrawQueue& dq, Memory& mem)
+    class LoadContext
+    {
+    public:
+        ImageView dst;
+        p32 color = COLOR_BLACK;
+        u32 item_id = 0;
+    };
+    
+    
+    using OnAssetLoad = void (*)(Buffer8 const&, LoadContext const&);
+
+    
+    class LoadAssetCommand
+    {
+    public:
+        b8 is_active = 0;
+
+        LoadContext ctx;
+
+        OnAssetLoad on_load;
+    };
+    
+    
+    class LoadAssetQueue
+    {
+    public:
+        u32 capacity = 0;
+        u32 size = 0;
+
+        LoadAssetCommand* commands;
+    };
+
+
+    void count_queue(LoadAssetQueue& q, MemoryCounts& counts, u32 capacity)
+    {
+        q.capacity = capacity;
+        add_count<LoadAssetCommand>(counts, capacity);
+    }
+
+
+    bool create_queue(LoadAssetQueue& q, Memory& mem)
     {      
-        if (!dq.capacity)
+        if (!q.capacity)
         {
-            app_assert("DrawQueue not initialized" && false);
+            app_assert("LoadAssetQueue not initialized" && false);
             return false;
         }
 
-        auto res_src = push_mem<SubView>(mem, dq.capacity);
-        auto res_dst = push_mem<SubView>(mem, dq.capacity);
+        auto res = push_mem<LoadAssetCommand>(mem, q.capacity);
 
-        auto ok = res_src.ok && res_dst.ok;
+        auto ok = res.ok;
 
         if (ok)
         {
-            dq.src = res_src.data;
-            dq.dst = res_dst.data;
+            q.commands = res.data;
         }
 
         return ok;
-    }*/
-
-
-    static void draw(DrawQueue const& dq)
-    {
-        for (u32 i = 0; i < dq.size; i++)
-        {
-            img::copy_if_alpha(dq.src[i], dq.dst[i]);
-        }
     }
 
 
-    static void reset_draw(DrawQueue& dq)
+    static void push_load(LoadAssetQueue& q, LoadAssetCommand cmd)
     {
-        dq.size = 0;
+        auto i = q.size;
+
+        if (i < q.capacity && cmd.is_active)
+        {
+            q.commands[i] = cmd;
+            q.size++;
+        }        
     }
 
 
-    static void push_draw_view(DrawQueue& dq, ImageView const& bmp, ImageView const& out, Point2Di32 out_pos)
+    static void load_all(AssetData const& src, LoadAssetQueue& q)
     {
-        if (!bmp.matrix_data_)
+        for (u32 i = 0; i < q.size; i++)
         {
-            return;
+            auto& cmd = q.commands[i];            
+            cmd.on_load(src.bytes, cmd.ctx);
         }
 
-        i32 w = (i32)out.width;
-        i32 h = (i32)out.height;
-        i32 x = out_pos.x;
-        i32 y = out_pos.y;
-
-        Rect2Di32 screen_rect{};
-        screen_rect.x_begin = 0;
-        screen_rect.y_begin = 0;
-        screen_rect.x_end = w;
-        screen_rect.y_end = h;
-
-        Rect2Di32 dst_rect{};
-        dst_rect.x_begin = x;
-        dst_rect.y_begin = y;
-        dst_rect.x_end = x + bmp.width;
-        dst_rect.y_end = y + bmp.height;
-
-        if (!rect_intersect(screen_rect, dst_rect))
-        {
-            return;
-        }
-
-        auto dr = clamp_rect(dst_rect, screen_rect);
-
-        Rect2Du32 sr{};
-        sr.x_begin = (u32)math::max(0 - x, 0);
-        sr.y_begin = (u32)math::max(0 - y, 0);
-        sr.x_end = sr.x_begin + dr.x_end - dr.x_begin;
-        sr.y_end = sr.y_begin + dr.y_end - dr.y_begin;
-
-        auto i = dq.size;
-        dq.size++;
-
-        app_assert(dq.size <= dq.capacity && "Draw capacity");
-
-        dq.src[i] = img::sub_view(bmp, sr);
-        dq.dst[i] = img::sub_view(out, dr);
-    }
-   
-
-    static void push_draw(DrawQueue& dq, BackgroundView const& bg, ScreenCamera const& camera)
-    {
-        auto bmp = to_image_view(bg);
-        auto out = to_image_view(camera);
-
-        BackgroundPosition pos(0, 0, DimCtx::Proc);
-
-        auto p = delta_pos_px(pos, camera.bg_pos);
-
-        push_draw_view(dq, bmp, out, p);
-    }
-    
-    
-    static void push_draw(DrawQueue& dq, SpriteView const& sprite, BackgroundPosition pos, ScreenCamera const& camera)
-    {
-        auto bmp = to_image_view(sprite);
-        auto out = to_image_view(camera);
-        auto p = delta_pos_px(pos, camera.bg_pos);
-
-        push_draw_view(dq, bmp, out, p);
+        q.size = 0;
     }
 
 
-    static void push_draw(DrawQueue& dq, TileView const& tile, BackgroundPosition pos, ScreenCamera const& camera)
+    template <class LIST>
+    static void load_background_image(Buffer8 const& buffer, LoadContext const& ctx)
     {
-        auto bmp = to_image_view(tile);
-        auto out = to_image_view(camera);
-        auto p = delta_pos_px(pos, camera.bg_pos);
+        constexpr LIST list;
 
-        push_draw_view(dq, bmp, out, p);
+        auto item = static_cast<LIST::Items>(ctx.item_id);
+        auto filter = list.read_alpha_filter_item(buffer, item);
+        bt::alpha_filter_convert(filter, ctx.dst, ctx.color);
+        filter.destroy();
+
+        //img::fill_row(ctx.dst, 0, img::to_pixel(255, 0, 0));
     }
 
 
-    static void push_draw(DrawQueue& dq, BackgroundPartPair const& pair, ScreenCamera const& camera)
+    template <class LIST>
+    static void load_spritesheet_image(Buffer8 const& buffer, LoadContext const& ctx)
     {
-        auto out = to_image_view(camera);
+        constexpr LIST list;
 
-        auto pos = BackgroundPosition(0, 0, DimCtx::Proc);
-        auto p = delta_pos_px(pos, camera.bg_pos);
-        auto bmp = to_image_view_first(pair);
+        auto table = list.read_table(buffer);
+        auto item = static_cast<LIST::Items>(ctx.item_id);
+        auto filter = list.read_table_filter_item(buffer, item);
+        bt::color_table_convert(filter, table, ctx.dst);
 
-        push_draw_view(dq, bmp, out, p);
+        table.destroy();
+        filter.destroy();
+    }
 
-        pos.proc.y = pair.height1;
-        p = delta_pos_px(pos, camera.bg_pos);
-        bmp = to_image_view_second(pair);
-        if (bmp.height)
-        {
-            push_draw_view(dq, bmp, out, p);
-        }
+
+    template <class LIST>
+    static void load_tile_image(Buffer8 const& buffer, LoadContext const& ctx)
+    {
+        constexpr LIST list;
+
+        auto table = list.read_table(buffer);
+        auto item = static_cast<LIST::Items>(ctx.item_id);
+        auto filter = list.read_table_filter_item(buffer, item);
+        bt::color_table_convert(filter, table, ctx.dst);
+
+        table.destroy();
+        filter.destroy();
     }
 }
 
@@ -1175,19 +1122,12 @@ namespace game_punk
         InputCommand cmd;
 
         cmd.camera.move = 0;
-        /*cmd.camera.north = input.keyboard.kbd_up.is_down;
+        cmd.camera.north = input.keyboard.kbd_up.is_down;
         cmd.camera.south = input.keyboard.kbd_down.is_down;
         cmd.camera.east = input.keyboard.kbd_right.is_down;
-        cmd.camera.west = input.keyboard.kbd_left.is_down;*/
+        cmd.camera.west = input.keyboard.kbd_left.is_down;
 
-        cmd.text.changed = 0;
-        cmd.text.up = input.keyboard.npd_plus.pressed;
-
-        cmd.icon.move = 0;
-        cmd.icon.north = input.keyboard.kbd_up.pressed;
-        cmd.icon.south = input.keyboard.kbd_down.pressed;
-        cmd.icon.east = input.keyboard.kbd_right.pressed;
-        cmd.icon.west = input.keyboard.kbd_left.pressed;
+        cmd.camera.move = 0; // disable
 
         return cmd;
     }

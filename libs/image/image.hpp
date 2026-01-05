@@ -443,6 +443,8 @@ namespace image
     void fill_blend(SubView const& view, Pixel color);
 
 
+    void fill_row(ImageView const& view, u32 y, Pixel color);
+    
     void fill_row(SubView const& view, u32 y, Pixel color);
 
     void fill_row_blend(SubView const& view, u32 y, Pixel color);
