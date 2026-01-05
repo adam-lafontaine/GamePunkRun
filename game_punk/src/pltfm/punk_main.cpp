@@ -45,7 +45,7 @@ namespace mv
     input::InputArray input;
 
     game::AppState app_state;
-    Stopwatch frame_sw;    
+    Stopwatch frame_sw;
 
     constexpr int MAIN_ERROR = 1;
     constexpr int MAIN_OK = 0;
@@ -230,9 +230,6 @@ void main_close()
 
 static void main_loop()
 {
-    Stopwatch sw;
-    sw.start();
-
     while(is_running())
     {
         input::record_input(mv::input);
