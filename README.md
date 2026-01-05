@@ -16,6 +16,7 @@ Position is the game tick
 * [ ] Refactor font and icons
 * [ ] Name UI icons
 * [ ] Allocator for stbi/assets
+* [ ] Automate release builds
 
 
 ### v0.2.0
@@ -23,7 +24,7 @@ Position is the game tick
 * [x] Randomized backgrounds
 * [x] Dynamically load backgrounds
 * [x] Moving sprites, tiles
-* [ ] Automate release builds
+* [ ] Fallback web assets url
 * [ ] Release files
 * [ ] Itch.io
 * [ ] CMS page

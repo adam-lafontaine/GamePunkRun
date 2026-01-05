@@ -211,7 +211,7 @@ namespace game_punk
 
     static bool set_ui_color(UIState& ui, u8 color_id)
     {
-        bool ok = color_id < ui.CTS;
+        bool ok = color_id < (ui.CTS - 1);
         app_assert(ok && "*** Invalid color id ***");
 
         /*auto color = ui.data.colors[color_id];
