@@ -678,6 +678,8 @@ namespace game_punk
     static void reset_sprite_table(SpriteTable& table)
     {
         table.first_id = 0;
+
+        span::fill(span::make_view(table.tick_begin, table.capacity), GameTick64::none());
     }
 
 
