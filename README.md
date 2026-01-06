@@ -24,8 +24,8 @@ https://itch.io/c/2053292/cyberpunk-pixel-art
 * [x] Dynamically load backgrounds
 * [x] Moving sprites, tiles
 * [x] Fallback web assets url
-* [ ] Release files
-* [ ] Itch.io
+* [x] Release files
+* [x] Itch.io
 * [ ] CMS page
 
 
