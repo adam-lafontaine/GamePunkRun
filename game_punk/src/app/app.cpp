@@ -75,7 +75,6 @@ namespace game_punk
     enum class GameMode : int
     {
         Error,
-        Loading,
         Title,
         Gameplay
     };
@@ -264,7 +263,6 @@ namespace game_punk
     static void set_game_mode(StateData& data, GameMode mode);
 }
 
-#include "gm_load.hpp"
 #include "gm_title.hpp"
 #include "gm_gameplay.hpp"
 
@@ -279,11 +277,6 @@ namespace game_punk
         switch (mode)
         {
         case GameMode::Error:
-            break;
-
-        case GameMode::Loading:
-            app_log("Loading\n");
-            gm_load::init(data);
             break;
 
         case GameMode::Title:
@@ -309,10 +302,6 @@ namespace game_punk
         {
         case GM::Error:
             app_crash("GameMode::Error\n");
-            break;
-
-        case GameMode::Loading:
-            gm_load::update(data, cmd);
             break;
 
         case GM::Title:
@@ -352,11 +341,9 @@ namespace game_punk
 
     static void render_screen(StateData& data)
     {
-        auto s = to_span(data.camera);
-        span::fill(s, COLOR_TRANSPARENT);
-
         draw(data.drawq);
 
+        auto s = to_span(data.camera);
         for (u32 i = 0; i < s.length; i++)
         {
             s.data[i].alpha = 255;
@@ -467,7 +454,7 @@ namespace game_punk
 
         app_assert(ok && "*** Error set_screen_memory ***");
 
-        set_game_mode(data, GameMode::Loading);
+        set_game_mode(data, GameMode::Title);
 
         return ok;
     }

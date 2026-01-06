@@ -28,7 +28,10 @@ namespace gm_title
 {
     static void init(StateData& data)
     {
-        
+        if (data.asset_data.status != AssetStatus::Success)
+        {
+            assets::load_game_assets(data);
+        }
     }
 
 
@@ -39,6 +42,18 @@ namespace gm_title
         auto& camera = data.camera;
 
         internal::draw_centered(dq, src, camera);
+
+        switch (data.asset_data.status)
+        {
+        case AssetStatus::None:
+        case AssetStatus::FailLoad:
+        case AssetStatus::FailRead:
+            set_game_mode(data, GameMode::Error);
+            break;
+
+        default:
+            break;
+        }
         
         auto gameplay_ready = data.asset_data.status == AssetStatus::Success;
         if (gameplay_ready && cmd.title_ok)
