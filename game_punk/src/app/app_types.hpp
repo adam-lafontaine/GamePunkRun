@@ -623,16 +623,7 @@ namespace game_punk
 /* sprite table */
 
 namespace game_punk
-{
-    class Sprite
-    {
-    public:
-        Vec2Di64 game_pos;
-        Vec2Di32 velocity_px;
-
-        ImageView view;
-    };
-    
+{    
     
     class SpriteTable
     {
