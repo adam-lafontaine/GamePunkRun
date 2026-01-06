@@ -77,6 +77,7 @@ namespace game_punk
         Error,
         Loading,
         Title,
+        Gameplay
     };
 
 
@@ -298,19 +299,6 @@ namespace game_punk
     }
 
 
-    static void update_text_color(StateData& data, InputCommand const& cmd)
-    {
-        auto N = data.ui.CTS;
-        auto id = data.ui.font_color_id;
-
-        if (cmd.text.changed)
-        {
-            id += (u8)cmd.text.up;
-            set_ui_color(data.ui, (id % N));     
-        }
-    }
-
-
     static void update_animation_bitmaps(StateData& data)
     {
         auto time = data.game_tick - data.sprites.tick_begin_at(data.punk_sprite);
@@ -428,6 +416,10 @@ namespace game_punk
 
         case GameMode::Title:
             app_log("Title\n");
+            break;
+
+        case GameMode::Gameplay:
+            app_log("Gameplay\n");
             set_animation_spritesheet(data.punk_animation, data.spritesheet.punk_run);
             data.game_tick = GameTick64::zero();
             break;
@@ -458,8 +450,18 @@ namespace game_punk
     
     static void update_title(StateData& data, InputCommand const& cmd)
     {
+        auto gameplay_ready = data.asset_data.status == AssetStatus::Success;
+
+        if (gameplay_ready && cmd.title_ok)
+        {
+            set_game_mode(data, GameMode::Gameplay);
+        }
+    }
+
+
+    static void update_gameplay(StateData& data, InputCommand const& cmd)
+    {
         update_game_camera(data, cmd);
-        update_text_color(data, cmd);
 
         move_sprites(data.sprites);
 
@@ -489,6 +491,10 @@ namespace game_punk
 
         case GM::Title:
             update_title(data, cmd);
+            break;
+
+        case GM::Gameplay:
+            update_gameplay(data, cmd);
             break;
         }
     }

@@ -1075,51 +1075,32 @@ namespace game_punk
     class InputCommand
     {
     public:
+        
+        // title
+        b8 title_ok = 0;
+    
+        // gameplay
         union
         {
-            b32 move = 0;
+            b8 move = 0;
 
             struct
             {
-                b8 north;
-                b8 south;
-                b8 east;
-                b8 west;
+                b8 north : 1;
+                b8 south : 1;
+                b8 east : 1;
+                b8 west : 1;
             };
 
         } camera;
-
-        union
-        {
-            b32 changed = 0;
-
-            struct 
-            {
-                b8 up;
-            };
-
-        } text;
-
-
-        union
-        {
-            b32 move = 0;
-
-            struct
-            {
-                b8 north;
-                b8 south;
-                b8 east;
-                b8 west;
-            };
-
-        } icon;
     };
 
 
     static InputCommand map_input(Input const& input)
     {
         InputCommand cmd;
+
+        cmd.title_ok = input.keyboard.kbd_return.pressed;
 
         cmd.camera.move = 0;
         cmd.camera.north = input.keyboard.kbd_up.is_down;
