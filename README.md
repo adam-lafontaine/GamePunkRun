@@ -26,7 +26,7 @@ https://itch.io/c/2053292/cyberpunk-pixel-art
 * [x] Fallback web assets url
 * [x] Release files
 * [x] Itch.io
-* [ ] CMS page
+* [x] CMS page
 
 
 ### v0.1.2
