@@ -50,6 +50,8 @@ namespace mv
     constexpr int MAIN_ERROR = 1;
     constexpr int MAIN_OK = 0;
 
+    constexpr u32 GAME_SCALE = 2;
+
 #ifdef APP_ROTATE_90
     constexpr window::Rotate GAME_ROTATE = window::Rotate::CounterClockwise_90;
 #endif
@@ -92,8 +94,8 @@ static bool window_create(Vec2Du32 game_dims)
 #ifdef APP_ROTATE_90
 
     // rotated
-    auto w = game_dims.y;
-    auto h = game_dims.x;
+    auto w = game_dims.y * mv::GAME_SCALE;
+    auto h = game_dims.x * mv::GAME_SCALE;
 
     Vec2Du32 window_dims = {
         w > WINDOW_WIDTH ? w : WINDOW_WIDTH,
@@ -104,8 +106,8 @@ static bool window_create(Vec2Du32 game_dims)
 
 #else
     
-    auto w = game_dims.x;
-    auto h = game_dims.y;
+    auto w = game_dims.x * mv::GAME_SCALE;
+    auto h = game_dims.y * mv::GAME_SCALE;
 
     Vec2Du32 window_dims = {
         w > WINDOW_WIDTH ? w : WINDOW_WIDTH,

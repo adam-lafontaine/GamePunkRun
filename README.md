@@ -14,8 +14,8 @@ https://itch.io/c/2053292/cyberpunk-pixel-art
 * [ ] Refactor font and icons
 * [ ] Name UI icons
 * [ ] Allocator for stbi/assets
-* [ ] Automate release builds
 * [ ] Version check binary data
+* [ ] Automate release builds
 
 
 ### v0.2.0

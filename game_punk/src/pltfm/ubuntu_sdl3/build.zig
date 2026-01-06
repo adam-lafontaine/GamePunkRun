@@ -69,8 +69,12 @@ pub fn build(b: *std.Build) void
         "punk_run.bin",
     );
     b.getInstallStep().dependOn(&copy_data.step);
-    
-    
+
+    // zig build run
+    const run_step = b.step("run", "Run");
+    const run_cmd = b.addRunArtifact(exe);
+    if (b.args) |args| run_cmd.addArgs(args);
+    run_step.dependOn(&run_cmd.step);    
 }
 
 // zig build -Doptimize=Debug          # full debug symbols, no -O3, assertions on
