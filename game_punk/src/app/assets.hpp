@@ -520,10 +520,10 @@ namespace assets
 #ifdef GAME_PUNK_ASSETS_WEB
 
     // itch.io
-    constexpr auto GAME_DATA_PATH = "./punk_run.bin";
+    constexpr auto GAME_DATA_PATH_FALLBACK = "./punk_run.bin";
     
     // almostalwaysadam.com
-    constexpr auto GAME_DATA_PATH_FALLBACK = "https://raw.githubusercontent.com/adam-lafontaine/CMS/punk-run-v0.2.0/sm/wasm/punk_run.bin";
+    constexpr auto GAME_DATA_PATH = "https://raw.githubusercontent.com/adam-lafontaine/CMS/punk-run-v0.2.0/sm/wasm/punk_run.bin";
 
 
 
