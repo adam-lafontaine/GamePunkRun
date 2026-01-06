@@ -7,8 +7,6 @@ https://itch.io/c/2053292/cyberpunk-pixel-art
 
 ## Notes
 
-Position is the game tick
-
 
 ## Change Log
 
@@ -16,6 +14,8 @@ Position is the game tick
 * [ ] Refactor font and icons
 * [ ] Name UI icons
 * [ ] Allocator for stbi/assets
+* [ ] Version check binary data
+* [ ] Automate release builds
 
 
 ### v0.2.0
@@ -23,10 +23,10 @@ Position is the game tick
 * [x] Randomized backgrounds
 * [x] Dynamically load backgrounds
 * [x] Moving sprites, tiles
-* [ ] Automate release builds
-* [ ] Release files
-* [ ] Itch.io
-* [ ] CMS page
+* [x] Fallback web assets url
+* [x] Release files
+* [x] Itch.io
+* [x] CMS page
 
 
 ### v0.1.2

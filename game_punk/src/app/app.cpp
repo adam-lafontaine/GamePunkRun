@@ -614,19 +614,14 @@ namespace game_punk
 
     void update(AppState& state, input::Input const& input)
     {
-        auto& data = get_data(state);
-        
+        auto& data = get_data(state);        
         begin_update(data);
-
         auto cmd = map_input(input);
-
         game_mode_update(data, cmd);
-
         render_screen(data);
-
         end_update(data);
 
-        app_crash("*** Update not implemented ***");
+        //app_crash("*** Update not implemented ***");
     }
 
 
@@ -679,16 +674,11 @@ namespace game_punk
 
     void update_dbg(AppState& state, input::Input const& input, DebugContext const& dbg)
     {
-        auto& data = get_data(state);
-        
+        auto& data = get_data(state);        
         begin_update(data);
-
         auto cmd = map_input(input);
-
         game_mode_update(data, cmd);
-
         render_screen(data);
-
         end_update(data);
     }
 

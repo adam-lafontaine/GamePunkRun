@@ -17,9 +17,15 @@ namespace game = game_punk;
 
 constexpr auto WINDOW_TITLE = game::APP_TITLE;
 //constexpr f32 WINDOW_SCALE = 0.5f;
+
+constexpr f64 NANO = 1'000'000'000;
+constexpr f64 MICRO = 1'000'000;
+
 constexpr f64 TARGET_FRAMERATE_HZ = 60.0;
+constexpr f64 TARGET_NS_PER_FRAME = NANO / TARGET_FRAMERATE_HZ;
+constexpr f64 TARGET_MS_PER_FRAME = TARGET_NS_PER_FRAME / MICRO;
 
-
+using Stopwatch = dt::StopwatchNS;
 
 
 
@@ -103,6 +109,7 @@ namespace mv
     EmControllerState em_controller{};
 
     game::AppState app_state;
+    Stopwatch frame_sw;
 
 #ifdef APP_ROTATE_90
     constexpr window::Rotate GAME_ROTATE = window::Rotate::CounterClockwise_90;
@@ -175,6 +182,22 @@ void end_program()
 static inline bool is_running()
 {
     return mv::run_state != RunState::End;
+}
+
+
+static void cap_framerate()
+{
+    constexpr f64 fudge = 0.9;
+
+    auto ns = mv::frame_sw.get_time_nano_f64();
+
+    auto sleep_ns = TARGET_NS_PER_FRAME - ns;
+    if (sleep_ns > 0.0)
+    {
+        dt::delay_nano((u64)(sleep_ns * fudge));
+    }
+    
+    mv::frame_sw.start();
 }
 
 
@@ -251,9 +274,8 @@ static bool main_init(InitParams const& params)
 {
 #ifndef NDEBUG
     auto ts = dt::current_timestamp_i64();
-    ts &= 0xFFFF;
 
-    printf("%d\n", (int)ts);
+    printf("0x%llx\n", ts);
 #endif    
     
     if (!window::init())
@@ -319,12 +341,13 @@ static void main_loop()
 
     window_render(input.window_size_changed);
 
-    mv::input.swap();
-
     if (!is_running())
     {
         emscripten_cancel_main_loop();
     }
+
+    mv::input.swap();
+    cap_framerate();
 }
 
 
@@ -420,6 +443,8 @@ int main(int argc, char* argv[])
 
     printf("\n%s v%s | %s\n\n", game::APP_TITLE, game::VERSION, game::DATE);
 
+    
+
     if (!main_init(params))
     {
         return EXIT_FAILURE;
@@ -429,9 +454,9 @@ int main(int argc, char* argv[])
     print_credits();
     print_messages();
 
-    mv::run_state = RunState::Run;
+    emscripten_set_main_loop(main_loop, 0, 1);
 
-    emscripten_set_main_loop(main_loop, 60, 1);
+    mv::run_state = RunState::Run;
     
     main_close();
 
