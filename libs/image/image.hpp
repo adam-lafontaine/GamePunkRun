@@ -24,31 +24,10 @@ namespace image
     };
 
     //using Pixel = RGBAu8;
-    //using Image = Matrix2D<Pixel>;
+    using Image = Matrix2D<Pixel>;
     using ImageView = MatrixView2D<Pixel>;    
-    //using ImageGray = Matrix2D<u8>;
+    using ImageGray = Matrix2D<u8>;
     using GrayView = MatrixView2D<u8>;
-
-    class Image
-    {
-    public:
-        Pixel* data_ = 0;
-        u32 width = 0;
-        u32 height = 0;
-
-        u64 handle = 0;
-    };
-
-
-    class ImageGray
-    {
-    public:
-        u8* data_ = 0;
-        u32 width = 0;
-        u32 height = 0;
-
-        u64 handle = 0;
-    };
 
 
     bool create_image(Image& image, u32 width, u32 height);

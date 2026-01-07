@@ -17,13 +17,14 @@ namespace image
 {
     bool create_image(Image& image, u32 width, u32 height)
     {
-        auto data = mem::alloc<Pixel>(width * height, "create_image");
+        //auto data = mem::alloc<Pixel>(width * height, "create_image");
+        auto data = mem::alloc_stbi(width * height * sizeof(Pixel));
         if (!data)
         {
             return false;
         }
 
-        image.data_ = data;
+        image.data_ = (Pixel*)data;
         image.width = width;
         image.height = height;
 
@@ -35,7 +36,7 @@ namespace image
     {
         if (image.data_)
 		{
-			mem::free(image.data_);
+			mem::free_stbi(image.data_);
 			image.data_ = 0;
 		}
 
@@ -46,13 +47,14 @@ namespace image
 
     bool create_image(ImageGray& image, u32 width, u32 height)
     {
-        auto data = mem::alloc<u8>(width * height, "create_image");
+        //auto data = mem::alloc<u8>(width * height, "create_image");
+        auto data = mem::alloc_stbi(width * height);
         if (!data)
         {
             return false;
         }
 
-        image.data_ = data;
+        image.data_ = (u8*)data;
         image.width = width;
         image.height = height;
 
@@ -64,7 +66,7 @@ namespace image
     {
         if (image.data_)
 		{
-			mem::free(image.data_);
+			mem::free_stbi(image.data_);
 			image.data_ = 0;
 		}
 
@@ -2267,7 +2269,7 @@ namespace image
 			return false;
 		}
 
-        auto len = (u32)(width * height);
+        /*auto len = (u32)(width * height);
         auto aligned = mem::alloc<Pixel>(len, "img file");
 
         auto src = span::make_view((Pixel*)data, len);
@@ -2277,7 +2279,10 @@ namespace image
 
         mem::free_any((void*)data);
 
-		image_dst.data_ = aligned;
+		image_dst.data_ = aligned;*/
+
+
+		image_dst.data_ = (Pixel*)data;
 		image_dst.width = width;
 		image_dst.height = height;
 
@@ -2313,7 +2318,7 @@ namespace image
 			return false;
 		}
 
-		auto len = (u32)(width * height);
+		/*auto len = (u32)(width * height);
         auto aligned = mem::alloc<Pixel>(len, "img mem");
 
         auto src = span::make_view((Pixel*)data, len);
@@ -2323,7 +2328,9 @@ namespace image
 
         mem::free_any((void*)data);
 
-		image_dst.data_ = aligned;
+		image_dst.data_ = aligned;*/
+
+        image_dst.data_ = (Pixel*)data;
 		image_dst.width = width;
 		image_dst.height = height;
 
@@ -2408,17 +2415,18 @@ namespace image
 			return false;
 		}
 
-        auto len = (u32)(width * height);
+        /*auto len = (u32)(width * height);
         auto aligned = mem::alloc<u8>(len, "img file");
 
         auto src = span::make_view((u8*)data, len);
         auto dst = span::make_view(aligned, len);
 
         span::copy(src, dst);
-
         mem::free_any((void*)data);
 
-		image_dst.data_ = aligned;
+		image_dst.data_ = aligned;*/
+
+        image_dst.data_ = (u8*)data;
 		image_dst.width = width;
 		image_dst.height = height;
 
@@ -2454,7 +2462,7 @@ namespace image
 			return false;
 		}
 
-		auto len = (u32)(width * height);
+		/*auto len = (u32)(width * height);
         auto aligned = mem::alloc<u8>(len, "img mem");
 
         auto src = span::make_view((u8*)data, len);
@@ -2464,7 +2472,9 @@ namespace image
 
         mem::free_any((void*)data);
 
-		image_dst.data_ = aligned;
+		image_dst.data_ = aligned;*/
+
+		image_dst.data_ = (u8*)data;
 		image_dst.width = width;
 		image_dst.height = height;
 
