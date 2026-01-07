@@ -132,7 +132,6 @@ namespace mem
     {
         cstr type_name = 0;
         u32 element_size = 0;
-        u32 max_allocations = 0;
 
         u32 bytes_allocated = 0;
         u32 elements_allocated = 0;
@@ -148,7 +147,6 @@ namespace mem
     {
         cstr type_name = 0;
         u32 element_size = 0;
-        u32 max_allocations = 0;
 
         u32 n_items = 0;
 

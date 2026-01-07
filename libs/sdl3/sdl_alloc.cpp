@@ -173,6 +173,21 @@ namespace mem
     {
         alloc_type_log("untag_memory(%p, %u)\n", ptr, element_size);
     }
+
+
+    namespace mem
+{
+    void* alloc_memory(u32 n_bytes, Alloc type)
+    {
+        return alloc_any(n_bytes, 1u);
+    }
+
+
+    void free_memory(void* ptr, Alloc type)
+    {
+        free_any(ptr);
+    }
+}
 }
 
 #else

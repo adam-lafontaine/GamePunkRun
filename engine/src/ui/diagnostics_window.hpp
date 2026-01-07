@@ -58,7 +58,6 @@ namespace ui
             int expand_action = -1;
 
             u32 total_alloc = 0;
-            u32 total_max_alloc = 0;
             u64 total_bytes = 0;
 
             auto const setup_columns = []()
@@ -74,13 +73,12 @@ namespace ui
                 auto status = mem::query_status(type);
 
                 total_alloc += status.n_allocations;
-                total_max_alloc += status.max_allocations;
                 total_bytes += status.bytes_allocated;
 
                 ImGui::TableNextRow();
 
                 ImGui::TableSetColumnIndex(col_alloc);
-                ImGui::Text("%u/%u", status.n_allocations, status.max_allocations);
+                ImGui::Text("%u", status.n_allocations);
 
                 ImGui::TableSetColumnIndex(col_bytes);
                 bytes_text(status.bytes_allocated);
@@ -126,7 +124,7 @@ namespace ui
                 ImGui::Text("   Total");
                 
                 ImGui::TableSetColumnIndex(col_alloc);
-                ImGui::Text("%u/%u", total_alloc, total_max_alloc);
+                ImGui::Text("%u", total_alloc);
 
                 ImGui::TableSetColumnIndex(col_bytes);
                 bytes_text(total_bytes);
@@ -233,7 +231,7 @@ namespace ui
 
                             ImGui::TableSetColumnIndex(col_allocs);
                             ImGui::TableSetBgColor(ImGuiTableBgTarget_CellBg, cell_bg_color);
-                            ImGui::Text("%u/%u", hist.n_allocs[i], hist.max_allocations);
+                            ImGui::Text("%u", hist.n_allocs[i]);
                         }
 
                         ImGui::TreePop();

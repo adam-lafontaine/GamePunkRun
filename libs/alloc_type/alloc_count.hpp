@@ -15,13 +15,12 @@
 #include "../span/span.hpp"
 
 #include <vector>
+#include <unordered_map>
 
 
 namespace counts
 {
     constexpr auto NO_TAG = "no tag";
-
-    constexpr u32 MAX_SLOTS = 500;
 
 
     static constexpr cstr bit_width_str(u32 size)
@@ -36,6 +35,17 @@ namespace counts
         default: return "void/any";
         }
     }
+
+
+    class AllocationRecord
+    {
+    public:
+        cstr tag = 0;
+        u32 n_bytes = 0;
+    };
+
+
+    using AllocationList = std::unordered_map<u64, AllocationRecord>;
     
     
     class AllocLog
@@ -60,22 +70,24 @@ namespace counts
             n_bytes.reserve(N);
         }
     };
-    
 
+}
+
+
+
+/* alloc counts */
+
+namespace counts
+{ 
     class AllocCounts
     {
     public:
-        
-        static constexpr u32 max_allocations = MAX_SLOTS;
 
         u32 element_size = 0;
 
         cstr type_name = bit_width_str(0);
 
-        void* keys[max_allocations] = { 0 };
-        u32 byte_counts[max_allocations] = { 0 };
-        u32 element_counts[max_allocations] = { 0 };
-        cstr tags[max_allocations] = { 0 };
+        AllocationList list;
 
         u32 bytes_allocated = 0;
         u32 elements_allocated = 0;
@@ -103,54 +115,22 @@ namespace counts
 
     private:
 
-        i32 find_available_slot()
-        {
-            i32 i = 0; 
-            for (;i < max_allocations && keys[i]; i++)
-            { }
-
-            if (i >= max_allocations || keys[i])
-            {
-                alloc_type_assert("*** Allocation limit reached ***" && false);
-                alloc_type_log("Allocation limit reached (%u)\n", element_size);
-                return -1;
-            }
-
-            return i;
-        }
-
-
-        i32 find_slot(void* ptr)
-        {
-            // find slot
-            u32 i = 0; 
-            for (; i < max_allocations && keys[i] != ptr; i++)
-            { }
-
-            if (i >= max_allocations)
-            {
-                return -1;
-            }
-
-            return i;
-        }
-
-
-        void update_element_counts(u32 slot)
+        void update_element_counts()
         {
             elements_allocated = bytes_allocated / element_size;
-            element_counts[slot] = byte_counts[slot] / element_size;
         }
 
 
-        void log_alloc(cstr action, u32 slot, void* ptr)
+        void log_alloc(cstr action, void* ptr)
         {
+            auto& record = list[(u64)ptr];
+
             auto i = log.size;
             log.size++;
 
-            log.tags.push_back(tags[slot]);
             log.actions.push_back(action);
-            log.sizes.push_back(byte_counts[slot]);
+            log.tags.push_back(record.tag);            
+            log.sizes.push_back(record.n_bytes);
             log.n_allocs.push_back(n_allocations);
             log.n_bytes.push_back(bytes_allocated);
 
@@ -162,12 +142,6 @@ namespace counts
 
         void* add_allocation(u32 n_elements, cstr tag)
         {
-            auto i = find_available_slot();
-            if (i < 0)
-            {
-                return 0;
-            }
-
             auto data = mem::aligned_alloc(n_elements, element_size);
             if (!data)
             {
@@ -180,75 +154,58 @@ namespace counts
 
             n_allocations++;
             bytes_allocated += n_bytes;
-            keys[i] = data;
-            byte_counts[i] = n_bytes;
-            tags[i] = tag ? tag : NO_TAG;
+            list[(u64)data] = { (tag ? tag : NO_TAG), n_bytes };
 
-            update_element_counts(i);
-            log_alloc("alloc", i, data);
+            update_element_counts();
+            log_alloc("alloc", data);
 
             return data;
         }
 
 
         void add_allocated(void* data, u32 n_elements, cstr tag)
-        {
-            auto i = find_available_slot();
-            if (i < 0)
-            {
-                return;
-            }
-
+        { 
             u32 const n_bytes = n_elements * element_size;
 
             n_allocations++;
             bytes_allocated += n_bytes;
-            keys[i] = data;
-            byte_counts[i] = n_bytes;
-            tags[i] = tag ? tag : NO_TAG;
+            list[(u64)data] = { (tag ? tag : NO_TAG), n_bytes };
 
-            update_element_counts(i);
-            log_alloc("add", i, data);
+            update_element_counts();
+            log_alloc("add", data);
         }
 
 
         bool remove_allocation(void* ptr)
         {
-            auto i = find_slot(ptr);
-
-            if (i < 0)
+            auto key = (u64)ptr;
+            if (!list.contains(key))
             {
                 return false;
             }
 
-            mem::aligned_free(keys[i], element_size);
-            n_allocations--;
-            bytes_allocated -= byte_counts[i];
-            keys[i] = 0;
-            tags[i] = 0;
-            byte_counts[i] = 0;
+            auto record = list[key];
 
-            update_element_counts(i);
-            log_alloc("free", i, ptr);
+            mem::aligned_free(ptr, element_size);
+            n_allocations--;
+            bytes_allocated -= record.n_bytes;
+            list.erase(key);
+
+            update_element_counts();
+            log_alloc("free", ptr);
 
             return true;
         }
 
 
-        void tag_allocation(void* ptr, u32 n_elements, cstr tag)
+        void tag_allocation(void* ptr, u32 n_elements, cstr tag) // delete?
         {
             assert(tag && "*** No tag set ***");
 
-            auto i = find_slot(ptr);
-            if (i >= 0)
+            auto key = (u64)ptr;
+            if (list.contains(key))
             {
                 // already tagged
-                return;
-            }
-
-            i = find_available_slot();
-            if (i < 0)
-            {
                 return;
             }
 
@@ -256,35 +213,45 @@ namespace counts
 
             n_allocations++;
             bytes_allocated += n_bytes;
-            keys[i] = ptr;
-            byte_counts[i] = n_bytes;
-            tags[i] = tag;
+            
+            list[key] = { tag, n_bytes };
 
-            update_element_counts(i);
-            log_alloc("tagged", i, ptr);
+            update_element_counts();
+            log_alloc("tagged", ptr);
         }
 
 
-        void untag_allocation(void* ptr)
+        void untag_allocation(void* ptr) // delete?
         {
-            auto i = find_slot(ptr);
-            if (i < 0)
+            auto key = (u64)ptr;
+            if (!list.contains(key))
             {
                 return;
             }
 
-            n_allocations--;
-            bytes_allocated -= byte_counts[i];
-            keys[i] = 0;
-            tags[i] = 0;
-            byte_counts[i] = 0;
+            auto record = list[key];
 
-            update_element_counts(i);
-            log_alloc("untagged", i, ptr);
+            n_allocations--;
+            bytes_allocated -= record.n_bytes;
+            list.erase(key);
+
+            update_element_counts();
+            log_alloc("untagged", ptr);
         }
     };
 }
 
+
+/* alloc stbi counts */
+
+namespace counts
+{
+    class AllocSTBICounts
+    {
+    public:
+        
+    };
+}
 
 /* static data */
 
@@ -297,14 +264,8 @@ namespace counts
 
     AllocCounts alloc_counts_stbi(1, "stbi");
 
-    cstr status_slot_tags[MAX_SLOTS] = { 0 };
-    u32 status_slot_sizes[MAX_SLOTS] = { 0 };
-
-    cstr history_tags[MAX_SLOTS] = { 0 };
-    cstr history_actions[MAX_SLOTS] = { 0 };
-    u32 history_sizes[MAX_SLOTS] = { 0 };
-    u32 history_n_allocs[MAX_SLOTS] = { 0 };
-    u32 history_n_bytes[MAX_SLOTS] = { 0 };
+    std::vector<cstr> status_tags;
+    std::vector<u32> status_sizes;
 }
 
 
@@ -407,6 +368,7 @@ namespace counts
         case mem::Alloc::Bytes_2: return alloc_counts_16.add_allocation(n_bytes / 2, tag);
         case mem::Alloc::Bytes_4: return alloc_counts_32.add_allocation(n_bytes / 4, tag);
         case mem::Alloc::Bytes_8: return alloc_counts_64.add_allocation(n_bytes / 8, tag);
+
         case mem::Alloc::STBI: return alloc_counts_stbi.add_allocation(n_bytes, "stbi");
 
         default: return alloc_counts_8.add_allocation(n_bytes, tag);
@@ -435,22 +397,23 @@ namespace counts
     {
         dst.type_name = src.type_name;
         dst.element_size = src.element_size;
-        dst.max_allocations = src.max_allocations;
 
         dst.bytes_allocated = src.bytes_allocated;
         dst.elements_allocated = src.elements_allocated;
         dst.n_allocations = src.n_allocations;
 
+        counts::status_tags.clear();
+        counts::status_sizes.clear();
+
         u32 d = 0;
-        for (u32 i = 0; i < src.n_allocations; i++)
+        for (auto& item : src.list)
         {
-            if (src.keys[i])
-            {
-                dst.slot_tags[d] = src.tags[i];
-                dst.slot_sizes[d] = src.byte_counts[i];
-                d++;
-            }            
+            counts::status_tags.push_back(item.second.tag);
+            counts::status_sizes.push_back(item.second.n_bytes);
         }
+
+        dst.slot_tags = counts::status_tags.data();
+        dst.slot_sizes = counts::status_sizes.data();
     }
     
 
@@ -458,7 +421,6 @@ namespace counts
     {
         dst.type_name = src.type_name;
         dst.element_size = src.element_size;
-        dst.max_allocations = src.max_allocations;
 
         auto& log = src.log;
 
@@ -481,8 +443,6 @@ namespace mem
     AllocationStatus query_status(Alloc type)
     {
         AllocationStatus status{};
-        status.slot_tags = counts::status_slot_tags;
-        status.slot_sizes = counts::status_slot_sizes;
 
         switch (type)
         {
@@ -500,12 +460,7 @@ namespace mem
 
     AllocationHistory query_history(Alloc type)
     {
-        AllocationHistory history{};
-        history.tags = counts::history_tags;
-        history.actions = counts::history_actions;
-        history.sizes = counts::history_sizes;
-        history.n_allocs = counts::history_n_allocs;
-        history.n_bytes = counts::history_n_bytes;
+        AllocationHistory history{};        
 
         switch (type)
         {
