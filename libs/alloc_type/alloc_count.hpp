@@ -41,15 +41,8 @@ namespace counts
     class AllocLog
     {
     public:
-        //static constexpr u32 capacity = MAX_SLOTS;
 
         u32 size = 0;
-
-        /*cstr tags[capacity] = {0};
-        cstr actions[capacity] = {0};
-        u32 sizes[capacity] = {0};
-        u32 n_allocs[capacity] = {0};
-        u32 n_bytes[capacity] = {0};*/
 
         std::vector<cstr> tags;
         std::vector<cstr> actions;
@@ -67,16 +60,17 @@ namespace counts
             n_bytes.reserve(N);
         }
     };
+    
 
-
-    template <u32 ELE_SZ>
     class AllocCounts
     {
     public:
-        static constexpr u32 element_size = ELE_SZ ? ELE_SZ : 1;
+        
         static constexpr u32 max_allocations = MAX_SLOTS;
 
-        cstr type_name = bit_width_str(ELE_SZ);
+        u32 element_size = 0;
+
+        cstr type_name = bit_width_str(0);
 
         void* keys[max_allocations] = { 0 };
         u32 byte_counts[max_allocations] = { 0 };
@@ -89,7 +83,23 @@ namespace counts
 
         AllocLog log;
 
+        AllocCounts() = delete;
 
+        AllocCounts(u32 ele_sz) 
+        {
+            element_size = ele_sz; 
+            alloc_type_assert(element_size);
+
+            type_name = bit_width_str(element_size);
+        }
+
+        AllocCounts(u32 ele_sz, cstr name) 
+        {
+            element_size = ele_sz; 
+            alloc_type_assert(element_size);
+
+            type_name = name;
+        }
 
     private:
 
@@ -143,12 +153,6 @@ namespace counts
             log.sizes.push_back(byte_counts[slot]);
             log.n_allocs.push_back(n_allocations);
             log.n_bytes.push_back(bytes_allocated);
-
-            /*log.tags[i] = tags[slot];
-            log.actions[i] = action;
-            log.sizes[i] = byte_counts[slot];
-            log.n_allocs[i] = n_allocations;
-            log.n_bytes[i] = bytes_allocated;*/
 
             alloc_type_log("%s<%u>(%s) | %s(%p) | %u/%u (%u)\n", action, element_size, type_name, tags[slot], ptr, n_allocations, max_allocations, bytes_allocated);
         }
@@ -286,11 +290,13 @@ namespace counts
 
 namespace mem
 {
-    counts::AllocCounts<1> alloc_8;
-    counts::AllocCounts<2> alloc_16;
-    counts::AllocCounts<4> alloc_32;
-    counts::AllocCounts<8> alloc_64;
-    counts::AllocCounts<16> alloc_128;
+    counts::AllocCounts alloc_counts_8(1);
+    counts::AllocCounts alloc_counts_16(2);
+    counts::AllocCounts alloc_counts_32(4);
+    counts::AllocCounts alloc_counts_64(8);
+    //counts::AllocCounts alloc_128(16);
+
+    counts::AllocCounts alloc_counts_stbi(1, "stbi");
 
     cstr status_slot_tags[counts::MAX_SLOTS] = { 0 };
     u32 status_slot_sizes[counts::MAX_SLOTS] = { 0 };
@@ -310,11 +316,10 @@ namespace mem
     static void free_unknown(void* ptr)
     {
         auto free = 
-            alloc_8.remove_allocation(ptr) ||
-            alloc_16.remove_allocation(ptr) ||
-            alloc_32.remove_allocation(ptr) ||
-            alloc_64.remove_allocation(ptr) ||
-            alloc_128.remove_allocation(ptr);
+            alloc_counts_8.remove_allocation(ptr) ||
+            alloc_counts_16.remove_allocation(ptr) ||
+            alloc_counts_32.remove_allocation(ptr) ||
+            alloc_counts_64.remove_allocation(ptr);
 
         if (free)
         {
@@ -333,18 +338,16 @@ namespace mem
     {
         switch (element_size)
         {
-        case 1: return alloc_8.remove_allocation(ptr);
-        case 2: return alloc_16.remove_allocation(ptr);
-        case 4: return alloc_32.remove_allocation(ptr);
-        case 8: return alloc_64.remove_allocation(ptr);
-        case 16: return alloc_128.remove_allocation(ptr);
-        default: return alloc_8.remove_allocation(ptr);
+        case 1: return alloc_counts_8.remove_allocation(ptr);
+        case 2: return alloc_counts_16.remove_allocation(ptr);
+        case 4: return alloc_counts_32.remove_allocation(ptr);
+        case 8: return alloc_counts_64.remove_allocation(ptr);
+        default: return alloc_counts_8.remove_allocation(ptr);
         }
     }
+    
 
-
-    template <u32 ELE_SZ>
-    static void set_status(counts::AllocCounts<ELE_SZ> const& src, AllocationStatus& dst)
+    static void set_status(counts::AllocCounts const& src, AllocationStatus& dst)
     {
         dst.type_name = src.type_name;
         dst.element_size = src.element_size;
@@ -365,10 +368,9 @@ namespace mem
             }            
         }
     }
+    
 
-
-    template <u32 ELE_SZ>
-    static void set_history(counts::AllocCounts<ELE_SZ> const& src, AllocationHistory& dst)
+    static void set_history(counts::AllocCounts const& src, AllocationHistory& dst)
     {
         dst.type_name = src.type_name;
         dst.element_size = src.element_size;
@@ -392,27 +394,26 @@ namespace mem
 
 namespace mem
 {
-    AllocationStatus query_status(u32 element_size)
+    AllocationStatus query_status(Alloc type)
     {
         AllocationStatus status{};
         status.slot_tags = status_slot_tags;
         status.slot_sizes = status_slot_sizes;
 
-        switch (element_size)
+        switch (type)
         {
-        case 1: set_status(alloc_8, status); break;
-        case 2: set_status(alloc_16, status); break;
-        case 4: set_status(alloc_32, status); break;
-        case 8: set_status(alloc_64, status); break;
-        case 16: set_status(alloc_128, status); break;        
-        default: set_status(alloc_8, status); break;
+        case Alloc::Bytes_1: set_status(alloc_counts_8, status); break;
+        case Alloc::Bytes_2: set_status(alloc_counts_16, status); break;
+        case Alloc::Bytes_4: set_status(alloc_counts_32, status); break;
+        case Alloc::Bytes_8: set_status(alloc_counts_64, status); break;
+        default: set_status(alloc_counts_8, status); break;
         }
 
         return status;
     }
 
 
-    AllocationHistory query_history(u32 element_size)
+    AllocationHistory query_history(Alloc type)
     {
         AllocationHistory history{};
         history.tags = history_tags;
@@ -421,14 +422,13 @@ namespace mem
         history.n_allocs = history_n_allocs;
         history.n_bytes = history_n_bytes;
 
-        switch (element_size)
+        switch (type)
         {
-        case 1: set_history(alloc_8, history); break;
-        case 2: set_history(alloc_16, history); break;
-        case 4: set_history(alloc_32, history); break;
-        case 8: set_history(alloc_64, history); break;
-        case 16: set_history(alloc_128, history); break;        
-        default: set_history(alloc_8, history); break;
+        case Alloc::Bytes_1: set_history(alloc_counts_8, history); break;
+        case Alloc::Bytes_2: set_history(alloc_counts_16, history); break;
+        case Alloc::Bytes_4: set_history(alloc_counts_32, history); break;
+        case Alloc::Bytes_8: set_history(alloc_counts_64, history); break;
+        default: set_history(alloc_counts_8, history); break;
         }
 
         return history;

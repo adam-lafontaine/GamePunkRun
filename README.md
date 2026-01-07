@@ -18,7 +18,7 @@ https://itch.io/c/2053292/cyberpunk-pixel-art
 
 
 ### v0.2.1
-* [ ] Title screen
+* [x] Title screen
 * [ ] Embed asset color tables rgb
 * [ ] Allocator for stbi/assets
 * [ ] Version check binary data

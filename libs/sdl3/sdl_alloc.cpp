@@ -188,12 +188,11 @@ namespace mem
     {
         switch (element_size)
         {
-        case 1: return alloc_8.add_allocation(n_elements, tag);
-        case 2: return alloc_16.add_allocation(n_elements, tag);
-        case 4: return alloc_32.add_allocation(n_elements, tag);
-        case 8: return alloc_64.add_allocation(n_elements, tag);
-        case 16: return alloc_128.add_allocation(n_elements, tag);
-        default: return alloc_8.add_allocation(n_elements * element_size, tag);
+        case 1: return alloc_counts_8.add_allocation(n_elements, tag);
+        case 2: return alloc_counts_16.add_allocation(n_elements, tag);
+        case 4: return alloc_counts_32.add_allocation(n_elements, tag);
+        case 8: return alloc_counts_64.add_allocation(n_elements, tag);
+        default: return alloc_counts_8.add_allocation(n_elements * element_size, tag);
         }
     }
 
@@ -202,11 +201,10 @@ namespace mem
     {
         switch (element_size)
         {
-        case 2: alloc_16.add_allocated(ptr, n_elements, tag); break;
-        case 4: alloc_32.add_allocated(ptr, n_elements, tag); break;
-        case 8: alloc_64.add_allocated(ptr, n_elements, tag); break;
-        case 16: alloc_128.add_allocated(ptr, n_elements, tag); break;
-        default: alloc_8.add_allocated(ptr, n_elements, tag); break;
+        case 2: alloc_counts_16.add_allocated(ptr, n_elements, tag); break;
+        case 4: alloc_counts_32.add_allocated(ptr, n_elements, tag); break;
+        case 8: alloc_counts_64.add_allocated(ptr, n_elements, tag); break;
+        default: alloc_counts_8.add_allocated(ptr, n_elements, tag); break;
         }
     }
 
@@ -225,12 +223,11 @@ namespace mem
     {
         switch (element_size)
         {
-        case 1: alloc_8.tag_allocation(ptr, n_elements, tag); break;
-        case 2: alloc_16.tag_allocation(ptr, n_elements, tag); break;
-        case 4: alloc_32.tag_allocation(ptr, n_elements, tag); break;
-        case 8: alloc_64.tag_allocation(ptr, n_elements, tag); break;
-        case 16: alloc_128.tag_allocation(ptr, n_elements, tag); break;
-        default: alloc_8.tag_allocation(ptr, n_elements, tag); break;
+        case 1: alloc_counts_8.tag_allocation(ptr, n_elements, tag); break;
+        case 2: alloc_counts_16.tag_allocation(ptr, n_elements, tag); break;
+        case 4: alloc_counts_32.tag_allocation(ptr, n_elements, tag); break;
+        case 8: alloc_counts_64.tag_allocation(ptr, n_elements, tag); break;
+        default: alloc_counts_8.tag_allocation(ptr, n_elements, tag); break;
         }
     }
 
@@ -239,14 +236,36 @@ namespace mem
     {
         switch (element_size)
         {
-        case 1: alloc_8.untag_allocation(ptr); break;
-        case 2: alloc_16.untag_allocation(ptr); break;
-        case 4: alloc_32.untag_allocation(ptr); break;
-        case 8: alloc_64.untag_allocation(ptr); break;
-        case 16: alloc_128.untag_allocation(ptr); break;
-        default: alloc_8.untag_allocation(ptr); break;
+        case 1: alloc_counts_8.untag_allocation(ptr); break;
+        case 2: alloc_counts_16.untag_allocation(ptr); break;
+        case 4: alloc_counts_32.untag_allocation(ptr); break;
+        case 8: alloc_counts_64.untag_allocation(ptr); break;
+        default: alloc_counts_8.untag_allocation(ptr); break;
         }
     }
 }
 
 #endif
+
+
+/* special case stbi */
+
+namespace mem
+{
+    void* alloc_stbi(u32 size)
+    {
+        return SDL_malloc(size);
+    }
+
+
+    void* realloc_stbi(void* mem, u32 size)
+    {
+        return SDL_realloc(mem, size);
+    }
+
+
+    void free_stbi(void* mem)
+    {
+        SDL_free(mem);
+    }
+}

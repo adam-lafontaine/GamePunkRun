@@ -2,10 +2,15 @@
 
 #include "../util/types.hpp"
 
-// for testing
-//#ifndef ALLOC_COUNT
-//#define ALLOC_COUNT
-//#endif
+#define EDITING_ALLOC_COUNT
+
+#ifdef EDITING_ALLOC_COUNT
+
+#ifndef ALLOC_COUNT
+#define ALLOC_COUNT
+#endif
+
+#endif
 
 
 
@@ -74,6 +79,18 @@ namespace mem
 }
 
 
+/* special cases */
+
+namespace mem
+{
+    void* alloc_stbi(u32 size);
+
+    void* realloc_stbi(void* mem, u32 size);
+
+    void free_stbi(void* mem);
+}
+
+
 #ifdef ALLOC_COUNT
 
 namespace mem
@@ -112,9 +129,50 @@ namespace mem
     };
 
 
-    AllocationStatus query_status(u32 element_size);
+    enum class Alloc : u32
+    {
+        Bytes_1 = 1,
+        Bytes_2 = 2,
+        Bytes_4 = 4,
+        Bytes_8 = 8
+    };
 
-    AllocationHistory query_history(u32 element_size);
+
+    AllocationStatus query_status(Alloc type);
+
+    AllocationHistory query_history(Alloc type);
+
+
+    inline AllocationStatus query_status(u32 element_size)
+    {
+        switch (element_size)
+        {
+        case 1:
+        case 2:
+        case 4:
+        case 8:
+            return query_status((Alloc)element_size);
+
+        default:
+            return query_status(1);
+        }
+    }
+
+
+    inline AllocationHistory query_history(u32 element_size)
+    {
+        switch (element_size)
+        {
+        case 1:
+        case 2:
+        case 4:
+        case 8:
+            return query_history((Alloc)element_size);
+
+        default:
+            return query_history(1);
+        }
+    }
 }
 
 #endif

@@ -43,6 +43,8 @@ namespace ui
 
         static void current_alloc_table()
         {
+            using MA = mem::Alloc;
+
             constexpr int col_type = 0;
             constexpr int col_bytes = 1;
             constexpr int col_alloc = 2;
@@ -67,9 +69,9 @@ namespace ui
                 ImGui::TableHeadersRow();
             };
 
-            auto const table_row = [&](u32 size)
+            auto const table_row = [&](MA type)
             {
-                auto status = mem::query_status(size);
+                auto status = mem::query_status(type);
 
                 total_alloc += status.n_allocations;
                 total_max_alloc += status.max_allocations;
@@ -151,11 +153,10 @@ namespace ui
 
             setup_columns(); 
             
-            table_row(1);
-            table_row(2);
-            table_row(4);
-            table_row(8);
-            table_row(16);
+            table_row(MA::Bytes_1);
+            table_row(MA::Bytes_2);
+            table_row(MA::Bytes_4);
+            table_row(MA::Bytes_8);
             totals_row();
 
             ImGui::EndTable();
@@ -164,6 +165,8 @@ namespace ui
 
         static void alloc_history_table()
         {
+            using MA = mem::Alloc;
+
             constexpr int col_type = 0;
             constexpr int col_action = 1;
             constexpr int col_size = 2;
@@ -188,9 +191,9 @@ namespace ui
 
             int expand_action = -1;
 
-            auto const table_row = [&](u32 size)
+            auto const table_row = [&](MA type)
             {
-                auto hist = mem::query_history(size);
+                auto hist = mem::query_history(type);
 
                 ImGui::TableNextRow();
 
@@ -259,11 +262,10 @@ namespace ui
 
             setup_columns();
             
-            table_row(1);
-            table_row(2);
-            table_row(4);
-            table_row(8);
-            table_row(16);
+            table_row(MA::Bytes_1);
+            table_row(MA::Bytes_2);
+            table_row(MA::Bytes_4);
+            table_row(MA::Bytes_8);
 
             ImGui::EndTable();
         }
