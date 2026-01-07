@@ -157,6 +157,7 @@ namespace ui
             table_row(MA::Bytes_2);
             table_row(MA::Bytes_4);
             table_row(MA::Bytes_8);
+            //table_row(MA::STBI);
             totals_row();
 
             ImGui::EndTable();
@@ -266,6 +267,7 @@ namespace ui
             table_row(MA::Bytes_2);
             table_row(MA::Bytes_4);
             table_row(MA::Bytes_8);
+            //table_row(MA::STBI);
 
             ImGui::EndTable();
         }

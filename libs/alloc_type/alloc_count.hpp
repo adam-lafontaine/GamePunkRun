@@ -21,7 +21,7 @@ namespace counts
 {
     constexpr auto NO_TAG = "no tag";
 
-    constexpr u32 MAX_SLOTS = 50;
+    constexpr u32 MAX_SLOTS = 500;
 
 
     static constexpr cstr bit_width_str(u32 size)
@@ -288,32 +288,56 @@ namespace counts
 
 /* static data */
 
-namespace mem
+namespace counts
 {
-    counts::AllocCounts alloc_counts_8(1);
-    counts::AllocCounts alloc_counts_16(2);
-    counts::AllocCounts alloc_counts_32(4);
-    counts::AllocCounts alloc_counts_64(8);
-    //counts::AllocCounts alloc_128(16);
+    AllocCounts alloc_counts_8(1);
+    AllocCounts alloc_counts_16(2);
+    AllocCounts alloc_counts_32(4);
+    AllocCounts alloc_counts_64(8);
 
-    counts::AllocCounts alloc_counts_stbi(1, "stbi");
+    AllocCounts alloc_counts_stbi(1, "stbi");
 
-    cstr status_slot_tags[counts::MAX_SLOTS] = { 0 };
-    u32 status_slot_sizes[counts::MAX_SLOTS] = { 0 };
+    cstr status_slot_tags[MAX_SLOTS] = { 0 };
+    u32 status_slot_sizes[MAX_SLOTS] = { 0 };
 
-    cstr history_tags[counts::MAX_SLOTS] = { 0 };
-    cstr history_actions[counts::MAX_SLOTS] = { 0 };
-    u32 history_sizes[counts::MAX_SLOTS] = { 0 };
-    u32 history_n_allocs[counts::MAX_SLOTS] = { 0 };
-    u32 history_n_bytes[counts::MAX_SLOTS] = { 0 };
+    cstr history_tags[MAX_SLOTS] = { 0 };
+    cstr history_actions[MAX_SLOTS] = { 0 };
+    u32 history_sizes[MAX_SLOTS] = { 0 };
+    u32 history_n_allocs[MAX_SLOTS] = { 0 };
+    u32 history_n_bytes[MAX_SLOTS] = { 0 };
 }
 
 
 /* helpers */
 
-namespace mem
+namespace counts
 {
-    static void free_unknown(void* ptr)
+    inline void* add_allocation(u32 n_elements, u32 element_size, cstr tag)
+    {
+        switch (element_size)
+        {
+        case 1: return alloc_counts_8.add_allocation(n_elements, tag);
+        case 2: return alloc_counts_16.add_allocation(n_elements, tag);
+        case 4: return alloc_counts_32.add_allocation(n_elements, tag);
+        case 8: return alloc_counts_64.add_allocation(n_elements, tag);
+        default: return alloc_counts_8.add_allocation(n_elements * element_size, tag);
+        }
+    }
+
+
+    inline void add_allocated(void* ptr, u32 n_elements, u32 element_size, cstr tag)
+    {
+        switch (element_size)
+        {
+        case 2: alloc_counts_16.add_allocated(ptr, n_elements, tag); break;
+        case 4: alloc_counts_32.add_allocated(ptr, n_elements, tag); break;
+        case 8: alloc_counts_64.add_allocated(ptr, n_elements, tag); break;
+        default: alloc_counts_8.add_allocated(ptr, n_elements, tag); break;
+        }
+    }
+    
+    
+    inline void free_unknown(void* ptr)
     {
         auto free = 
             alloc_counts_8.remove_allocation(ptr) ||
@@ -334,7 +358,7 @@ namespace mem
     }
 
 
-    static bool free_allocation(void* ptr, u32 element_size)
+    inline bool free_allocation(void* ptr, u32 element_size)
     {
         switch (element_size)
         {
@@ -345,9 +369,69 @@ namespace mem
         default: return alloc_counts_8.remove_allocation(ptr);
         }
     }
+
+
+    inline void tag_allocation(void* ptr, u32 n_elements, u32 element_size, cstr tag)
+    {
+        switch (element_size)
+        {
+        case 1: alloc_counts_8.tag_allocation(ptr, n_elements, tag); break;
+        case 2: alloc_counts_16.tag_allocation(ptr, n_elements, tag); break;
+        case 4: alloc_counts_32.tag_allocation(ptr, n_elements, tag); break;
+        case 8: alloc_counts_64.tag_allocation(ptr, n_elements, tag); break;
+        default: alloc_counts_8.tag_allocation(ptr, n_elements, tag); break;
+        }
+    }
+
+
+    inline void untag_allocation(void* ptr, u32 element_size)
+    {
+        switch (element_size)
+        {
+        case 1: alloc_counts_8.untag_allocation(ptr); break;
+        case 2: alloc_counts_16.untag_allocation(ptr); break;
+        case 4: alloc_counts_32.untag_allocation(ptr); break;
+        case 8: alloc_counts_64.untag_allocation(ptr); break;
+        default: alloc_counts_8.untag_allocation(ptr); break;
+        }
+    }
+
+
+    inline void* add_allocation(u32 n_bytes, mem::Alloc type)
+    {
+        constexpr auto tag = "mem::Alloc";
+
+        switch (type)
+        {
+        case mem::Alloc::Bytes_1: return alloc_counts_8.add_allocation(n_bytes, tag);
+        case mem::Alloc::Bytes_2: return alloc_counts_16.add_allocation(n_bytes / 2, tag);
+        case mem::Alloc::Bytes_4: return alloc_counts_32.add_allocation(n_bytes / 4, tag);
+        case mem::Alloc::Bytes_8: return alloc_counts_64.add_allocation(n_bytes / 8, tag);
+        case mem::Alloc::STBI: return alloc_counts_stbi.add_allocation(n_bytes, "stbi");
+
+        default: return alloc_counts_8.add_allocation(n_bytes, tag);
+        }
+    }
+
+
+    void free_allocation(void* ptr, mem::Alloc type)
+    {
+        switch (type)
+        {
+        case mem::Alloc::STBI:
+            alloc_counts_stbi.remove_allocation(ptr);
+            break;
+
+        default:
+            free_allocation(ptr, (u32)type);
+            break;
+        }
+
+        
+    }
     
 
-    static void set_status(counts::AllocCounts const& src, AllocationStatus& dst)
+    static void set_status(AllocCounts const& src, mem::AllocationStatus& dst)
     {
         dst.type_name = src.type_name;
         dst.element_size = src.element_size;
@@ -370,7 +454,7 @@ namespace mem
     }
     
 
-    static void set_history(counts::AllocCounts const& src, AllocationHistory& dst)
+    static void set_history(AllocCounts const& src, mem::AllocationHistory& dst)
     {
         dst.type_name = src.type_name;
         dst.element_size = src.element_size;
@@ -397,16 +481,17 @@ namespace mem
     AllocationStatus query_status(Alloc type)
     {
         AllocationStatus status{};
-        status.slot_tags = status_slot_tags;
-        status.slot_sizes = status_slot_sizes;
+        status.slot_tags = counts::status_slot_tags;
+        status.slot_sizes = counts::status_slot_sizes;
 
         switch (type)
         {
-        case Alloc::Bytes_1: set_status(alloc_counts_8, status); break;
-        case Alloc::Bytes_2: set_status(alloc_counts_16, status); break;
-        case Alloc::Bytes_4: set_status(alloc_counts_32, status); break;
-        case Alloc::Bytes_8: set_status(alloc_counts_64, status); break;
-        default: set_status(alloc_counts_8, status); break;
+        case Alloc::Bytes_1: counts::set_status(counts::alloc_counts_8, status); break;
+        case Alloc::Bytes_2: counts::set_status(counts::alloc_counts_16, status); break;
+        case Alloc::Bytes_4: counts::set_status(counts::alloc_counts_32, status); break;
+        case Alloc::Bytes_8: counts::set_status(counts::alloc_counts_64, status); break;
+        case Alloc::STBI: counts::set_status(counts::alloc_counts_stbi, status); break;
+        default: counts::set_status(counts::alloc_counts_8, status); break;
         }
 
         return status;
@@ -416,19 +501,20 @@ namespace mem
     AllocationHistory query_history(Alloc type)
     {
         AllocationHistory history{};
-        history.tags = history_tags;
-        history.actions = history_actions;
-        history.sizes = history_sizes;
-        history.n_allocs = history_n_allocs;
-        history.n_bytes = history_n_bytes;
+        history.tags = counts::history_tags;
+        history.actions = counts::history_actions;
+        history.sizes = counts::history_sizes;
+        history.n_allocs = counts::history_n_allocs;
+        history.n_bytes = counts::history_n_bytes;
 
         switch (type)
         {
-        case Alloc::Bytes_1: set_history(alloc_counts_8, history); break;
-        case Alloc::Bytes_2: set_history(alloc_counts_16, history); break;
-        case Alloc::Bytes_4: set_history(alloc_counts_32, history); break;
-        case Alloc::Bytes_8: set_history(alloc_counts_64, history); break;
-        default: set_history(alloc_counts_8, history); break;
+        case Alloc::Bytes_1: counts::set_history(counts::alloc_counts_8, history); break;
+        case Alloc::Bytes_2: counts::set_history(counts::alloc_counts_16, history); break;
+        case Alloc::Bytes_4: counts::set_history(counts::alloc_counts_32, history); break;
+        case Alloc::Bytes_8: counts::set_history(counts::alloc_counts_64, history); break;
+        case Alloc::STBI: counts::set_history(counts::alloc_counts_stbi, history); break;
+        default: counts::set_history(counts::alloc_counts_8, history); break;
         }
 
         return history;

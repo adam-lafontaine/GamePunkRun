@@ -186,86 +186,51 @@ namespace mem
 {
     void* alloc_memory(u32 n_elements, u32 element_size, cstr tag)
     {
-        switch (element_size)
-        {
-        case 1: return alloc_counts_8.add_allocation(n_elements, tag);
-        case 2: return alloc_counts_16.add_allocation(n_elements, tag);
-        case 4: return alloc_counts_32.add_allocation(n_elements, tag);
-        case 8: return alloc_counts_64.add_allocation(n_elements, tag);
-        default: return alloc_counts_8.add_allocation(n_elements * element_size, tag);
-        }
+        return counts::add_allocation(n_elements, element_size, tag);
     }
 
 
     void add_memory(void* ptr, u32 n_elements, u32 element_size, cstr tag)
     {
-        switch (element_size)
-        {
-        case 2: alloc_counts_16.add_allocated(ptr, n_elements, tag); break;
-        case 4: alloc_counts_32.add_allocated(ptr, n_elements, tag); break;
-        case 8: alloc_counts_64.add_allocated(ptr, n_elements, tag); break;
-        default: alloc_counts_8.add_allocated(ptr, n_elements, tag); break;
-        }
+        counts::add_allocated(ptr, n_elements, element_size, tag);
     }
 
 
     void free_memory(void* ptr, u32 element_size)
     {
-        if (!free_allocation(ptr, element_size))
+        if (!counts::free_allocation(ptr, element_size))
         {
             alloc_type_log("free_unknown(%p): %u\n", ptr, element_size);
-            free_unknown(ptr);
+            counts::free_unknown(ptr);
         }
     }
 
 
     void tag_memory(void* ptr, u32 n_elements, u32 element_size, cstr tag)
     {
-        switch (element_size)
-        {
-        case 1: alloc_counts_8.tag_allocation(ptr, n_elements, tag); break;
-        case 2: alloc_counts_16.tag_allocation(ptr, n_elements, tag); break;
-        case 4: alloc_counts_32.tag_allocation(ptr, n_elements, tag); break;
-        case 8: alloc_counts_64.tag_allocation(ptr, n_elements, tag); break;
-        default: alloc_counts_8.tag_allocation(ptr, n_elements, tag); break;
-        }
+        counts::tag_allocation(ptr, n_elements, element_size, tag);
     }
 
 
     void untag_memory(void* ptr, u32 element_size)
     {
-        switch (element_size)
-        {
-        case 1: alloc_counts_8.untag_allocation(ptr); break;
-        case 2: alloc_counts_16.untag_allocation(ptr); break;
-        case 4: alloc_counts_32.untag_allocation(ptr); break;
-        case 8: alloc_counts_64.untag_allocation(ptr); break;
-        default: alloc_counts_8.untag_allocation(ptr); break;
-        }
+        counts::untag_allocation(ptr, element_size);
+    }
+}
+
+
+namespace mem
+{
+    void* alloc_memory(u32 n_bytes, Alloc type)
+    {
+        return counts::add_allocation(n_bytes, type);
+    }
+
+
+    void free_memory(void* ptr, Alloc type)
+    {
+        counts::free_allocation(ptr, type);
     }
 }
 
 #endif
-
-
-/* special case stbi */
-
-namespace mem
-{
-    void* alloc_stbi(u32 size)
-    {
-        return SDL_malloc(size);
-    }
-
-
-    void* realloc_stbi(void* mem, u32 size)
-    {
-        return SDL_realloc(mem, size);
-    }
-
-
-    void free_stbi(void* mem)
-    {
-        SDL_free(mem);
-    }
-}

@@ -16,7 +16,7 @@
 
 
 namespace mem
-{
+{    
     void* alloc_any(u32 n_elements, u32 element_size);
     
     void free_any(void* ptr);
@@ -79,16 +79,48 @@ namespace mem
 }
 
 
-/* special cases */
+namespace mem
+{
+    enum class Alloc : u32
+    {
+        Bytes_1 = 1,
+        Bytes_2 = 2,
+        Bytes_4 = 4,
+        Bytes_8 = 8,
+
+        STBI,
+    };
+
+
+    void* alloc_memory(u32 n_bytes, Alloc type);
+
+    void free_memory(void* ptr, Alloc type);
+}
+
+
+/* special case stbi */
 
 namespace mem
 {
-    void* alloc_stbi(u32 size);
+    inline void* alloc_stbi(u32 size)
+    {
+        return alloc_memory(size, Alloc::STBI);
+    }
 
-    void* realloc_stbi(void* mem, u32 size);
 
-    void free_stbi(void* mem);
+    inline void* realloc_stbi(void* mem, u32 size)
+    {
+        free_memory(mem, Alloc::STBI);
+        return alloc_memory(size, Alloc::STBI);
+    }
+
+
+    void free_stbi(void* mem)
+    {
+        free_memory(mem, Alloc::STBI);
+    }
 }
+
 
 
 #ifdef ALLOC_COUNT
@@ -129,50 +161,9 @@ namespace mem
     };
 
 
-    enum class Alloc : u32
-    {
-        Bytes_1 = 1,
-        Bytes_2 = 2,
-        Bytes_4 = 4,
-        Bytes_8 = 8
-    };
-
-
     AllocationStatus query_status(Alloc type);
 
     AllocationHistory query_history(Alloc type);
-
-
-    inline AllocationStatus query_status(u32 element_size)
-    {
-        switch (element_size)
-        {
-        case 1:
-        case 2:
-        case 4:
-        case 8:
-            return query_status((Alloc)element_size);
-
-        default:
-            return query_status(1);
-        }
-    }
-
-
-    inline AllocationHistory query_history(u32 element_size)
-    {
-        switch (element_size)
-        {
-        case 1:
-        case 2:
-        case 4:
-        case 8:
-            return query_history((Alloc)element_size);
-
-        default:
-            return query_history(1);
-        }
-    }
 }
 
 #endif
