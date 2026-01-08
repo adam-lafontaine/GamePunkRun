@@ -93,6 +93,8 @@ namespace counts
         u32 elements_allocated = 0;
         u32 n_allocations = 0;
 
+        u32 max_bytes = 0;
+
         AllocLog log;
 
         AllocCounts() = delete;
@@ -118,14 +120,17 @@ namespace counts
         void update_element_counts()
         {
             elements_allocated = bytes_allocated / element_size;
+            if (bytes_allocated > max_bytes)
+            {
+                max_bytes = bytes_allocated;
+            }
         }
 
 
         void log_alloc(cstr action, void* ptr)
         {
             auto& record = list[(u64)ptr];
-
-            auto i = log.size;
+            
             log.size++;
 
             log.actions.push_back(action);
@@ -188,11 +193,12 @@ namespace counts
 
             mem::aligned_free(ptr, element_size);
             n_allocations--;
-            bytes_allocated -= record.n_bytes;
-            list.erase(key);
+            bytes_allocated -= record.n_bytes;            
 
             update_element_counts();
             log_alloc("free", ptr);
+
+            list.erase(key);
 
             return true;
         }
@@ -361,6 +367,7 @@ namespace counts
     inline void* add_allocation(u32 n_bytes, mem::Alloc type)
     {
         constexpr auto tag = "mem::Alloc";
+        constexpr auto stbi_tag = "stbi";
 
         switch (type)
         {
@@ -369,7 +376,7 @@ namespace counts
         case mem::Alloc::Bytes_4: return alloc_counts_32.add_allocation(n_bytes / 4, tag);
         case mem::Alloc::Bytes_8: return alloc_counts_64.add_allocation(n_bytes / 8, tag);
 
-        case mem::Alloc::STBI: return alloc_counts_stbi.add_allocation(n_bytes, "stbi");
+        case mem::Alloc::STBI: return alloc_counts_stbi.add_allocation(n_bytes, stbi_tag);
 
         default: return alloc_counts_8.add_allocation(n_bytes, tag);
         }
@@ -421,6 +428,7 @@ namespace counts
     {
         dst.type_name = src.type_name;
         dst.element_size = src.element_size;
+        dst.max_bytes = src.max_bytes;
 
         auto& log = src.log;
 

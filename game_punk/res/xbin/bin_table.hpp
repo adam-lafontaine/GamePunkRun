@@ -1,5 +1,5 @@
 #pragma once
-/* timestamp: 1767129123897578136 */
+/* timestamp: 1767887394904463395 */
 
 
 // bin_table_types.hpp
@@ -30,6 +30,7 @@ namespace bin_table
     using ImageGray = img::ImageGray;
     using GrayView = img::GrayView;
 	using Buffer8 = img::Buffer8;
+	using imgMode = img::ModeRW;
 
 
 	enum class AlphaFilter : u8
@@ -173,7 +174,7 @@ namespace bin_table
     }
 
 
-	inline ReadResult read_image(Buffer8 const& buffer, AssetInfo_Image const& info, ImageGray& dst)
+	inline ReadResult read_image(Buffer8 const& buffer, AssetInfo_Image const& info, ImageGray& dst, imgMode mode)
 	{
 		auto src = make_byte_view(buffer, info);
 
@@ -206,7 +207,7 @@ namespace bin_table
 	}
 
 
-	inline ReadResult read_image(Buffer8 const& buffer, AssetInfo_Image const& info, Image& dst)
+	inline ReadResult read_image(Buffer8 const& buffer, AssetInfo_Image const& info, Image& dst, imgMode mode)
 	{
 		auto src = make_byte_view(buffer, info);
 		
@@ -242,19 +243,21 @@ namespace bin_table
 	{
 		bool ok = false;
 
+		auto mode = imgMode::None;
+
 		switch (data_size(info.type))
 		{
 		case data_size(FileType::Image4C):
 		{
 			Image rgba;
-			ok = read_image(buffer, info, rgba) == ReadResult::OK;
+			ok = read_image(buffer, info, rgba, mode) == ReadResult::OK;
 			img::destroy_image(rgba);
 		} break;
 
 		case data_size(FileType::Image1C):
 		{
 			ImageGray gray;
-			ok = read_image(buffer, info, gray) == ReadResult::OK;
+			ok = read_image(buffer, info, gray, mode) == ReadResult::OK;
 			img::destroy_image(gray);
 		}break;
 
@@ -285,42 +288,42 @@ namespace bin_table
 	}
 
 
-	inline Image read_rgba(Buffer8 const& buffer, AssetInfo_Image const& info)
+	inline Image read_rgba(Buffer8 const& buffer, AssetInfo_Image const& info, imgMode mode = imgMode::None)
 	{
 		Image rgba;
-		read_image(buffer, info, rgba);
+		read_image(buffer, info, rgba, mode);
 		return rgba;
 	}
 
 
-	inline ImageGray read_gray(Buffer8 const& buffer, AssetInfo_Image const& info)
+	inline ImageGray read_gray(Buffer8 const& buffer, AssetInfo_Image const& info, imgMode mode = imgMode::None)
 	{
 		ImageGray gray;
-		read_image(buffer, info, gray);
+		read_image(buffer, info, gray, mode);
 		return gray;
 	}
 
 
-	AlphaFilterImage read_alpha_filter(Buffer8 const& buffer, AssetInfo_Image const& info)
+	AlphaFilterImage read_alpha_filter(Buffer8 const& buffer, AssetInfo_Image const& info, imgMode mode = imgMode::None)
 	{
 		AlphaFilterImage filter;
-		read_image(buffer, info, filter.gray);
+		read_image(buffer, info, filter.gray, mode);
 		return filter;
 	}
 
 
-	TableFilterImage read_table_filter(Buffer8 const& buffer, AssetInfo_Image const& info)
+	TableFilterImage read_table_filter(Buffer8 const& buffer, AssetInfo_Image const& info, imgMode mode = imgMode::None)
 	{
 		TableFilterImage filter;
-		read_image(buffer, info, filter.gray);
+		read_image(buffer, info, filter.gray, mode);
 		return filter;
 	}
 
 
-	ColorTableImage read_color_table(Buffer8 const& buffer, AssetInfo_Image const& info)
+	ColorTableImage read_color_table(Buffer8 const& buffer, AssetInfo_Image const& info, imgMode mode = imgMode::None)
 	{
 		ColorTableImage table;
-		read_image(buffer, info, table.rgba);
+		read_image(buffer, info, table.rgba, mode);
 		return table;
 	}
 }

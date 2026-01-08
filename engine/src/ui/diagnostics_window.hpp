@@ -87,33 +87,34 @@ namespace ui
                 if (!status.n_allocations)
                 {
                     ImGui::Text("   %s", status.type_name);
+                    return;
                 }
-                else 
+                
+                if (expand_action != -1)
                 {
-                    if (expand_action != -1)
+                    ImGui::SetNextItemOpen(expand_action != 0);
+                }
+
+                if (ImGui::TreeNode(status.type_name))
+                {
+                    for (u32 i = 0; i < status.n_allocations; i++)
                     {
-                        ImGui::SetNextItemOpen(expand_action != 0);
+                        ImGui::TableNextRow();
+
+                        ImGui::TableSetColumnIndex(col_type);
+                        ImGui::TableSetBgColor(ImGuiTableBgTarget_CellBg, cell_bg_color);
+                        ImGui::Text(" %s", status.slot_tags[i]);
+
+                        ImGui::TableSetColumnIndex(col_bytes);
+                        ImGui::TableSetBgColor(ImGuiTableBgTarget_CellBg, cell_bg_color);
+                        bytes_text(status.slot_sizes[i]);
+
+                        ImGui::TableSetColumnIndex(col_alloc);
+                        ImGui::TableSetBgColor(ImGuiTableBgTarget_CellBg, cell_bg_color);
                     }
-                    if (ImGui::TreeNode(status.type_name))
-                    {
-                        for (u32 i = 0; i < status.n_allocations; i++)
-                        {
-                            ImGui::TableNextRow();
 
-                            ImGui::TableSetColumnIndex(col_type);
-                            ImGui::TableSetBgColor(ImGuiTableBgTarget_CellBg, cell_bg_color);
-                            ImGui::Text(" %s", status.slot_tags[i]);
-
-                            ImGui::TableSetColumnIndex(col_bytes);
-                            ImGui::TableSetBgColor(ImGuiTableBgTarget_CellBg, cell_bg_color);
-                            bytes_text(status.slot_sizes[i]);
-
-                            ImGui::TableSetColumnIndex(col_alloc);
-                            ImGui::TableSetBgColor(ImGuiTableBgTarget_CellBg, cell_bg_color);
-                        }
-
-                        ImGui::TreePop();
-                    }
+                    ImGui::TreePop();
+                    
                 }
             };
 
@@ -200,43 +201,46 @@ namespace ui
                 if (!hist.n_items)
                 {
                     ImGui::Text("   %s", hist.type_name);
+                    return;
                 }
-                else
+                
+                if (expand_action != -1)
+                {                
+                    ImGui::SetNextItemOpen(expand_action != 0);
+                }
+
+                if (ImGui::TreeNode(hist.type_name))            
                 {
-                    if (expand_action != -1)
-                    {                
-                        ImGui::SetNextItemOpen(expand_action != 0);
-                    }
-                    if (ImGui::TreeNode(hist.type_name))            
+                    // last 100 entries only
+                    u32 i = hist.n_items - 100;
+                    for (; i < hist.n_items; i++)
                     {
-                        for (u32 i = 0; i < hist.n_items; i++)
-                        {
-                            ImGui::TableNextRow();
+                        ImGui::TableNextRow();
 
-                            ImGui::TableSetColumnIndex(col_type);
-                            ImGui::TableSetBgColor(ImGuiTableBgTarget_CellBg, cell_bg_color);
-                            ImGui::Text(" %s", hist.tags[i]);
+                        ImGui::TableSetColumnIndex(col_type);
+                        ImGui::TableSetBgColor(ImGuiTableBgTarget_CellBg, cell_bg_color);
+                        ImGui::Text(" %s", hist.tags[i]);
 
-                            ImGui::TableSetColumnIndex(col_action);
-                            ImGui::TableSetBgColor(ImGuiTableBgTarget_CellBg, cell_bg_color);
-                            ImGui::Text("%s", hist.actions[i]);
+                        ImGui::TableSetColumnIndex(col_action);
+                        ImGui::TableSetBgColor(ImGuiTableBgTarget_CellBg, cell_bg_color);
+                        ImGui::Text("%s", hist.actions[i]);
 
-                            ImGui::TableSetColumnIndex(col_size);
-                            ImGui::TableSetBgColor(ImGuiTableBgTarget_CellBg, cell_bg_color);
-                            bytes_text(hist.sizes[i]);
+                        ImGui::TableSetColumnIndex(col_size);
+                        ImGui::TableSetBgColor(ImGuiTableBgTarget_CellBg, cell_bg_color);
+                        bytes_text(hist.sizes[i]);
 
-                            ImGui::TableSetColumnIndex(col_bytes);
-                            ImGui::TableSetBgColor(ImGuiTableBgTarget_CellBg, cell_bg_color);
-                            bytes_text(hist.n_bytes[i]);
+                        ImGui::TableSetColumnIndex(col_bytes);
+                        ImGui::TableSetBgColor(ImGuiTableBgTarget_CellBg, cell_bg_color);
+                        bytes_text(hist.n_bytes[i]);
 
-                            ImGui::TableSetColumnIndex(col_allocs);
-                            ImGui::TableSetBgColor(ImGuiTableBgTarget_CellBg, cell_bg_color);
-                            ImGui::Text("%u", hist.n_allocs[i]);
-                        }
+                        ImGui::TableSetColumnIndex(col_allocs);
+                        ImGui::TableSetBgColor(ImGuiTableBgTarget_CellBg, cell_bg_color);
+                        ImGui::Text("%u/%u", hist.n_allocs[i], i);
+                    }
 
-                        ImGui::TreePop();
-                    }            
-                }
+                    ImGui::TreePop();
+                }            
+                
             };
 
             ImGui::Separator();

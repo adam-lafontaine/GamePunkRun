@@ -149,13 +149,13 @@ namespace mem
         u32 element_size = 0;
 
         u32 n_items = 0;
+        u32 max_bytes = 0;
 
         cstr* tags = 0;
         cstr* actions = 0;
         u32* sizes = 0;
         u32* n_allocs = 0;
         u32* n_bytes = 0;
-
     };
 
 

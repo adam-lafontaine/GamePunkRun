@@ -13,9 +13,6 @@ namespace game_state
     game::AppState game_state;
     game::DebugContext game_dbg;
     bool game_running = false;
-
-
-    
 }
 
 

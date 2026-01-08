@@ -17,7 +17,6 @@ namespace image
 {
     bool create_image(Image& image, u32 width, u32 height)
     {
-        //auto data = mem::alloc<Pixel>(width * height, "create_image");
         auto data = mem::alloc_stbi(width * height * sizeof(Pixel));
         if (!data)
         {
@@ -47,7 +46,6 @@ namespace image
 
     bool create_image(ImageGray& image, u32 width, u32 height)
     {
-        //auto data = mem::alloc<u8>(width * height, "create_image");
         auto data = mem::alloc_stbi(width * height);
         if (!data)
         {
@@ -2209,6 +2207,19 @@ namespace image
 
 /* read write */
 
+#define EDITING_IMAGE_READ_WRITE
+
+#ifdef EDITING_IMAGE_READ_WRITE
+
+#ifndef IMAGE_READ
+#define IMAGE_READ
+#endif
+#ifndef IMAGE_WRITE
+#define IMAGE_WRITE
+#endif
+
+#endif
+
 namespace image
 {
     static bool has_extension(const char* filename, const char* ext)
@@ -2235,8 +2246,8 @@ namespace image
     static bool is_valid_image_file(const char* filename)
     {
         return 
-            has_extension(filename, ".bmp") || 
-            has_extension(filename, ".BMP") ||
+            //has_extension(filename, ".bmp") || 
+            //has_extension(filename, ".BMP") ||
             has_extension(filename, ".png")||
             has_extension(filename, ".PNG");
     }
@@ -2532,4 +2543,133 @@ namespace image
     #endif
     }
 
+}
+
+
+namespace image
+{
+    bool read_image_from_file(const char* img_path_src, Image& image_dst, ModeRW mode)
+    {
+    #ifdef IMAGE_READ
+
+        switch (mode)
+        {
+        case ModeRW::None: return read_image_from_file(img_path_src, image_dst);
+        case ModeRW::Scan: return read_image_from_file(img_path_src, image_dst);
+
+        default: return false;
+        }
+
+    #else
+
+        assert(false && " *** IMAGE_READ not enabled *** ");
+        return false;
+
+    #endif
+    }
+
+
+    bool read_image_from_memory(ByteView const& data, Image& image_dst, ModeRW mode)
+    {
+    #ifdef IMAGE_READ
+
+        switch (mode)
+        {
+        case ModeRW::None: return read_image_from_memory(data, image_dst);
+        case ModeRW::Scan: return read_image_from_memory(data, image_dst);
+
+        default: return false;
+        }
+
+    #else
+
+        assert(false && " *** IMAGE_READ not enabled *** ");
+        return false;
+
+    #endif
+    }
+
+
+    bool write_image(Image const& image_src, const char* file_path_dst, ModeRW mode)
+    {
+    #ifdef IMAGE_WRITE
+
+        switch (mode)
+        {
+        case ModeRW::None: return write_image(image_src, file_path_dst);
+        case ModeRW::Scan: return write_image(image_src, file_path_dst);
+
+        default: return false;
+        }
+
+    #else
+
+        assert(false && " *** IMAGE_WRITE not enabled *** ");
+        return false;
+
+    #endif
+    }
+
+
+    bool read_image_from_file(const char* img_path_src, ImageGray& image_dst, ModeRW mode)
+    {
+    #ifdef IMAGE_READ
+
+        switch (mode)
+        {
+        case ModeRW::None: return read_image_from_file(img_path_src, image_dst);
+        case ModeRW::Scan: return read_image_from_file(img_path_src, image_dst);
+
+        default: return false;
+        }
+
+    #else
+
+        assert(false && " *** IMAGE_READ not enabled *** ");
+        return false;
+
+    #endif
+    }
+
+
+    bool read_image_from_memory(ByteView const& data, ImageGray& image_dst, ModeRW mode)
+    {
+    #ifdef IMAGE_READ
+
+        switch (mode)
+        {
+        case ModeRW::None: return read_image_from_memory(data, image_dst);
+        case ModeRW::Scan: return read_image_from_memory(data, image_dst);
+
+        default: return false;
+        }
+
+    #else
+
+        assert(false && " *** IMAGE_READ not enabled *** ");
+        return false;
+
+    #endif
+    }
+
+
+    bool write_image(ImageGray const& image_src, const char* file_path_dst, ModeRW mode)
+    {
+    #ifdef IMAGE_WRITE
+
+        switch (mode)
+        {
+        case ModeRW::None: return write_image(image_src, file_path_dst);
+        case ModeRW::Scan: return write_image(image_src, file_path_dst);
+
+        default: return false;
+        }
+
+    #else
+
+        assert(false && " *** IMAGE_WRITE not enabled *** ");
+        return false;
+
+    #endif
+    }
 }
