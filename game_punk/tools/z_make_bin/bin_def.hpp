@@ -99,6 +99,8 @@ namespace bin
 
         u32 size = 0;
 
+        u32 version_number = 0;
+
         SkyInfo sky;
         std::vector<BackgroundInfo> backgrounds;
         std::vector<SpritesheetInfo> spritesheets;

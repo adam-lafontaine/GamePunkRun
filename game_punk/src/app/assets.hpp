@@ -452,9 +452,15 @@ namespace assets
     }
 
 
+    static bool check_asset_version(AssetData const& src)
+    {
+        return bt::read_version_number(src.bytes) == bt::VERSION;
+    }
+
+
     static bool test_game_assets(AssetData const& src)
     {
-        static_assert(bt::CLASS_COUNT == 9); // will fail as classes are added/removed        
+        static_assert(bt::CLASS_COUNT == 9); // will fail as classes are added/removed
 
         u32 test_count = 0;
         
@@ -598,9 +604,18 @@ namespace em_load
             return;
         }
 
-        span::copy(bytes, span::make_view(buffer));        
+        span::copy(bytes, span::make_view(buffer));
 
-        bool ok = test_game_assets(asset_data);
+        bool ok = true;
+        ok &= check_asset_version(data.asset_data);
+        if (!ok)
+        {
+            app_crash("*** Bad asset data version ***");
+            data.asset_data.status = AssetStatus::FailRead;
+            return;
+        }
+
+        ok &= test_game_assets(asset_data);
         if (!ok)
         {
             app_crash("*** Asset tests failed ***");
@@ -796,6 +811,14 @@ namespace assets
         {
             app_crash("*** Error loading asset data ***");
             data.asset_data.status = AssetStatus::FailLoad;
+            return;
+        }
+
+        ok &= check_asset_version(data.asset_data);
+        if (!ok)
+        {
+            app_crash("*** Bad asset data version ***");
+            data.asset_data.status = AssetStatus::FailRead;
             return;
         }
 
