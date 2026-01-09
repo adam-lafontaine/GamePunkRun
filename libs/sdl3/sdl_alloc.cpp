@@ -2,7 +2,6 @@
 
 #include "../alloc_type/alloc_type.hpp"
 
-
 #include <SDL3/SDL.h>
 
 

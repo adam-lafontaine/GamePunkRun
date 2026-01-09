@@ -1,7 +1,8 @@
 #pragma once
 
 #include "../alloc_type/alloc_type.hpp"
-#include "sdl_include.hpp"
+
+#include <SDL2/SDL.h>
 
 
 //#define LOG_ALLOC_TYPE
@@ -54,13 +55,15 @@ namespace mem
     }
 
 
-    static inline void* aligned_alloc(u32 n_elements, u32 element_size)
+    // for counts
+    static void* aligned_alloc(u32 n_elements, u32 element_size)
     {
         return unaligned_alloc(n_elements, element_size);
     }
 
 
-    static inline void aligned_free(void* ptr, u32 element_size)
+    // for counts
+    static void aligned_free(void* ptr, u32 element_size)
     {
         unaligned_free(ptr);
     }
@@ -77,6 +80,15 @@ namespace mem
         return SDL_malloc(n_bytes);
     }
 
+
+    void* realloc_any(void* ptr, u32 n_elements, u32 element_size)
+    {
+        alloc_type_log("realloc_any(%u, %u)\n", n_elements, element_size);
+
+        auto n_bytes = n_elements * element_size;
+        return SDL_realloc(ptr, n_bytes);
+    }
+
     
     void free_any(void* ptr)
     {
@@ -88,7 +100,7 @@ namespace mem
     void* alloc_memory(u32 n_elements, u32 element_size)
     {
         alloc_type_log("alloc_memory(%u, %u)\n", n_elements, element_size);
-        return aligned_alloc(n_elements, element_size);
+        return unaligned_alloc(n_elements, element_size);
     }
 }
 
@@ -136,6 +148,58 @@ namespace mem
     }
 }
 
+
+namespace mem
+{
+    void* alloc_memory(u32 n_bytes, Alloc type)
+    {
+        switch (type)
+        {
+        case mem::Alloc::Bytes_1: return unaligned_alloc(n_bytes, 1u);
+        case mem::Alloc::Bytes_2: return unaligned_alloc(n_bytes / 2, 2u);
+        case mem::Alloc::Bytes_4: return unaligned_alloc(n_bytes / 4, 4u);
+        case mem::Alloc::Bytes_8: return unaligned_alloc(n_bytes / 8, 8u);
+        case Alloc::STBI: return alloc_any(n_bytes, 1u);
+
+        default: return alloc_any(n_bytes, 1u);
+        }            
+    }
+
+
+    void* realloc_memory(void* ptr, u32 n_bytes, Alloc type)
+    {
+        switch (type)
+        {
+        case Alloc::STBI: return realloc_any(ptr, n_bytes, 1u);
+
+        default: return realloc_any(ptr, n_bytes, 1u);
+        }            
+    }
+
+
+    void free_memory(void* ptr, Alloc type)
+    {
+        switch (type)
+        {
+        case mem::Alloc::Bytes_1:
+        case mem::Alloc::Bytes_2:
+        case mem::Alloc::Bytes_4:
+        case mem::Alloc::Bytes_8:
+            unaligned_free(ptr);
+            break;
+
+        case Alloc::STBI: 
+            free_any(ptr);
+            break;
+
+        default: 
+            free_any(ptr);
+            break;
+        }            
+    }
+}
+
+
 #else
 
 #include "../alloc_type/alloc_count.hpp"
@@ -147,66 +211,57 @@ namespace mem
 {
     void* alloc_memory(u32 n_elements, u32 element_size, cstr tag)
     {
-        switch (element_size)
-        {
-        case 1: return alloc_8.add_allocation(n_elements, tag);
-        case 2: return alloc_16.add_allocation(n_elements, tag);
-        case 4: return alloc_32.add_allocation(n_elements, tag);
-        case 8: return alloc_64.add_allocation(n_elements, tag);
-        case 16: return alloc_128.add_allocation(n_elements, tag);
-        default: return alloc_8.add_allocation(n_elements * element_size, tag);
-        }
+        return counts::add_allocation(n_elements, element_size, tag);
     }
 
 
     void add_memory(void* ptr, u32 n_elements, u32 element_size, cstr tag)
     {
-        switch (element_size)
-        {
-        case 2: alloc_16.add_allocated(ptr, n_elements, tag); break;
-        case 4: alloc_32.add_allocated(ptr, n_elements, tag); break;
-        case 8: alloc_64.add_allocated(ptr, n_elements, tag); break;
-        case 16: alloc_128.add_allocated(ptr, n_elements, tag); break;
-        default: alloc_8.add_allocated(ptr, n_elements, tag); break;
-        }
+        counts::add_allocated(ptr, n_elements, element_size, tag);
     }
 
 
     void free_memory(void* ptr, u32 element_size)
     {
-        if (!free_allocation(ptr, element_size))
+        if (!counts::free_allocation(ptr, element_size))
         {
             alloc_type_log("free_unknown(%p): %u\n", ptr, element_size);
-            free_unknown(ptr);
+            counts::free_unknown(ptr);
         }
     }
 
 
     void tag_memory(void* ptr, u32 n_elements, u32 element_size, cstr tag)
     {
-        switch (element_size)
-        {
-        case 1: alloc_8.tag_allocation(ptr, n_elements, tag); break;
-        case 2: alloc_16.tag_allocation(ptr, n_elements, tag); break;
-        case 4: alloc_32.tag_allocation(ptr, n_elements, tag); break;
-        case 8: alloc_64.tag_allocation(ptr, n_elements, tag); break;
-        case 16: alloc_128.tag_allocation(ptr, n_elements, tag); break;
-        default: alloc_8.tag_allocation(ptr, n_elements, tag); break;
-        }
+        counts::tag_allocation(ptr, n_elements, element_size, tag);
     }
 
 
     void untag_memory(void* ptr, u32 element_size)
     {
-        switch (element_size)
-        {
-        case 1: alloc_8.untag_allocation(ptr); break;
-        case 2: alloc_16.untag_allocation(ptr); break;
-        case 4: alloc_32.untag_allocation(ptr); break;
-        case 8: alloc_64.untag_allocation(ptr); break;
-        case 16: alloc_128.untag_allocation(ptr); break;
-        default: alloc_8.untag_allocation(ptr); break;
-        }
+        counts::untag_allocation(ptr, element_size);
+    }
+}
+
+
+namespace mem
+{
+    void* alloc_memory(u32 n_bytes, Alloc type)
+    {
+        return counts::add_allocation(n_bytes, type);
+    }
+
+
+    void* realloc_memory(void* ptr, u32 n_bytes, Alloc type)
+    {
+        counts::free_allocation(ptr, type);
+        return counts::add_allocation(n_bytes, type);
+    }
+
+
+    void free_memory(void* ptr, Alloc type)
+    {
+        counts::free_allocation(ptr, type);
     }
 }
 

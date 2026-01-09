@@ -2213,7 +2213,7 @@ namespace image
 
 /* read write */
 
-#define EDITING_IMAGE_READ_WRITE
+//#define EDITING_IMAGE_READ_WRITE
 
 #ifdef EDITING_IMAGE_READ_WRITE
 
@@ -2369,12 +2369,12 @@ namespace image
 
 		int result = 0;
 
-		if(is_bmp(file_path_dst))
+		/*if(is_bmp(file_path_dst))
 		{
 			result = stbi_write_bmp(file_path_dst, width, height, channels, data);
 			assert(result);
 		}
-		else if(is_png(file_path_dst))
+		else*/ if(is_png(file_path_dst))
 		{
 			int stride_in_bytes = width * channels;
 
@@ -2509,12 +2509,12 @@ namespace image
 
 		int result = 0;
 
-        if(is_bmp(file_path_dst))
+        /*if(is_bmp(file_path_dst))
 		{
 			result = stbi_write_bmp(file_path_dst, width, height, channels, data);
 			assert(result);
 		}
-		else if(is_png(file_path_dst))
+		else*/ if(is_png(file_path_dst))
 		{
 			int stride_in_bytes = width * channels;
 

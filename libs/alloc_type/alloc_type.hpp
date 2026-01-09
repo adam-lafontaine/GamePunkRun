@@ -2,7 +2,7 @@
 
 #include "../util/types.hpp"
 
-//#define EDITING_ALLOC_COUNT
+#define EDITING_ALLOC_COUNT
 
 #ifdef EDITING_ALLOC_COUNT
 
