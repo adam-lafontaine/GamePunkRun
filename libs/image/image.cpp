@@ -17,13 +17,15 @@ namespace image
 {
     bool create_image(Image& image, u32 width, u32 height)
     {
-        auto data = mem::alloc_stbi(width * height * sizeof(Pixel));
+        //auto data = mem::alloc_stbi(width * height * sizeof(Pixel));
+        auto data = mem::alloc<Pixel>(width * height, "create_image");
         if (!data)
         {
             return false;
         }
 
-        image.data_ = (Pixel*)data;
+        //image.data_ = (Pixel*)data;
+        image.data_ = data;
         image.width = width;
         image.height = height;
 
@@ -35,7 +37,8 @@ namespace image
     {
         if (image.data_)
 		{
-			mem::free_stbi(image.data_);
+			//mem::free_stbi(image.data_);
+            mem::free(image.data_);
 			image.data_ = 0;
 		}
 
@@ -46,13 +49,15 @@ namespace image
 
     bool create_image(ImageGray& image, u32 width, u32 height)
     {
-        auto data = mem::alloc_stbi(width * height);
+        //auto data = mem::alloc_stbi(width * height);
+        auto data = mem::alloc<u8>(width * height, "create_image");
         if (!data)
         {
             return false;
         }
 
-        image.data_ = (u8*)data;
+        //image.data_ = (u8*)data;
+        image.data_ = data;
         image.width = width;
         image.height = height;
 
@@ -64,7 +69,8 @@ namespace image
     {
         if (image.data_)
 		{
-			mem::free_stbi(image.data_);
+			//mem::free_stbi(image.data_);
+            mem::free(image.data_);
 			image.data_ = 0;
 		}
 
@@ -2280,20 +2286,16 @@ namespace image
 			return false;
 		}
 
-        /*auto len = (u32)(width * height);
+        auto len = (u32)(width * height);
         auto aligned = mem::alloc<Pixel>(len, "img file");
 
         auto src = span::make_view((Pixel*)data, len);
         auto dst = span::make_view(aligned, len);
 
         span::copy(src, dst);
-
         mem::free_any((void*)data);
 
-		image_dst.data_ = aligned;*/
-
-
-		image_dst.data_ = (Pixel*)data;
+		image_dst.data_ = aligned;
 		image_dst.width = width;
 		image_dst.height = height;
 
@@ -2329,19 +2331,16 @@ namespace image
 			return false;
 		}
 
-		/*auto len = (u32)(width * height);
+		auto len = (u32)(width * height);
         auto aligned = mem::alloc<Pixel>(len, "img mem");
 
         auto src = span::make_view((Pixel*)data, len);
         auto dst = span::make_view(aligned, len);
 
         span::copy(src, dst);
+        mem::free_stbi(data);
 
-        mem::free_any((void*)data);
-
-		image_dst.data_ = aligned;*/
-
-        image_dst.data_ = (Pixel*)data;
+		image_dst.data_ = aligned;
 		image_dst.width = width;
 		image_dst.height = height;
 
@@ -2426,7 +2425,7 @@ namespace image
 			return false;
 		}
 
-        /*auto len = (u32)(width * height);
+        auto len = (u32)(width * height);
         auto aligned = mem::alloc<u8>(len, "img file");
 
         auto src = span::make_view((u8*)data, len);
@@ -2435,9 +2434,7 @@ namespace image
         span::copy(src, dst);
         mem::free_any((void*)data);
 
-		image_dst.data_ = aligned;*/
-
-        image_dst.data_ = (u8*)data;
+		image_dst.data_ = aligned;
 		image_dst.width = width;
 		image_dst.height = height;
 
@@ -2473,19 +2470,16 @@ namespace image
 			return false;
 		}
 
-		/*auto len = (u32)(width * height);
+		auto len = (u32)(width * height);
         auto aligned = mem::alloc<u8>(len, "img mem");
 
         auto src = span::make_view((u8*)data, len);
         auto dst = span::make_view(aligned, len);
 
         span::copy(src, dst);
+        mem::free_stbi(data);
 
-        mem::free_any((void*)data);
-
-		image_dst.data_ = aligned;*/
-
-		image_dst.data_ = (u8*)data;
+		image_dst.data_ = aligned;
 		image_dst.width = width;
 		image_dst.height = height;
 
@@ -2543,133 +2537,4 @@ namespace image
     #endif
     }
 
-}
-
-
-namespace image
-{
-    bool read_image_from_file(const char* img_path_src, Image& image_dst, ModeRW mode)
-    {
-    #ifdef IMAGE_READ
-
-        switch (mode)
-        {
-        case ModeRW::None: return read_image_from_file(img_path_src, image_dst);
-        case ModeRW::Scan: return read_image_from_file(img_path_src, image_dst);
-
-        default: return false;
-        }
-
-    #else
-
-        assert(false && " *** IMAGE_READ not enabled *** ");
-        return false;
-
-    #endif
-    }
-
-
-    bool read_image_from_memory(ByteView const& data, Image& image_dst, ModeRW mode)
-    {
-    #ifdef IMAGE_READ
-
-        switch (mode)
-        {
-        case ModeRW::None: return read_image_from_memory(data, image_dst);
-        case ModeRW::Scan: return read_image_from_memory(data, image_dst);
-
-        default: return false;
-        }
-
-    #else
-
-        assert(false && " *** IMAGE_READ not enabled *** ");
-        return false;
-
-    #endif
-    }
-
-
-    bool write_image(Image const& image_src, const char* file_path_dst, ModeRW mode)
-    {
-    #ifdef IMAGE_WRITE
-
-        switch (mode)
-        {
-        case ModeRW::None: return write_image(image_src, file_path_dst);
-        case ModeRW::Scan: return write_image(image_src, file_path_dst);
-
-        default: return false;
-        }
-
-    #else
-
-        assert(false && " *** IMAGE_WRITE not enabled *** ");
-        return false;
-
-    #endif
-    }
-
-
-    bool read_image_from_file(const char* img_path_src, ImageGray& image_dst, ModeRW mode)
-    {
-    #ifdef IMAGE_READ
-
-        switch (mode)
-        {
-        case ModeRW::None: return read_image_from_file(img_path_src, image_dst);
-        case ModeRW::Scan: return read_image_from_file(img_path_src, image_dst);
-
-        default: return false;
-        }
-
-    #else
-
-        assert(false && " *** IMAGE_READ not enabled *** ");
-        return false;
-
-    #endif
-    }
-
-
-    bool read_image_from_memory(ByteView const& data, ImageGray& image_dst, ModeRW mode)
-    {
-    #ifdef IMAGE_READ
-
-        switch (mode)
-        {
-        case ModeRW::None: return read_image_from_memory(data, image_dst);
-        case ModeRW::Scan: return read_image_from_memory(data, image_dst);
-
-        default: return false;
-        }
-
-    #else
-
-        assert(false && " *** IMAGE_READ not enabled *** ");
-        return false;
-
-    #endif
-    }
-
-
-    bool write_image(ImageGray const& image_src, const char* file_path_dst, ModeRW mode)
-    {
-    #ifdef IMAGE_WRITE
-
-        switch (mode)
-        {
-        case ModeRW::None: return write_image(image_src, file_path_dst);
-        case ModeRW::Scan: return write_image(image_src, file_path_dst);
-
-        default: return false;
-        }
-
-    #else
-
-        assert(false && " *** IMAGE_WRITE not enabled *** ");
-        return false;
-
-    #endif
-    }
 }

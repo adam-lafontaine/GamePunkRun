@@ -689,25 +689,4 @@ namespace image
     bool read_image_from_memory(ByteView const& data, ImageGray& image_dst);
 
     bool write_image(ImageGray const& image_src, const char* file_path_dst);
-
-
-    enum class ModeRW : u8 
-    {
-        None,
-        Scan
-    };
-
-
-    bool read_image_from_file(const char* img_path_src, Image& image_dst, ModeRW mode);
-
-    bool read_image_from_memory(ByteView const& data, Image& image_dst, ModeRW mode);
-
-    bool write_image(Image const& image_src, const char* file_path_dst, ModeRW mode);
-
-
-    bool read_image_from_file(const char* img_path_src, ImageGray& image_dst, ModeRW mode);
-
-    bool read_image_from_memory(ByteView const& data, ImageGray& image_dst, ModeRW mode);
-
-    bool write_image(ImageGray const& image_src, const char* file_path_dst, ModeRW mode);
 }

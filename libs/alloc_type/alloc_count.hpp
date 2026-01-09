@@ -192,6 +192,7 @@ namespace counts
             auto record = list[key];
 
             mem::aligned_free(ptr, element_size);
+            
             n_allocations--;
             bytes_allocated -= record.n_bytes;            
 

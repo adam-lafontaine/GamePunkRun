@@ -2,7 +2,7 @@
 
 #include "../util/types.hpp"
 
-#define EDITING_ALLOC_COUNT
+//#define EDITING_ALLOC_COUNT
 
 #ifdef EDITING_ALLOC_COUNT
 
@@ -94,6 +94,8 @@ namespace mem
 
     void* alloc_memory(u32 n_bytes, Alloc type);
 
+    void* realloc_memory(void* ptr, u32 n_bytes, Alloc type);
+
     void free_memory(void* ptr, Alloc type);
 }
 
@@ -108,16 +110,15 @@ namespace mem
     }
 
 
-    inline void* realloc_stbi(void* mem, u32 size)
+    inline void* realloc_stbi(void* ptr, u32 size)
     {
-        free_memory(mem, Alloc::STBI);
-        return alloc_memory(size, Alloc::STBI);
+        return realloc_memory(ptr, size, Alloc::STBI);
     }
 
 
-    void free_stbi(void* mem)
+    void free_stbi(void* ptr)
     {
-        free_memory(mem, Alloc::STBI);
+        free_memory(ptr, Alloc::STBI);
     }
 }
 

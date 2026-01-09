@@ -454,7 +454,7 @@ namespace assets
 
     static bool test_game_assets(AssetData const& src)
     {
-        static_assert(bt::CLASS_COUNT == 9); // will fail as classes are added/removed
+        static_assert(bt::CLASS_COUNT == 9); // will fail as classes are added/removed        
 
         u32 test_count = 0;
         
@@ -468,7 +468,9 @@ namespace assets
         test_count += (u32)bt::UIset_Title().test(src.bytes);
         test_count += (u32)bt::UIset_Icons().test(src.bytes);
 
-        return test_count == bt::CLASS_COUNT;
+        auto res = test_count == bt::CLASS_COUNT;
+
+        return res;
     }
 
 

@@ -117,6 +117,15 @@ namespace mem
         return SDL_malloc(n_bytes);
     }
 
+
+    void* realloc_any(void* ptr, u32 n_elements, u32 element_size)
+    {
+        alloc_type_log("realloc_any(%u, %u)\n", n_elements, element_size);
+
+        auto n_bytes = n_elements * element_size;
+        return SDL_realloc(ptr, n_bytes);
+    }
+
     
     void free_any(void* ptr)
     {
@@ -173,21 +182,67 @@ namespace mem
     {
         alloc_type_log("untag_memory(%p, %u)\n", ptr, element_size);
     }
+    
+}
 
 
-    namespace mem
+namespace mem
 {
     void* alloc_memory(u32 n_bytes, Alloc type)
     {
-        return alloc_any(n_bytes, 1u);
+        switch (type)
+        {
+        case mem::Alloc::Bytes_1: return aligned_alloc(n_bytes, 1u);
+        case mem::Alloc::Bytes_2: return aligned_alloc(n_bytes / 2, 2u);
+        case mem::Alloc::Bytes_4: return aligned_alloc(n_bytes / 4, 4u);
+        case mem::Alloc::Bytes_8: return aligned_alloc(n_bytes / 8, 8u);
+        case Alloc::STBI: return alloc_any(n_bytes, 1u);
+
+        default: return alloc_any(n_bytes, 1u);
+        }            
+    }
+
+
+    void* realloc_memory(void* ptr, u32 n_bytes, Alloc type)
+    {
+        switch (type)
+        {
+        case Alloc::STBI: return realloc_any(ptr, n_bytes, 1u);
+
+        default: return realloc_any(ptr, n_bytes, 1u);
+        }            
     }
 
 
     void free_memory(void* ptr, Alloc type)
     {
-        free_any(ptr);
+        switch (type)
+        {
+        case mem::Alloc::Bytes_1:
+            aligned_free(ptr, 1u);
+            break;
+            
+        case mem::Alloc::Bytes_2:
+            aligned_free(ptr, 2u);
+            break;
+            
+        case mem::Alloc::Bytes_4:
+            aligned_free(ptr, 4u);
+            break;
+            
+        case mem::Alloc::Bytes_8:
+            aligned_free(ptr, 8u);
+            break;
+
+        case Alloc::STBI: 
+            free_any(ptr);
+            break;
+
+        default: 
+            free_any(ptr);
+            break;
+        }            
     }
-}
 }
 
 #else
@@ -238,6 +293,13 @@ namespace mem
 {
     void* alloc_memory(u32 n_bytes, Alloc type)
     {
+        return counts::add_allocation(n_bytes, type);
+    }
+
+
+    void* realloc_memory(void* ptr, u32 n_bytes, Alloc type)
+    {
+        counts::free_allocation(ptr, type);
         return counts::add_allocation(n_bytes, type);
     }
 
