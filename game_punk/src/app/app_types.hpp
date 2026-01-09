@@ -1093,7 +1093,7 @@ namespace game_punk
     {
         InputCommand cmd;
 
-        cmd.title_ok = input.keyboard.kbd_return.pressed;
+        cmd.title_ok = input.keyboard.kbd_return.pressed || input.keyboard.kbd_space.pressed;
 
         cmd.camera.move = 0;
         cmd.camera.north = input.keyboard.kbd_up.is_down;
@@ -1101,7 +1101,7 @@ namespace game_punk
         cmd.camera.east = input.keyboard.kbd_right.is_down;
         cmd.camera.west = input.keyboard.kbd_left.is_down;
 
-        cmd.camera.move = 0; // disable
+        //cmd.camera.move = 0; // disable
 
         return cmd;
     }

@@ -186,6 +186,9 @@ namespace xbin
     }
 
 
+    
+    
+    
     static std::string define_image_set(bin::Info_ImageX_Table1 const& info, cstr set_class, bin::FileType image_type)
     {
         auto& set_name = info.name;
