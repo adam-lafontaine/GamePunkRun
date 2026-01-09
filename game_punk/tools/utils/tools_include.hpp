@@ -679,5 +679,48 @@ namespace util
 
 namespace util
 {
+    static std::string image_cpp_string(img::Image src, cstr name)
+    {
+        auto data = (u32*)src.data_;
 
+        std::ostringstream oss;
+
+        oss << "namespace embed\n";
+        oss << "{";
+
+        oss << "    const struct\n";
+        oss << "    {\n";
+
+        oss << "        unsigned int  width;\n";
+        oss << "        unsigned int  height;\n";
+        oss << "        (unsigned int*)  data;\n";
+
+        oss << "    } " << name << "\n";
+        oss << "    {\n";
+
+        oss << "        " << src.width << ",\n";
+        oss << "        " << src.height << ",\n";
+
+        oss << "        {\n";
+        
+        u32 i = 0;
+        for (u32 y = 0; y < src.height; y++)
+        {
+            oss << "            ";
+            for (u32 x = 0; x < src.width; x++)
+            {
+                oss << "0x" << std::hex << data[i] << ", ";
+                i++;
+            }
+            oss << "\n";
+        }
+
+        oss << "        }\n";
+
+        oss << "    }\n";
+
+        oss << "};\n";
+
+        return oss.str();
+    }
 }
