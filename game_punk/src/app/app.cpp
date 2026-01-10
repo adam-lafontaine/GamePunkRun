@@ -277,6 +277,7 @@ namespace game_punk
         switch (mode)
         {
         case GameMode::Error:
+            app_crash("Error\n");
             break;
 
         case GameMode::Title:
@@ -400,7 +401,8 @@ namespace game_punk
 
         auto& data = get_data(state);        
        
-        auto dims = data.camera.dims.game;
+        // reversed
+        auto dims = CAMERA_DIMS.proc;
         
         auto w_max = !available_dims.x ? dims.width : available_dims.x;
         auto h_max = !available_dims.y ? dims.height : available_dims.y;
@@ -472,7 +474,7 @@ namespace game_punk
 
 
     void update(AppState& state, input::Input const& input)
-    {
+    {        
         auto& data = get_data(state);        
         begin_update(data);
         auto cmd = map_input(input);
@@ -480,7 +482,7 @@ namespace game_punk
         render_screen(data);
         end_update(data);
 
-        app_crash("*** Update not implemented ***");
+        //app_crash("*** Update not implemented ***");
     }
 
 

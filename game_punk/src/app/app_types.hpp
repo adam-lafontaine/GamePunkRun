@@ -1093,7 +1093,10 @@ namespace game_punk
     {
         InputCommand cmd;
 
-        cmd.title_ok = input.keyboard.kbd_return.pressed || input.keyboard.kbd_space.pressed;
+        cmd.title_ok = 
+            input.keyboard.kbd_return.pressed || 
+            input.keyboard.kbd_space.pressed ||
+            input.gamepad.btn_south.pressed;
 
         cmd.camera.move = 0;
         cmd.camera.north = input.keyboard.kbd_up.is_down;

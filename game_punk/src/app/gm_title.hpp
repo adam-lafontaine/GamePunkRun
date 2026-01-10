@@ -92,7 +92,7 @@ namespace gm_title
         {
         case AssetStatus::None:
         case AssetStatus::FailLoad:
-        case AssetStatus::FailRead:
+        case AssetStatus::FailRead:        
             set_game_mode(data, GameMode::Error);
             break;
 
