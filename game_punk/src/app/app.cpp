@@ -400,9 +400,8 @@ namespace game_punk
         }
 
         auto& data = get_data(state);        
-        
-        // reversed
-        auto dims = CAMERA_DIMS.proc;
+       
+        auto dims = data.camera.dims.game;
         
         auto w_max = !available_dims.x ? dims.width : available_dims.x;
         auto h_max = !available_dims.y ? dims.height : available_dims.y;
