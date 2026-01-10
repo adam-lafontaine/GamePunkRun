@@ -1,5 +1,5 @@
 #pragma once
-/* timestamp: 1768056023510423082 */
+/* timestamp: 1768058267805649486 */
 
 
 // bin_table_types.hpp
@@ -927,68 +927,10 @@ namespace bin_table
 {
 
 	// define_image_set(Info_ImageX_Table1)
-	class UIset_Title
-	{
-	public:
-		static constexpr u32 offset = 825327;
-		static constexpr u32 size = 1413;
-
-		using ImageInfo = AssetInfo_Image;
-
-		static constexpr FileType file_type = FileType::Image1C_TableFilter;
-		static constexpr FileType table_type = FileType::Image4C_Table;
-
-		static constexpr u32 count = 1;
-
-		ImageInfo items[count] = {
-			to_image_info(file_type, 74, 96, "title_main", 825327, 1321),
-		};
-
-		enum class Items : u32
-		{
-			title_main,
-		};
-
-
-		static constexpr ImageInfo color_table = to_image_info(table_type, 256, 1, "table", 826648, 92);
-
-		constexpr UIset_Title(){}
-
-
-		bool test(Buffer8 const& buffer) const
-		{
-			return test_items(buffer, (ImageInfo*)items, count) && test_read(buffer, color_table);
-		}
-
-
-		ColorTableImage read_table(Buffer8 const& buffer) const
-		{
-			static_assert(ColorTableImage::type == table_type);
-			return read_color_table(buffer, color_table);
-		}
-
-
-		TableFilterImage read_table_filter_item(Buffer8 const& buffer, Items key) const
-		{
-			static_assert(TableFilterImage::type == file_type);
-			return read_table_filter(buffer, items[(u32)key]);
-		}
-
-
-	};
-
-}
-
-
-// auto-generated
-namespace bin_table
-{
-
-	// define_image_set(Info_ImageX_Table1)
 	class UIset_Icons
 	{
 	public:
-		static constexpr u32 offset = 826740;
+		static constexpr u32 offset = 825327;
 		static constexpr u32 size = 4959;
 
 		using ImageInfo = AssetInfo_Image;
@@ -999,7 +941,7 @@ namespace bin_table
 		static constexpr u32 count = 1;
 
 		ImageInfo items[count] = {
-			to_image_info(file_type, 32, 1312, "icons", 826740, 4731),
+			to_image_info(file_type, 32, 1312, "icons", 825327, 4731),
 		};
 
 		enum class Items : u32
@@ -1008,7 +950,7 @@ namespace bin_table
 		};
 
 
-		static constexpr ImageInfo color_table = to_image_info(table_type, 256, 1, "table", 831471, 228);
+		static constexpr ImageInfo color_table = to_image_info(table_type, 256, 1, "table", 830058, 228);
 
 		constexpr UIset_Icons(){}
 
@@ -1042,8 +984,8 @@ namespace bin_table
 namespace bin_table
 {
 
-	constexpr u32 VERSION = 4124084108;
-	constexpr u32 CLASS_COUNT = 9;
+	constexpr u32 VERSION = 2151099843;
+	constexpr u32 CLASS_COUNT = 8;
 
 }
 
