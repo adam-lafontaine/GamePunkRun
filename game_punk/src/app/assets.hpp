@@ -479,7 +479,7 @@ namespace assets
 }
 
 
-#define GAME_PUNK_EDITING_WASM
+//#define GAME_PUNK_EDITING_WASM
 
 #ifdef GAME_PUNK_EDITING_WASM
 #ifndef GAME_PUNK_WASM

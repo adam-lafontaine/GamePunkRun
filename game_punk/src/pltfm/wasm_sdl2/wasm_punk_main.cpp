@@ -295,7 +295,8 @@ static bool main_init(InitParams const& params)
 
     Vec2Du32 dims = { w, h };
 
-    auto result = game::init(mv::app_state, dims);
+    //auto result = game::init(mv::app_state, dims);
+    auto result = game::init(mv::app_state);
     if (!result.success)
     {
         printf("%s\n", game::decode_error(result.error));
