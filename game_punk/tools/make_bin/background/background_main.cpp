@@ -8,4 +8,4 @@ int main()
     return 0;
 }
 
-#include "../utils/main_sdl3_o.cpp"
+#include "../../utils/main_sdl3_o.cpp"

@@ -14,8 +14,9 @@ ALL_LFLAGS := $(SDL)
 
 EXE := gen_tiles
 
-ROOT := ..
-APP := $(ROOT)/tile
+ROOT := ../..
+APP_ROOT := $(ROOT)/make_bin
+APP := $(APP_ROOT)/tile
 
 FILES := $(APP)/out_files
 

@@ -280,11 +280,13 @@ static bool main_init(InitParams const& params)
     
     if (!window::init())
     {
+        printf("Window error\n");
         return false;
     }
 
     if (!input::init(mv::input))
     {
+        printf("Input error\n");
         return false;
     }
 
@@ -293,7 +295,8 @@ static bool main_init(InitParams const& params)
 
     Vec2Du32 dims = { w, h };
 
-    auto result = game::init(mv::app_state, dims);
+    //auto result = game::init(mv::app_state, dims);
+    auto result = game::init(mv::app_state);
     if (!result.success)
     {
         printf("%s\n", game::decode_error(result.error));
@@ -305,7 +308,9 @@ static bool main_init(InitParams const& params)
         return false;
     }
 
-    if (!game::set_screen_memory(mv::app_state, make_window_view()))
+    auto app_screen = make_window_view();
+
+    if (!game::set_screen_memory(mv::app_state, app_screen))
     {
         return false;
     }
@@ -486,12 +491,12 @@ extern "C"
         EmState state{};
 
         state.has_console = 1;
-        state.has_gamepad = 0;
+        state.has_gamepad = 1;
         state.has_btn_up = 0;
         state.has_btn_down = 0;
         state.has_btn_left = 0;
         state.has_btn_right = 0;
-        state.has_btn_a = 0;
+        state.has_btn_a = 1;
         state.has_btn_b = 0;
         state.has_btn_x = 0;
         state.has_btn_y = 0;

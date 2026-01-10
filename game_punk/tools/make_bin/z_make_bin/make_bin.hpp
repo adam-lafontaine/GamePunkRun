@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../utils/tools_include.hpp"
+#include "../../utils/tools_include.hpp"
 #include "../background/background.hpp"
 #include "../sprite/sprite.hpp"
 #include "../sky/sky.hpp"
@@ -282,12 +282,38 @@ namespace bin
     }
 
 
+    u32 set_version_number(u32 offset, BinTableInfo& table, std::ofstream& bin_file)
+    {
+        union 
+        {
+            u32 n;
+            char bytes[4];
+
+        } version;
+
+        auto ts = dt::current_timestamp_i64();
+        version.n = (u32)ts;
+
+        auto size = sizeof(version);
+
+        bin_file.write(version.bytes, size);
+
+        table.version_number = version.n;
+
+        return size;
+    }
+    
+    
     void load_bin_table(BinTableInfo& table, std::ofstream& bin_file)
     {
         u32 offset = 0; // first to load
         u32 size = 0;
 
         table.size = 0;
+
+        size = set_version_number(offset, table, bin_file);
+        table.size += size;
+        offset += size;
 
         size = load_sky_info(offset, table.sky, bin_file);
         table.size += size;
@@ -345,7 +371,7 @@ namespace bin
             out_file << define_ui_set(info);
         }
 
-        out_file << define_class_count();
+        out_file << define_constants(table);
 
         out_file.close();
     }

@@ -75,8 +75,8 @@ namespace game_punk
     enum class GameMode : int
     {
         Error,
-        Loading,
         Title,
+        Gameplay
     };
 
 
@@ -258,6 +258,64 @@ namespace game_punk
 
 #include "assets.hpp"
 
+namespace game_punk
+{
+    static void set_game_mode(StateData& data, GameMode mode);
+}
+
+#include "gm_title.hpp"
+#include "gm_gameplay.hpp"
+
+
+/* game modes */
+
+namespace game_punk
+{
+    
+    static void set_game_mode(StateData& data, GameMode mode)
+    {
+        switch (mode)
+        {
+        case GameMode::Error:
+            app_crash("Error\n");
+            break;
+
+        case GameMode::Title:
+            app_log("Title\n");
+            gm_title::init(data);
+            break;
+
+        case GameMode::Gameplay:
+            app_log("Gameplay\n");
+            gm_gameplay::init(data);
+            break;
+        }
+
+        data.game_mode = mode;
+    }
+
+
+    static void game_mode_update(StateData& data, InputCommand const& cmd)
+    {
+        using GM = GameMode;
+
+        switch (data.game_mode)
+        {
+        case GM::Error:
+            app_crash("GameMode::Error\n");
+            break;
+
+        case GM::Title:
+            gm_title::update(data, cmd);
+            break;
+
+        case GM::Gameplay:
+            gm_gameplay::update(data, cmd);
+            break;
+        }
+    }
+}
+
 
 /* update */
 
@@ -266,7 +324,6 @@ namespace game_punk
     static void begin_update(StateData& data)
     {
         ++data.game_tick;
-        begin_ui_frame(data.ui);
         reset_draw(data.drawq); 
     }
 
@@ -282,125 +339,11 @@ namespace game_punk
     }
 
 
-    static void update_game_camera(StateData& data, InputCommand const& cmd)
-    {
-        if (cmd.camera.move)
-        {
-            auto dx = ((i32)cmd.camera.east - (i32)cmd.camera.west) * data.camera.speed_px;
-            auto dy = ((i32)cmd.camera.north - (i32)cmd.camera.south) * data.camera.speed_px;
-
-            Vec2Di8 delta_px;
-            delta_px.x = (i8)dx;
-            delta_px.y = (i8)dy;
-
-            move_camera(data.camera, delta_px);
-        }
-    }
-
-
-    static void update_text_color(StateData& data, InputCommand const& cmd)
-    {
-        auto N = data.ui.CTS;
-        auto id = data.ui.font_color_id;
-
-        if (cmd.text.changed)
-        {
-            id += (u8)cmd.text.up;
-            set_ui_color(data.ui, (id % N));     
-        }
-    }
-
-
-    static void update_animation_bitmaps(StateData& data)
-    {
-        auto time = data.game_tick - data.sprites.tick_begin_at(data.punk_sprite);
-        auto view = get_animation_bitmap(data.punk_animation, time);
-        data.bitmaps.at(data.punk_bitmap) = to_image_view(view);
-    }
-
-
-    static void update_tiles(StateData& data)
-    {
-        constexpr auto tile_w = bt::Tileset_ex_zone().items[0].width;
-        
-        auto pos = data.scene.game_position.game.x;
-        if (pos % tile_w == 0)
-        {
-            auto tile = SpriteDef(data.game_tick, data.next_tile_position.pos_game(), data.tile_bitmaps.front());
-            spawn_sprite(data.sprites, tile);
-            data.next_tile_position.game.x += tile_w;
-            data.tile_bitmaps.next();
-        }
-    }
-
-
-    static void draw_background(StateData& data)
-    {
-        auto& bg = data.background;
-        auto& dq = data.drawq;
-        auto& camera = data.camera;
-        auto& rng = data.rng;
-
-        auto pos = data.scene.game_position.game.x;
-
-        auto sky = get_sky_animation(bg.sky, data.game_tick);
-        auto bg1 = get_animation_pair(bg.bg_1, rng, pos);
-        auto bg2 = get_animation_pair(bg.bg_2, rng, pos);
-        
-        push_draw(dq, sky, camera);
-        push_draw(dq, bg1, camera);
-        push_draw(dq, bg2, camera);        
-    }
-    
-    
-    static void draw_sprites(StateData& data)
-    {
-        constexpr i32 xmin = -cxpr::GAME_BACKGROUND_WIDTH_PX;
-        constexpr i32 ymin = -cxpr::GAME_BACKGROUND_HEIGHT_PX;
-
-        auto& dq = data.drawq;
-        auto& camera = data.camera;
-        auto& sprites = data.sprites;
-
-        auto tick = data.game_tick;
-        auto N = sprites.capacity;
-
-        auto beg = sprites.tick_begin;
-        auto end = sprites.tick_end;
-        auto pos = sprites.position;
-        auto bmp = sprites.bitmap_id;
-
-        for (u32 i = 0; i < N; i++)
-        {
-            if (tick >= end[i] || beg[i] > end[i])
-            {
-                continue;
-            }
-
-            auto dps = delta_pos_scene(GamePosition(pos[i], DimCtx::Game), data.scene);
-            auto pos = dps.pos_game();
-
-            if (pos.x < xmin || pos.y < ymin)
-            {
-                beg[i] = GameTick64::none();
-                sprites.first_id = math::min(i, sprites.first_id);
-                continue;
-            }
-
-            auto time = tick - beg[i];
-            auto view = data.bitmaps.at(bmp[i]);
-            push_draw(dq, view, dps, camera);
-        }
-    }
-
-
     static void render_screen(StateData& data)
     {
-        auto s = to_span(data.camera);
-        span::fill(s, COLOR_TRANSPARENT);
-
         draw(data.drawq);
 
+        auto s = to_span(data.camera);
         for (u32 i = 0; i < s.length; i++)
         {
             s.data[i].alpha = 255;
@@ -409,90 +352,8 @@ namespace game_punk
 }
 
 
-/* game modes */
-
-namespace game_punk
-{
-    
-    static void set_game_mode(StateData& data, GameMode mode)
-    {
-        switch (mode)
-        {
-        case GameMode::Error:
-            break;
-
-        case GameMode::Loading:
-            app_log("Loading\n");
-            assets::load_game_assets(data);
-            break;
-
-        case GameMode::Title:
-            app_log("Title\n");
-            set_animation_spritesheet(data.punk_animation, data.spritesheet.punk_run);
-            data.game_tick = GameTick64::zero();
-            break;
-        }
-
-        data.game_mode = mode;
-    }
 
 
-    static void update_loading(StateData& data)
-    {        
-        switch (data.asset_data.status)
-        {
-        case AssetStatus::None:
-        case AssetStatus::FailLoad:
-        case AssetStatus::FailRead:
-            set_game_mode(data, GameMode::Error);
-            break;
-
-        case AssetStatus::Success:
-            set_game_mode(data, GameMode::Title);
-            break;
-
-        case AssetStatus::Loading: return;
-        }
-    }
-    
-    
-    static void update_title(StateData& data, InputCommand const& cmd)
-    {
-        update_game_camera(data, cmd);
-        update_text_color(data, cmd);
-
-        move_sprites(data.sprites);
-
-        data.scene.game_position.game.x = data.sprites.position_at(data.punk_sprite).x - PLAYER_SCENE_OFFSET;
-
-        update_animation_bitmaps(data);
-        update_tiles(data);
-
-        draw_background(data);
-        draw_sprites(data);
-    }
-
-
-    static void game_mode_update(StateData& data, InputCommand const& cmd)
-    {
-        using GM = GameMode;
-
-        switch (data.game_mode)
-        {
-        case GM::Error:
-            app_crash("GameMode::Error\n");
-            break;
-
-        case GM::Loading:
-            update_loading(data);   
-            break;
-
-        case GM::Title:
-            update_title(data, cmd);
-            break;
-        }
-    }
-}
 
 
 /* api */
@@ -539,7 +400,7 @@ namespace game_punk
         }
 
         auto& data = get_data(state);        
-        
+       
         // reversed
         auto dims = CAMERA_DIMS.proc;
         
@@ -551,7 +412,7 @@ namespace game_punk
 
         if (bad_w && bad_h)
         {
-            result.error = AppError::ScreeenDimensions;
+            result.error = AppError::ScreenDimensions;
         }
         else if (bad_w)
         {
@@ -593,7 +454,7 @@ namespace game_punk
 
         app_assert(ok && "*** Error set_screen_memory ***");
 
-        set_game_mode(data, GameMode::Loading);
+        set_game_mode(data, GameMode::Title);
 
         return ok;
     }
@@ -613,7 +474,7 @@ namespace game_punk
 
 
     void update(AppState& state, input::Input const& input)
-    {
+    {        
         auto& data = get_data(state);        
         begin_update(data);
         auto cmd = map_input(input);
@@ -629,12 +490,12 @@ namespace game_punk
     {
         switch (error)
         {
-        case AppError::Memory:            return "Memory Error";
-        case AppError::Assets:            return "Game Assets Error";
-        case AppError::ScreeenDimensions: return "Screen dimensions too small";
-        case AppError::ScreenWidth:       return "Screen width too small";
-        case AppError::ScreenHeight:      return "Screen height too small";
-        default:                          return "Game OK";
+        case AppError::Memory:           return "Memory Error";
+        case AppError::Assets:           return "Game Assets Error";
+        case AppError::ScreenDimensions: return "Screen dimensions too small";
+        case AppError::ScreenWidth:      return "Screen width too small";
+        case AppError::ScreenHeight:     return "Screen height too small";
+        default:                         return "Game OK";
         }
     }
     

@@ -17,12 +17,14 @@ namespace image
 {
     bool create_image(Image& image, u32 width, u32 height)
     {
+        //auto data = mem::alloc_stbi(width * height * sizeof(Pixel));
         auto data = mem::alloc<Pixel>(width * height, "create_image");
         if (!data)
         {
             return false;
         }
 
+        //image.data_ = (Pixel*)data;
         image.data_ = data;
         image.width = width;
         image.height = height;
@@ -35,7 +37,8 @@ namespace image
     {
         if (image.data_)
 		{
-			mem::free(image.data_);
+			//mem::free_stbi(image.data_);
+            mem::free(image.data_);
 			image.data_ = 0;
 		}
 
@@ -46,12 +49,14 @@ namespace image
 
     bool create_image(ImageGray& image, u32 width, u32 height)
     {
+        //auto data = mem::alloc_stbi(width * height);
         auto data = mem::alloc<u8>(width * height, "create_image");
         if (!data)
         {
             return false;
         }
 
+        //image.data_ = (u8*)data;
         image.data_ = data;
         image.width = width;
         image.height = height;
@@ -64,7 +69,8 @@ namespace image
     {
         if (image.data_)
 		{
-			mem::free(image.data_);
+			//mem::free_stbi(image.data_);
+            mem::free(image.data_);
 			image.data_ = 0;
 		}
 
@@ -2207,6 +2213,19 @@ namespace image
 
 /* read write */
 
+//#define EDITING_IMAGE_READ_WRITE
+
+#ifdef EDITING_IMAGE_READ_WRITE
+
+#ifndef IMAGE_READ
+#define IMAGE_READ
+#endif
+#ifndef IMAGE_WRITE
+#define IMAGE_WRITE
+#endif
+
+#endif
+
 namespace image
 {
     static bool has_extension(const char* filename, const char* ext)
@@ -2233,8 +2252,8 @@ namespace image
     static bool is_valid_image_file(const char* filename)
     {
         return 
-            has_extension(filename, ".bmp") || 
-            has_extension(filename, ".BMP") ||
+            //has_extension(filename, ".bmp") || 
+            //has_extension(filename, ".BMP") ||
             has_extension(filename, ".png")||
             has_extension(filename, ".PNG");
     }
@@ -2274,7 +2293,6 @@ namespace image
         auto dst = span::make_view(aligned, len);
 
         span::copy(src, dst);
-
         mem::free_any((void*)data);
 
 		image_dst.data_ = aligned;
@@ -2320,8 +2338,7 @@ namespace image
         auto dst = span::make_view(aligned, len);
 
         span::copy(src, dst);
-
-        mem::free_any((void*)data);
+        mem::free_stbi(data);
 
 		image_dst.data_ = aligned;
 		image_dst.width = width;
@@ -2352,12 +2369,12 @@ namespace image
 
 		int result = 0;
 
-		if(is_bmp(file_path_dst))
+		/*if(is_bmp(file_path_dst))
 		{
 			result = stbi_write_bmp(file_path_dst, width, height, channels, data);
 			assert(result);
 		}
-		else if(is_png(file_path_dst))
+		else*/ if(is_png(file_path_dst))
 		{
 			int stride_in_bytes = width * channels;
 
@@ -2415,7 +2432,6 @@ namespace image
         auto dst = span::make_view(aligned, len);
 
         span::copy(src, dst);
-
         mem::free_any((void*)data);
 
 		image_dst.data_ = aligned;
@@ -2461,8 +2477,7 @@ namespace image
         auto dst = span::make_view(aligned, len);
 
         span::copy(src, dst);
-
-        mem::free_any((void*)data);
+        mem::free_stbi(data);
 
 		image_dst.data_ = aligned;
 		image_dst.width = width;
@@ -2494,12 +2509,12 @@ namespace image
 
 		int result = 0;
 
-        if(is_bmp(file_path_dst))
+        /*if(is_bmp(file_path_dst))
 		{
 			result = stbi_write_bmp(file_path_dst, width, height, channels, data);
 			assert(result);
 		}
-		else if(is_png(file_path_dst))
+		else*/ if(is_png(file_path_dst))
 		{
 			int stride_in_bytes = width * channels;
 

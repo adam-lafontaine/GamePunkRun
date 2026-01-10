@@ -169,6 +169,13 @@ namespace bin_table
     }
 
 
+	static u32 read_version_number(Buffer8 const& buffer)
+	{
+		// first 4 bytes
+		return *(u32*)buffer.data_;
+	}
+
+
 	inline ReadResult read_image(Buffer8 const& buffer, AssetInfo_Image const& info, ImageGray& dst)
 	{
 		auto src = make_byte_view(buffer, info);

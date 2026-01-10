@@ -43,6 +43,8 @@ namespace ui
 
         static void current_alloc_table()
         {
+            using MA = mem::Alloc;
+
             constexpr int col_type = 0;
             constexpr int col_bytes = 1;
             constexpr int col_alloc = 2;
@@ -56,7 +58,6 @@ namespace ui
             int expand_action = -1;
 
             u32 total_alloc = 0;
-            u32 total_max_alloc = 0;
             u64 total_bytes = 0;
 
             auto const setup_columns = []()
@@ -67,18 +68,17 @@ namespace ui
                 ImGui::TableHeadersRow();
             };
 
-            auto const table_row = [&](u32 size)
+            auto const table_row = [&](MA type)
             {
-                auto status = mem::query_status(size);
+                auto status = mem::query_status(type);
 
                 total_alloc += status.n_allocations;
-                total_max_alloc += status.max_allocations;
                 total_bytes += status.bytes_allocated;
 
                 ImGui::TableNextRow();
 
                 ImGui::TableSetColumnIndex(col_alloc);
-                ImGui::Text("%u/%u", status.n_allocations, status.max_allocations);
+                ImGui::Text("%u", status.n_allocations);
 
                 ImGui::TableSetColumnIndex(col_bytes);
                 bytes_text(status.bytes_allocated);
@@ -87,33 +87,34 @@ namespace ui
                 if (!status.n_allocations)
                 {
                     ImGui::Text("   %s", status.type_name);
+                    return;
                 }
-                else 
+                
+                if (expand_action != -1)
                 {
-                    if (expand_action != -1)
+                    ImGui::SetNextItemOpen(expand_action != 0);
+                }
+
+                if (ImGui::TreeNode(status.type_name))
+                {
+                    for (u32 i = 0; i < status.n_allocations; i++)
                     {
-                        ImGui::SetNextItemOpen(expand_action != 0);
+                        ImGui::TableNextRow();
+
+                        ImGui::TableSetColumnIndex(col_type);
+                        ImGui::TableSetBgColor(ImGuiTableBgTarget_CellBg, cell_bg_color);
+                        ImGui::Text(" %s", status.slot_tags[i]);
+
+                        ImGui::TableSetColumnIndex(col_bytes);
+                        ImGui::TableSetBgColor(ImGuiTableBgTarget_CellBg, cell_bg_color);
+                        bytes_text(status.slot_sizes[i]);
+
+                        ImGui::TableSetColumnIndex(col_alloc);
+                        ImGui::TableSetBgColor(ImGuiTableBgTarget_CellBg, cell_bg_color);
                     }
-                    if (ImGui::TreeNode(status.type_name))
-                    {
-                        for (u32 i = 0; i < status.n_allocations; i++)
-                        {
-                            ImGui::TableNextRow();
 
-                            ImGui::TableSetColumnIndex(col_type);
-                            ImGui::TableSetBgColor(ImGuiTableBgTarget_CellBg, cell_bg_color);
-                            ImGui::Text(" %s", status.slot_tags[i]);
-
-                            ImGui::TableSetColumnIndex(col_bytes);
-                            ImGui::TableSetBgColor(ImGuiTableBgTarget_CellBg, cell_bg_color);
-                            bytes_text(status.slot_sizes[i]);
-
-                            ImGui::TableSetColumnIndex(col_alloc);
-                            ImGui::TableSetBgColor(ImGuiTableBgTarget_CellBg, cell_bg_color);
-                        }
-
-                        ImGui::TreePop();
-                    }
+                    ImGui::TreePop();
+                    
                 }
             };
 
@@ -124,7 +125,7 @@ namespace ui
                 ImGui::Text("   Total");
                 
                 ImGui::TableSetColumnIndex(col_alloc);
-                ImGui::Text("%u/%u", total_alloc, total_max_alloc);
+                ImGui::Text("%u", total_alloc);
 
                 ImGui::TableSetColumnIndex(col_bytes);
                 bytes_text(total_bytes);
@@ -151,11 +152,11 @@ namespace ui
 
             setup_columns(); 
             
-            table_row(1);
-            table_row(2);
-            table_row(4);
-            table_row(8);
-            table_row(16);
+            table_row(MA::Bytes_1);
+            table_row(MA::Bytes_2);
+            table_row(MA::Bytes_4);
+            table_row(MA::Bytes_8);
+            table_row(MA::STBI);
             totals_row();
 
             ImGui::EndTable();
@@ -164,6 +165,8 @@ namespace ui
 
         static void alloc_history_table()
         {
+            using MA = mem::Alloc;
+
             constexpr int col_type = 0;
             constexpr int col_action = 1;
             constexpr int col_size = 2;
@@ -188,9 +191,9 @@ namespace ui
 
             int expand_action = -1;
 
-            auto const table_row = [&](u32 size)
+            auto const table_row = [&](MA type)
             {
-                auto hist = mem::query_history(size);
+                auto hist = mem::query_history(type);
 
                 ImGui::TableNextRow();
 
@@ -198,43 +201,46 @@ namespace ui
                 if (!hist.n_items)
                 {
                     ImGui::Text("   %s", hist.type_name);
+                    return;
                 }
-                else
+                
+                if (expand_action != -1)
+                {                
+                    ImGui::SetNextItemOpen(expand_action != 0);
+                }
+
+                if (ImGui::TreeNode(hist.type_name))            
                 {
-                    if (expand_action != -1)
-                    {                
-                        ImGui::SetNextItemOpen(expand_action != 0);
-                    }
-                    if (ImGui::TreeNode(hist.type_name))            
+                    // last 100 entries only
+                    u32 i = hist.n_items - 100;
+                    for (; i < hist.n_items; i++)
                     {
-                        for (u32 i = 0; i < hist.n_items; i++)
-                        {
-                            ImGui::TableNextRow();
+                        ImGui::TableNextRow();
 
-                            ImGui::TableSetColumnIndex(col_type);
-                            ImGui::TableSetBgColor(ImGuiTableBgTarget_CellBg, cell_bg_color);
-                            ImGui::Text(" %s", hist.tags[i]);
+                        ImGui::TableSetColumnIndex(col_type);
+                        ImGui::TableSetBgColor(ImGuiTableBgTarget_CellBg, cell_bg_color);
+                        ImGui::Text(" %s", hist.tags[i]);
 
-                            ImGui::TableSetColumnIndex(col_action);
-                            ImGui::TableSetBgColor(ImGuiTableBgTarget_CellBg, cell_bg_color);
-                            ImGui::Text("%s", hist.actions[i]);
+                        ImGui::TableSetColumnIndex(col_action);
+                        ImGui::TableSetBgColor(ImGuiTableBgTarget_CellBg, cell_bg_color);
+                        ImGui::Text("%s", hist.actions[i]);
 
-                            ImGui::TableSetColumnIndex(col_size);
-                            ImGui::TableSetBgColor(ImGuiTableBgTarget_CellBg, cell_bg_color);
-                            bytes_text(hist.sizes[i]);
+                        ImGui::TableSetColumnIndex(col_size);
+                        ImGui::TableSetBgColor(ImGuiTableBgTarget_CellBg, cell_bg_color);
+                        bytes_text(hist.sizes[i]);
 
-                            ImGui::TableSetColumnIndex(col_bytes);
-                            ImGui::TableSetBgColor(ImGuiTableBgTarget_CellBg, cell_bg_color);
-                            bytes_text(hist.n_bytes[i]);
+                        ImGui::TableSetColumnIndex(col_bytes);
+                        ImGui::TableSetBgColor(ImGuiTableBgTarget_CellBg, cell_bg_color);
+                        bytes_text(hist.n_bytes[i]);
 
-                            ImGui::TableSetColumnIndex(col_allocs);
-                            ImGui::TableSetBgColor(ImGuiTableBgTarget_CellBg, cell_bg_color);
-                            ImGui::Text("%u/%u", hist.n_allocs[i], hist.max_allocations);
-                        }
+                        ImGui::TableSetColumnIndex(col_allocs);
+                        ImGui::TableSetBgColor(ImGuiTableBgTarget_CellBg, cell_bg_color);
+                        ImGui::Text("%u/%u", hist.n_allocs[i], i);
+                    }
 
-                        ImGui::TreePop();
-                    }            
-                }
+                    ImGui::TreePop();
+                }            
+                
             };
 
             ImGui::Separator();
@@ -259,11 +265,11 @@ namespace ui
 
             setup_columns();
             
-            table_row(1);
-            table_row(2);
-            table_row(4);
-            table_row(8);
-            table_row(16);
+            table_row(MA::Bytes_1);
+            table_row(MA::Bytes_2);
+            table_row(MA::Bytes_4);
+            table_row(MA::Bytes_8);
+            table_row(MA::STBI);
 
             ImGui::EndTable();
         }
