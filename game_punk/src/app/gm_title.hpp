@@ -2,18 +2,47 @@ namespace game_punk
 {
 namespace gm_title
 {
+
+/* static data */
 namespace internal
 {
-    static void draw_loading(DrawQueue& dq, SceneCamera const& camera)
+    static ImageView title_image;
+}
+
+
+
+namespace internal
+{
+
+    static void set_title_image(StateData const& data)
     {
-        auto color = img::to_pixel(0);
-        auto dst = to_image_view(camera);
-        img::fill(dst, color);
+    #include "../../res/title/title_game.cpp"
+
+        auto& src = title_game;
+
+        bt::ColorTableImage table;
+        table.rgba.height = 1;
+        table.rgba.width = sizeof(src.table) / sizeof(src.table[0]);
+        table.rgba.data_ = (p32*)src.table;
+
+        bt::TableFilterImage filter;
+        filter.gray.width = src.width;
+        filter.gray.height = src.height;
+        filter.gray.data_ = (u8*)src.keys;
+
+        title_image = img::make_view(src.width, src.height, data.ui.pixels.data_);
+
+        bool ok = true;
+
+        ok &= bt::color_table_convert(filter, table, title_image);
+        app_assert(ok && "Title image failed");
     }
     
     
-    static void draw_centered(DrawQueue& dq, ImageView const& src, SceneCamera const& camera)
+    static void draw_centered(SceneCamera const& camera)
     {
+        auto& src = title_image;
+    
         auto dst = to_image_view(camera);
 
         u32 scale = 2;
@@ -27,6 +56,12 @@ namespace internal
         img::fill(dst, color);
 
         img::scale_up(src, img::sub_view(dst, img::make_rect(x, y, w, h)), scale);
+    }
+
+
+    static void draw_loading(SceneCamera const& camera)
+    {
+        draw_centered(camera);
     }
 }
 }
@@ -43,12 +78,13 @@ namespace gm_title
         {
             assets::load_game_assets(data);
         }
+
+        internal::set_title_image(data);
     }
 
 
     static void update(StateData& data, InputCommand const& cmd)
     {
-        auto src = data.ui.data.title;
         auto& dq = data.drawq;
         auto& camera = data.camera;        
 
@@ -61,11 +97,11 @@ namespace gm_title
             break;
 
         case AssetStatus::Loading:
-            internal::draw_loading(dq, camera);
+            internal::draw_loading(camera);
             break;
 
         case AssetStatus::Success:
-            internal::draw_centered(dq, src, camera);
+            internal::draw_centered(camera);
             break;
 
         default:

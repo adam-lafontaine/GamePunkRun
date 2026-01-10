@@ -29,7 +29,7 @@ namespace title
         result.n_expected = 1;
         result.n_read = 0;
 
-        result.n_read += util::read_image(path, result.image);
+        result.n_read += util::count_read_image_rotate_90(path, result.image);
 
         assert(result.n_read == result.n_expected);
 
@@ -39,11 +39,11 @@ namespace title
 
     static u32 write_title_res_cpp(ImageResult& res, sfs::path const& out)
     {
-        auto out_file_path = out / "title_main.cpp"; // Magic!
+        auto out_file_path = out / "title_game.cpp"; // Magic!
 
         std::ofstream out_file(out_file_path, std::ios::trunc);
 
-        out_file << util::image_cpp_string(res.image, "title_main");
+        out_file << util::image_cpp_string(res.image, "title_game");
 
         out_file.close();
 

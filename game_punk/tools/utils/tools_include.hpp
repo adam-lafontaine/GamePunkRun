@@ -586,6 +586,28 @@ namespace util
 
 namespace util
 {
+    inline u32 count_read_image_rotate_90(sfs::path const& path, img::Image& dst)
+    {
+        img::Image png;
+        if (!img::read_image_from_file(path.c_str(), png))
+        {
+            return 0;
+        }
+
+        if (!img::create_image(dst, png.height, png.width))
+        {
+            img::destroy_image(png);
+            return 0;
+        }
+
+        img::rotate_90(img::make_view(png), img::make_view(dst));
+
+        img::destroy_image(png);
+
+        return 1;
+    }
+
+
     template <typename P>
     inline u32 count_read_image_files(PathList const& files, ImageList<P>& dst)
     {
@@ -614,7 +636,7 @@ namespace util
             img::Image png;
             if (!img::read_image_from_file(file.string().c_str(), png))
             {
-                continue;                
+                continue;
             }
 
             img::Image png_90;
@@ -719,9 +741,6 @@ namespace util
 
         std::ostringstream oss;
 
-        oss << "namespace embed\n";
-        oss << "{\n";
-
         oss << "    const struct\n";
         oss << "    {\n";
 
@@ -766,9 +785,7 @@ namespace util
 
         oss << "        }\n";
 
-        oss << "    }\n";
-
-        oss << "};\n";
+        oss << "    };\n";
 
         return oss.str();
     }

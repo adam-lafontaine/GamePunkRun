@@ -138,9 +138,7 @@ namespace game_punk
         static constexpr u32 CTS = cxpr::color_table_size<bt::UIset_Font>();
 
         struct
-        {
-            ImageView title;            
-            
+        {            
             SpritesheetView font; // FontView
             SpritesheetView icons; // IconView
 
@@ -162,13 +160,8 @@ namespace game_punk
 
     static void count_ui_state(UIState& ui, MemoryCounts& counts)
     {
-        using Title = bt::UIset_Title;
         using Font = bt::UIset_Font;
         using Icons = bt::UIset_Icons;
-
-        constexpr Title title;
-        auto t_info = bt::item_at(title, Title::Items::title_main);
-        count_view(ui.data.title, counts, t_info.width, t_info.height);        
         
         constexpr Font font;
         u32 n_chars = 10 + 26 * 2; // 0-9, A-Z x 2
@@ -185,8 +178,7 @@ namespace game_punk
     static bool create_ui_state(UIState& ui, Memory& memory)
     {
         bool ok = true;
-
-        ok &= create_view(ui.data.title, memory);
+        
         ok &= create_view(ui.data.font, memory);
         ok &= create_view(ui.data.icons, memory);
         ok &= create_stack(ui.pixels, memory);
@@ -199,13 +191,6 @@ namespace game_punk
     {
         ui.temp_icon.is_on = 0;
         ui.temp_icon.end_tick = GameTick64::make(1);
-    }
-
-
-    static void begin_ui_frame(UIState& ui)
-    {
-        reset_stack(ui.pixels);
-        span::fill(to_span(ui.pixels), COLOR_TRANSPARENT);
     }
 
 

@@ -356,27 +356,6 @@ namespace assets
     }
 
 
-    static bool load_ui_title(Buffer8 const& buffer, UIState& ui)
-    {
-        using Title = bt::UIset_Title;
-
-        Title list;
-
-        auto table = list.read_table(buffer);
-        auto filter = list.read_table_filter_item(buffer, Title::Items::title_main);
-
-        bool ok = true;
-
-        ok &= bt::color_table_convert(filter, table, ui.data.title);
-        app_assert(ok && "*** bt::color_table_convert() ***");
-
-        table.destroy();
-        filter.destroy();
-
-        return ok;
-    }
-
-
     static bool load_ui_icons(Buffer8 const& buffer, UIState& ui)
     {
         using Icons = bt::UIset_Icons;
@@ -445,7 +424,6 @@ namespace assets
         bool ok = true;
 
         ok &= load_ui_font(src.bytes, ui);
-        ok &= load_ui_title(src.bytes, ui);
         ok &= load_ui_icons(src.bytes, ui);
 
         return ok;
@@ -460,7 +438,7 @@ namespace assets
 
     static bool test_game_assets(AssetData const& src)
     {
-        static_assert(bt::CLASS_COUNT == 9); // will fail as classes are added/removed
+        static_assert(bt::CLASS_COUNT == 8); // will fail as classes are added/removed
 
         u32 test_count = 0;
         
@@ -471,7 +449,6 @@ namespace assets
         test_count += (u32)bt::Spriteset_Punk().test(src.bytes);
         test_count += (u32)bt::Tileset_ex_zone().test(src.bytes);
         test_count += (u32)bt::UIset_Font().test(src.bytes);
-        test_count += (u32)bt::UIset_Title().test(src.bytes);
         test_count += (u32)bt::UIset_Icons().test(src.bytes);
 
         auto res = test_count == bt::CLASS_COUNT;

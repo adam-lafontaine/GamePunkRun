@@ -323,7 +323,6 @@ namespace game_punk
     static void begin_update(StateData& data)
     {
         ++data.game_tick;
-        begin_ui_frame(data.ui);
         reset_draw(data.drawq); 
     }
 
