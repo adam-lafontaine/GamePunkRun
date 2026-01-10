@@ -28,7 +28,7 @@ namespace game_punk
         None = 0,
         Memory,
         Assets,
-        ScreeenDimensions,
+        ScreenDimensions,
         ScreenWidth,
         ScreenHeight
     };

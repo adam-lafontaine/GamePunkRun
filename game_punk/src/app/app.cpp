@@ -411,7 +411,7 @@ namespace game_punk
 
         if (bad_w && bad_h)
         {
-            result.error = AppError::ScreeenDimensions;
+            result.error = AppError::ScreenDimensions;
         }
         else if (bad_w)
         {
@@ -489,12 +489,12 @@ namespace game_punk
     {
         switch (error)
         {
-        case AppError::Memory:            return "Memory Error";
-        case AppError::Assets:            return "Game Assets Error";
-        case AppError::ScreeenDimensions: return "Screen dimensions too small";
-        case AppError::ScreenWidth:       return "Screen width too small";
-        case AppError::ScreenHeight:      return "Screen height too small";
-        default:                          return "Game OK";
+        case AppError::Memory:           return "Memory Error";
+        case AppError::Assets:           return "Game Assets Error";
+        case AppError::ScreenDimensions: return "Screen dimensions too small";
+        case AppError::ScreenWidth:      return "Screen width too small";
+        case AppError::ScreenHeight:     return "Screen height too small";
+        default:                         return "Game OK";
         }
     }
     

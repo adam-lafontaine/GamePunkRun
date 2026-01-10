@@ -11,10 +11,11 @@ SDL := -lSDL3
 ALL_LFLAGS := $(SDL)
 
 
-EXE := bg_to_mask
+EXE := gen_spritesheets
 
-ROOT := ..
-APP := $(ROOT)/background
+ROOT := ../..
+APP_ROOT := $(ROOT)/make_bin
+APP := $(APP_ROOT)/sprite
 
 FILES := $(APP)/out_files
 
@@ -24,10 +25,10 @@ OUT := $(BUILD)/$(EXE)
 
 UTILS := $(ROOT)/utils
 
-SRC := $(APP)/background_main.cpp
+SRC := $(APP)/sprite_main.cpp
 
 DEP := $(SRC)
-DEP += $(APP)/background.hpp
+DEP += $(APP)/sprite.hpp
 DEP += $(UTILS)/tools_include.hpp
 DEP += $(UTILS)/main_sdl3_o.cpp
 

@@ -12,10 +12,11 @@ SDL := -lSDL3
 ALL_LFLAGS := $(SDL)
 
 
-EXE := gen_tiles
+EXE := gen_ui
 
-ROOT := ..
-APP := $(ROOT)/tile
+ROOT := ../..
+APP_ROOT := $(ROOT)/make_bin
+APP := $(APP_ROOT)/ui
 
 FILES := $(APP)/out_files
 
@@ -25,10 +26,10 @@ OUT := $(BUILD)/$(EXE)
 
 UTILS := $(ROOT)/utils
 
-SRC := $(APP)/tile_main.cpp
+SRC := $(APP)/ui_main.cpp
 
 DEP := $(SRC)
-DEP += $(APP)/tile.hpp
+DEP += $(APP)/ui.hpp
 DEP += $(UTILS)/tools_include.hpp
 DEP += $(UTILS)/main_sdl3_o.cpp
 

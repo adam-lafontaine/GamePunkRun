@@ -5,16 +5,22 @@ GPP := g++-11 -std=c++20 -mavx -mavx2 -mfma
 
 GPP += -DIMAGE_READ
 GPP += -DIMAGE_WRITE
+GPP += -DIMAGE_RESIZE
+
+EXE := make_bin
 
 SDL := -lSDL3
 
 ALL_LFLAGS := $(SDL)
 
-
-EXE := gen_spritesheets
-
-ROOT := ..
-APP := $(ROOT)/sprite
+ROOT := ../..
+APP_ROOT := $(ROOT)/make_bin
+APP := $(APP_ROOT)/z_make_bin
+BG := $(APP_ROOT)/background
+SKY := $(APP_ROOT)/sky
+SPRITE := $(APP_ROOT)/sprite
+TILE := $(APP_ROOT)/tile
+UI := $(APP_ROOT)/ui
 
 FILES := $(APP)/out_files
 
@@ -24,12 +30,19 @@ OUT := $(BUILD)/$(EXE)
 
 UTILS := $(ROOT)/utils
 
-SRC := $(APP)/sprite_main.cpp
+SRC := $(APP)/make_bin_main.cpp
 
 DEP := $(SRC)
-DEP += $(APP)/sprite.hpp
+DEP += $(APP)/make_bin.hpp
+DEP += $(APP)/bin_def.hpp
+DEP += $(APP)/bin_table_str.hpp
 DEP += $(UTILS)/tools_include.hpp
 DEP += $(UTILS)/main_sdl3_o.cpp
+DEP += $(SKY)/sky.hpp
+DEP += $(BG)/background.hpp
+DEP += $(SPRITE)/sprite.hpp
+DEP += $(TILE)/tile.hpp
+DEP += $(UI)/ui.hpp
 
 
 #****************
@@ -52,4 +65,4 @@ setup:
 
 
 delete:
-	rm -rfv $(FILES)/*
+	rm -rfv $(FILES)

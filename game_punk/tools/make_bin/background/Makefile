@@ -5,17 +5,17 @@ GPP := g++-11 -std=c++20 -mavx -mavx2 -mfma
 
 GPP += -DIMAGE_READ
 GPP += -DIMAGE_WRITE
-GPP += -DIMAGE_RESIZE
 
 SDL := -lSDL3
 
 ALL_LFLAGS := $(SDL)
 
 
-EXE := gen_sky
+EXE := bg_to_mask
 
-ROOT := ..
-APP := $(ROOT)/sky
+ROOT := ../..
+APP_ROOT := $(ROOT)/make_bin
+APP := $(APP_ROOT)/background
 
 FILES := $(APP)/out_files
 
@@ -25,12 +25,13 @@ OUT := $(BUILD)/$(EXE)
 
 UTILS := $(ROOT)/utils
 
-SRC := $(APP)/sky_main.cpp
+SRC := $(APP)/background_main.cpp
 
 DEP := $(SRC)
-DEP += $(APP)/sky.hpp
+DEP += $(APP)/background.hpp
 DEP += $(UTILS)/tools_include.hpp
 DEP += $(UTILS)/main_sdl3_o.cpp
+
 
 #****************
 
