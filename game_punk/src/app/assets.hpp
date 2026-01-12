@@ -1,6 +1,7 @@
 #pragma once
 
 #include "../../../libs/io/filesystem.hpp"
+#include "../../../libs/datetime/datetime.hpp"
 
 
 /* definitions */
@@ -9,6 +10,7 @@ namespace game_punk
 {
 namespace assets
 {
+    namespace dt = datetime;
     
     using ImageInfo = bt::AssetInfo_Image;
 
@@ -356,27 +358,6 @@ namespace assets
     }
 
 
-    static bool load_ui_title(Buffer8 const& buffer, UIState& ui)
-    {
-        using Title = bt::UIset_Title;
-
-        Title list;
-
-        auto table = list.read_table(buffer);
-        auto filter = list.read_table_filter_item(buffer, Title::Items::title_main);
-
-        bool ok = true;
-
-        ok &= bt::color_table_convert(filter, table, ui.data.title);
-        app_assert(ok && "*** bt::color_table_convert() ***");
-
-        table.destroy();
-        filter.destroy();
-
-        return ok;
-    }
-
-
     static bool load_ui_icons(Buffer8 const& buffer, UIState& ui)
     {
         using Icons = bt::UIset_Icons;
@@ -445,16 +426,21 @@ namespace assets
         bool ok = true;
 
         ok &= load_ui_font(src.bytes, ui);
-        ok &= load_ui_title(src.bytes, ui);
         ok &= load_ui_icons(src.bytes, ui);
 
         return ok;
     }
 
 
+    static bool check_asset_version(AssetData const& src)
+    {
+        return bt::read_version_number(src.bytes) == bt::VERSION;
+    }
+
+
     static bool test_game_assets(AssetData const& src)
     {
-        static_assert(bt::CLASS_COUNT == 9); // will fail as classes are added/removed
+        static_assert(bt::CLASS_COUNT == 8); // will fail as classes are added/removed
 
         u32 test_count = 0;
         
@@ -465,10 +451,11 @@ namespace assets
         test_count += (u32)bt::Spriteset_Punk().test(src.bytes);
         test_count += (u32)bt::Tileset_ex_zone().test(src.bytes);
         test_count += (u32)bt::UIset_Font().test(src.bytes);
-        test_count += (u32)bt::UIset_Title().test(src.bytes);
         test_count += (u32)bt::UIset_Icons().test(src.bytes);
 
-        return test_count == bt::CLASS_COUNT;
+        auto res = test_count == bt::CLASS_COUNT;
+
+        return res;
     }
 
 
@@ -520,11 +507,19 @@ namespace assets
 #ifdef GAME_PUNK_ASSETS_WEB
 
     // itch.io
-    constexpr auto GAME_DATA_PATH_FALLBACK = "./punk_run.bin";
-    
-    // almostalwaysadam.com
-    constexpr auto GAME_DATA_PATH = "https://raw.githubusercontent.com/adam-lafontaine/CMS/punk-run-v0.2.0/sm/wasm/punk_run.bin";
+    constexpr auto GAME_DATA_PATH_LOCAL = "./punk_run.bin";
 
+    // almostalwaysadam.com
+    constexpr auto GAME_DATA_PATH_CMS = "https://raw.githubusercontent.com/adam-lafontaine/CMS/sm-current/sm/wasm/punk_run.bin";
+
+
+#ifdef CMS_BIN_DATA
+    constexpr auto GAME_DATA_PATH = GAME_DATA_PATH_CMS;
+    constexpr auto GAME_DATA_PATH_FALLBACK = GAME_DATA_PATH_LOCAL;
+#else
+    constexpr auto GAME_DATA_PATH = GAME_DATA_PATH_LOCAL;
+    constexpr auto GAME_DATA_PATH_FALLBACK = GAME_DATA_PATH_CMS;
+#endif
 
 
 namespace em_load
@@ -538,8 +533,8 @@ namespace em_load
     public:
         static constexpr u32 count = 2;
 
-        cstr url;
-        cstr url_fallback;
+        char url[256];
+        char url_fallback[256];
 
         StateData* data;
 
@@ -547,9 +542,11 @@ namespace em_load
         static FetchContext* create(StateData* data)
         {
             auto ctx = mem::alloc<FetchContext>(1, "fetch");
-            
-            ctx->url = GAME_DATA_PATH;
-            ctx->url_fallback = GAME_DATA_PATH_FALLBACK;
+
+            auto ts = (u32)dt::current_timestamp_i64();
+
+            stb::qsnprintf(ctx->url, 256, "%s?%u", GAME_DATA_PATH, ts);
+            stb::qsnprintf(ctx->url_fallback, 256, "%s?%u", GAME_DATA_PATH_FALLBACK, ts);
 
             ctx->data = data;
 
@@ -596,9 +593,18 @@ namespace em_load
             return;
         }
 
-        span::copy(bytes, span::make_view(buffer));        
+        span::copy(bytes, span::make_view(buffer));
 
-        bool ok = test_game_assets(asset_data);
+        bool ok = true;
+        ok &= check_asset_version(data.asset_data);
+        if (!ok)
+        {
+            app_crash("*** Bad asset data version ***");
+            data.asset_data.status = AssetStatus::FailRead;
+            return;
+        }
+
+        ok &= test_game_assets(asset_data);
         if (!ok)
         {
             app_crash("*** Asset tests failed ***");
@@ -646,12 +652,11 @@ namespace em_load
     
     static void fetch_asset_data_fallback(FetchContext* ctx)
     {  
-        auto url = ctx->url_fallback;
+        auto url = ctx->url_fallback; 
 
         FetchAttr attr;
         emscripten_fetch_attr_init(&attr);
-        //stb::qsnprintf(attr.requestMethod, 4, "GET");
-        strcpy(attr.requestMethod, "GET");
+        stb::qsnprintf(attr.requestMethod, 4, "GET");
         attr.attributes = EMSCRIPTEN_FETCH_LOAD_TO_MEMORY;
         attr.userData = (void*)ctx;
         attr.onsuccess = fetch_asset_data_fallback_success;
@@ -705,8 +710,7 @@ namespace em_load
 
         FetchAttr attr;
         emscripten_fetch_attr_init(&attr);
-        //stb::qsnprintf(attr.requestMethod, 4, "GET");
-        strcpy(attr.requestMethod, "GET");
+        stb::qsnprintf(attr.requestMethod, 4, "GET");
         attr.attributes = EMSCRIPTEN_FETCH_LOAD_TO_MEMORY;
         attr.userData = (void*)ctx;
         attr.onsuccess = fetch_asset_data_success;
@@ -794,6 +798,14 @@ namespace assets
         {
             app_crash("*** Error loading asset data ***");
             data.asset_data.status = AssetStatus::FailLoad;
+            return;
+        }
+
+        ok &= check_asset_version(data.asset_data);
+        if (!ok)
+        {
+            app_crash("*** Bad asset data version ***");
+            data.asset_data.status = AssetStatus::FailRead;
             return;
         }
 

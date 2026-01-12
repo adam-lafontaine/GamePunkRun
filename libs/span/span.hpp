@@ -161,6 +161,9 @@ namespace span
         case 4:
             fill_32(dst, value);
             return;
+
+        default:
+            break;
         }
 
         T* d = dst.data;

@@ -9,6 +9,7 @@
 #include <vector>
 #include <array>
 #include <set>
+#include <map>
 #include <cstdio>
 #include <string>
 #include <sstream>
@@ -38,43 +39,43 @@ using List2Du32 = std::vector<Vec2Du32>;
 
 namespace sky
 {
-    constexpr auto SRC_DIR = "/home/adam/Desktop/Game Assets/image/sky";
+    constexpr auto SRC_DIR = "/home/adam/Desktop/Game Assets/image_bin/sky";
 
-    constexpr auto OUT_SKY_BASE_DIR    = "/home/adam/Repos/GamePunkRun/game_punk/tools/sky/out_files/base";
-    constexpr auto OUT_SKY_OVERLAY_DIR = "/home/adam/Repos/GamePunkRun/game_punk/tools/sky/out_files/overlay";
-    constexpr auto OUT_SKY_TABLE_DIR = "/home/adam/Repos/GamePunkRun/game_punk/tools/sky/out_files/table";
+    constexpr auto OUT_SKY_BASE_DIR    = "/home/adam/Repos/GamePunkRun/game_punk/tools/make_bin/sky/out_files/base";
+    constexpr auto OUT_SKY_OVERLAY_DIR = "/home/adam/Repos/GamePunkRun/game_punk/tools/make_bin/sky/out_files/overlay";
+    constexpr auto OUT_SKY_TABLE_DIR = "/home/adam/Repos/GamePunkRun/game_punk/tools/make_bin/sky/out_files/table";
 }
 
 
 namespace bg
 {
-    constexpr auto SRC_DIR = "/home/adam/Desktop/Game Assets/image/backgrounds";
+    constexpr auto SRC_DIR = "/home/adam/Desktop/Game Assets/image_bin/backgrounds";
 
-    constexpr auto OUT_DIR = "/home/adam/Repos/GamePunkRun/game_punk/tools/background/out_files/gen";
+    constexpr auto OUT_DIR = "/home/adam/Repos/GamePunkRun/game_punk/tools/make_bin/background/out_files/gen";
 }
 
 
 namespace sprite
 {
-    constexpr auto SRC_CHARACTER_DIR = "/home/adam/Desktop/Game Assets/image/characters";
+    constexpr auto SRC_CHARACTER_DIR = "/home/adam/Desktop/Game Assets/image_bin/characters";
 
-    constexpr auto OUT_DIR = "/home/adam/Repos/GamePunkRun/game_punk/tools/sprite/out_files/gen";
+    constexpr auto OUT_DIR = "/home/adam/Repos/GamePunkRun/game_punk/tools/make_bin/sprite/out_files/gen";
 }
 
 
 namespace tile
 {
-    constexpr auto SRC_DIR = "/home/adam/Desktop/Game Assets/image/tiles";
+    constexpr auto SRC_DIR = "/home/adam/Desktop/Game Assets/image_bin/tiles";
 
-    constexpr auto OUT_DIR = "/home/adam/Repos/GamePunkRun/game_punk/tools/tile/out_files/gen";
+    constexpr auto OUT_DIR = "/home/adam/Repos/GamePunkRun/game_punk/tools/make_bin/tile/out_files/gen";
 }
 
 
 namespace ui
 {
-    constexpr auto SRC_DIR = "/home/adam/Desktop/Game Assets/image/ui";
+    constexpr auto SRC_DIR = "/home/adam/Desktop/Game Assets/image_bin/ui";
 
-    constexpr auto OUT_DIR = "/home/adam/Repos/GamePunkRun/game_punk/tools/ui/out_files/gen";
+    constexpr auto OUT_DIR = "/home/adam/Repos/GamePunkRun/game_punk/tools/make_bin/ui/out_files/gen";
 }
 
 
@@ -83,6 +84,14 @@ namespace icon
     constexpr auto SRC_DIR = "/home/adam/Desktop/Game Assets/game_icon";
 
     constexpr auto OUT_DIR = "/home/adam/Repos/GamePunkRun/game_punk/res/icon";
+}
+
+
+namespace title
+{
+    constexpr auto SRC_DIR = "/home/adam/Desktop/Game Assets/game_title";
+
+    constexpr auto OUT_DIR = "/home/adam/Repos/GamePunkRun/game_punk/res/title";
 }
 
 
@@ -577,6 +586,28 @@ namespace util
 
 namespace util
 {
+    inline u32 count_read_image_rotate_90(sfs::path const& path, img::Image& dst)
+    {
+        img::Image png;
+        if (!img::read_image_from_file(path.c_str(), png))
+        {
+            return 0;
+        }
+
+        if (!img::create_image(dst, png.height, png.width))
+        {
+            img::destroy_image(png);
+            return 0;
+        }
+
+        img::rotate_90(img::make_view(png), img::make_view(dst));
+
+        img::destroy_image(png);
+
+        return 1;
+    }
+
+
     template <typename P>
     inline u32 count_read_image_files(PathList const& files, ImageList<P>& dst)
     {
@@ -605,7 +636,7 @@ namespace util
             img::Image png;
             if (!img::read_image_from_file(file.string().c_str(), png))
             {
-                continue;                
+                continue;
             }
 
             img::Image png_90;
@@ -679,5 +710,83 @@ namespace util
 
 namespace util
 {
+    static std::string image_cpp_string(img::Image src, cstr name)
+    {
+        auto data = (u32*)src.data_;
+        auto length = src.width * src.height;
 
+        std::set<u32> table_values;
+        std::map<u32, i32> table_value_keys;        
+        std::vector<u32> table_key_values;
+
+        for (u32 i = 0; i < length; i++)
+        {
+            table_values.insert(data[i]);
+        }
+
+        auto kv_len = table_values.size();
+        assert(kv_len <= 256);
+
+        i32 index = 0;
+        for (auto value : table_values)
+        {
+            table_value_keys[value] = index++;
+            table_key_values.push_back(value);
+        }
+
+        u32 max_table_w = 8;
+        u32 table_w = kv_len < max_table_w ? kv_len : max_table_w;
+        u32 table_h = kv_len / table_w + 1;
+
+
+        std::ostringstream oss;
+
+        oss << "    const struct\n";
+        oss << "    {\n";
+
+        oss << "        unsigned int  width;\n";
+        oss << "        unsigned int  height;\n";
+        oss << "        unsigned int table[" << kv_len << "];\n";
+        oss << "        unsigned char keys[" << length << "];\n";        
+
+        oss << "    } " << name << "\n";
+        oss << "    {\n";
+
+        oss << "        " << src.width << ", // width\n";
+        oss << "        " << src.height << ", // height\n\n";
+        
+        oss << "        { // table\n";
+
+        u32 i = 0;
+        for (u32 y = 0; y < table_h; y++)
+        {
+            oss << "            ";
+            for (u32 x = 0; x < table_w && i < kv_len; x++)
+            {
+                oss << "0x" << std::hex << table_key_values[i++] << ", ";
+            }
+            oss << "\n";
+        }
+
+        oss << "        },\n\n";
+        
+        oss << "        { // keys\n";
+        
+        i = 0;
+        for (u32 y = 0; y < src.height; y++)
+        {
+            oss << "            ";
+            for (u32 x = 0; x < src.width; x++)
+            {
+                oss << table_value_keys[data[i++]] << ", ";
+            }
+            oss << "\n";
+        }
+
+        oss << "        }\n";
+
+        oss << "    };\n";
+
+        return oss.str();
+    }
 }

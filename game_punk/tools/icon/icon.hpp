@@ -14,6 +14,8 @@ namespace icon
 
         u32 n_expected = 0;
         u32 n_read = 0;
+
+        ~ImageResult() { img::destroy_image(image); }
     };
 
 

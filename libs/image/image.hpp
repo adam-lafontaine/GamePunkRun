@@ -40,10 +40,10 @@ namespace image
     void destroy_image(ImageGray& image);
 
 
-    inline u32 as_u32(Pixel p)
+    /*inline u32 as_u32(Pixel p)
     {
         return  *((u32*)(&p));
-    }
+    }*/
 
 
     inline Image as_image(ImageView const& view)
@@ -361,6 +361,12 @@ namespace image
         span.length = view.width * view.height;
 
         return span;
+    }
+
+    // HACK!
+    inline auto to_span(auto const& a)
+    {
+        return span::make_view(a.data_, a.width * a.height);
     }
 
 

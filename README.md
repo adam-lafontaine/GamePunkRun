@@ -13,9 +13,15 @@ https://itch.io/c/2053292/cyberpunk-pixel-art
 ### TODO
 * [ ] Refactor font and icons
 * [ ] Name UI icons
-* [ ] Allocator for stbi/assets
-* [ ] Version check binary data
 * [ ] Automate release builds
+* [ ] Single asset color table
+
+
+### v0.2.1
+* [x] Title screen
+* [x] Version check binary data
+* [x] Embed asset color tables rgb
+* ~~[ ] Allocator for stbi/assets~~
 
 
 ### v0.2.0
@@ -30,8 +36,8 @@ https://itch.io/c/2053292/cyberpunk-pixel-art
 
 
 ### v0.1.2
-* [*] Asset image strict types
-* [*] Asset u8 pixel codes
+* [x] Asset image strict types
+* [x] Asset u8 pixel codes
 
 
 ### v0.1.1

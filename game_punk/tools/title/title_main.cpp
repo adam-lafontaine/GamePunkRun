@@ -1,12 +1,11 @@
-#include "make_bin.hpp"
+#include "title.hpp"
 
 
 int main()
 {
-    bin::run_make_bin();
+    title::generate_title();
 
     return 0;
 }
-
 
 #include "../utils/main_sdl3_o.cpp"

@@ -623,16 +623,7 @@ namespace game_punk
 /* sprite table */
 
 namespace game_punk
-{
-    class Sprite
-    {
-    public:
-        Vec2Di64 game_pos;
-        Vec2Di32 velocity_px;
-
-        ImageView view;
-    };
-    
+{    
     
     class SpriteTable
     {
@@ -687,6 +678,8 @@ namespace game_punk
     static void reset_sprite_table(SpriteTable& table)
     {
         table.first_id = 0;
+
+        span::fill(span::make_view(table.tick_begin, table.capacity), GameTick64::none());
     }
 
 
@@ -1075,45 +1068,24 @@ namespace game_punk
     class InputCommand
     {
     public:
+        
+        // title
+        b8 title_ok = 0;
+    
+        // gameplay
         union
         {
-            b32 move = 0;
+            b8 move = 0;
 
             struct
             {
-                b8 north;
-                b8 south;
-                b8 east;
-                b8 west;
+                b8 north : 1;
+                b8 south : 1;
+                b8 east : 1;
+                b8 west : 1;
             };
 
         } camera;
-
-        union
-        {
-            b32 changed = 0;
-
-            struct 
-            {
-                b8 up;
-            };
-
-        } text;
-
-
-        union
-        {
-            b32 move = 0;
-
-            struct
-            {
-                b8 north;
-                b8 south;
-                b8 east;
-                b8 west;
-            };
-
-        } icon;
     };
 
 
@@ -1121,13 +1093,18 @@ namespace game_punk
     {
         InputCommand cmd;
 
+        cmd.title_ok = 
+            input.keyboard.kbd_return.pressed || 
+            input.keyboard.kbd_space.pressed ||
+            input.gamepad.btn_south.pressed;
+
         cmd.camera.move = 0;
         cmd.camera.north = input.keyboard.kbd_up.is_down;
         cmd.camera.south = input.keyboard.kbd_down.is_down;
         cmd.camera.east = input.keyboard.kbd_right.is_down;
         cmd.camera.west = input.keyboard.kbd_left.is_down;
 
-        cmd.camera.move = 0; // disable
+        //cmd.camera.move = 0; // disable
 
         return cmd;
     }

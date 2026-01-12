@@ -186,6 +186,9 @@ namespace xbin
     }
 
 
+    
+    
+    
     static std::string define_image_set(bin::Info_ImageX_Table1 const& info, cstr set_class, bin::FileType image_type)
     {
         auto& set_name = info.name;
@@ -539,12 +542,13 @@ namespace bin
     static u32 class_count = 0;
 
 
-    std::string define_class_count()
+    std::string define_constants(BinTableInfo const& info)
     {
         std::ostringstream oss;
 
         xbin::ns_begin(oss);
-        xbin::oss_tab(oss, 1) << "constexpr u32 CLASS_COUNT = " << (int)class_count << ";\n";
+        xbin::oss_tab(oss, 1) << "constexpr u32 VERSION = " << info.version_number << ";\n";
+        xbin::oss_tab(oss, 1) << "constexpr u32 CLASS_COUNT = " << class_count << ";\n";
         xbin::ns_end(oss);
 
         return oss.str();

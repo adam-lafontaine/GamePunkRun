@@ -1,13 +1,13 @@
 #pragma once
 
-#include "../utils/tools_include.hpp"
+#include "../../utils/tools_include.hpp"
 
 
-/* tile images */
+/* spritesheet images */
 
-namespace tile
+namespace sprite
 {
-    class TileImageResult
+    class SpritesheetImageResult
     {
     public:
         std::string name;
@@ -19,9 +19,9 @@ namespace tile
     };
 
 
-    static TileImageResult get_tile_images(sfs::path const& dir)
-    {        
-        TileImageResult result;
+    static SpritesheetImageResult get_spritesheet_images(sfs::path const& dir)
+    {
+        SpritesheetImageResult result{};
         result.name = dir.filename();
         result.n_expected = 0;
         result.n_read = 0;
@@ -38,7 +38,7 @@ namespace tile
 }
 
 
-namespace tile
+namespace sprite
 {
     static void print_result(auto const& result, u32 n_written)
     {
@@ -46,36 +46,34 @@ namespace tile
     }
 
 
-    void generate_tiles()
+    inline void generate_sprites()
     {
         auto out_dir = sfs::path(OUT_DIR);
+
         sfs::create_directories(out_dir);
 
-        printf("\n--- tile ---\n");
+        printf("\n--- sprites ---\n");
 
-        for (auto const& dir : util::get_sub_directories(SRC_DIR))
+        for (auto const& dir : util::get_sub_directories(SRC_CHARACTER_DIR))
         {
             auto out = out_dir / dir.filename();
-
-            // Magic!
-            auto out_files = out / "tiles";
+            auto out_files = out / "sprites";
             auto out_table = out / "table.png";
 
             sfs::create_directories(out);
-            sfs::create_directories(out_files);
+            sfs::create_directories(out_files);            
             
-            auto res = get_tile_images(dir);
+            auto res = get_spritesheet_images(dir);
 
             auto table = util::generate_color_table(res.list);
-            util::write_color_table(table, out_table);
+            util::write_color_table(table, out_table.c_str());            
 
             u32 n_tile = 0;
             n_tile += util::count_write_convert_image_files(res.files, res.list, table, out_files);
             
             print_result(res, n_tile);
             table.destroy();
-        }        
-        
-        printf("\n"); 
+        }
     }
 }
+
