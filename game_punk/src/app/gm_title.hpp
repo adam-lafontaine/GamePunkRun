@@ -47,7 +47,7 @@ namespace internal
         ok &= bt::color_table_convert(filter, table, converted);
         app_assert(ok && "Title image failed");
 
-        u32 scale = 2;
+        u32 scale = math::min(gw / sw, gh / sh, 2u);
 
         auto w = sw * scale;
         auto h = sh * scale;
