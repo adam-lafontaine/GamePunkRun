@@ -170,7 +170,7 @@ namespace game_punk
         constexpr Icons icons;
         count_view(ui.data.icons, counts, bt::item_at(icons, Icons::Items::icons));
 
-        auto length = cxpr::GAME_CAMERA_WIDTH_PX * cxpr::GAME_CAMERA_HEIGHT_PX;
+        auto length = cxpr::GAME_CAMERA_WIDTH_PX * cxpr::GAME_CAMERA_HEIGHT_PX * 2;
         count_stack(ui.pixels, counts, length);
     }
 

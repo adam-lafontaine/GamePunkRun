@@ -14,11 +14,20 @@ namespace internal
 namespace internal
 {
 
-    static void set_title_image(StateData const& data)
+    static void set_title_image(StateData& data)
     {
     #include "../../res/title/title_game.cpp"
 
         auto& src = title_game;
+        auto sw = src.width;
+        auto sh = src.height;
+
+        auto screen = to_image_view(data.camera);
+
+        auto gw = screen.width;
+        auto gh = screen.height;
+
+        auto& pixels = data.ui.pixels;
 
         bt::ColorTableImage table;
         table.rgba.height = 1;
@@ -26,42 +35,45 @@ namespace internal
         table.rgba.data_ = (p32*)src.table;
 
         bt::TableFilterImage filter;
-        filter.gray.width = src.width;
-        filter.gray.height = src.height;
+        filter.gray.width = sw;
+        filter.gray.height = sh;
         filter.gray.data_ = (u8*)src.keys;
 
-        title_image = img::make_view(src.width, src.height, data.ui.pixels.data_);
+        auto out = img::make_view(gw, gh, push_elements(pixels, gw * gh));
+        auto converted = img::make_view(sw, sh, push_elements(pixels, sw * sh));        
 
         bool ok = true;
 
-        ok &= bt::color_table_convert(filter, table, title_image);
+        ok &= bt::color_table_convert(filter, table, converted);
         app_assert(ok && "Title image failed");
-    }
-    
-    
-    static void draw_centered(SceneCamera const& camera)
-    {
-        auto& src = title_image;
-    
-        auto dst = to_image_view(camera);
 
         u32 scale = 2;
 
-        auto w = src.width * scale;
-        auto h = src.height * scale;
-        auto x = (dst.width - w) / 2;
-        auto y = (dst.height - h) / 2;
+        auto w = sw * scale;
+        auto h = sh * scale;
+        auto x = (gw - w) / 2;
+        auto y = (gh - h) / 2;
+        auto scaled = img::sub_view(out, img::make_rect(x, y, w, h));
 
-        auto color = img::pixel_at(src, 0, 0);
-        img::fill(dst, color);
+        auto color = img::pixel_at(converted, 0, 0);
+        img::fill(out, color);
 
-        img::scale_up(src, img::sub_view(dst, img::make_rect(x, y, w, h)), scale);
+        img::scale_up(converted, scaled, scale);
+
+        title_image = out;        
+    }
+    
+    
+    static void draw_title(SceneCamera const& camera)
+    {
+
+        img::copy(title_image, to_image_view(camera));
     }
 
 
     static void draw_loading(SceneCamera const& camera)
     {
-        draw_centered(camera);
+        draw_title(camera);
     }
 }
 }
@@ -101,7 +113,7 @@ namespace gm_title
             break;
 
         case AssetStatus::Success:
-            internal::draw_centered(camera);
+            internal::draw_title(camera);
             break;
 
         default:
@@ -112,6 +124,7 @@ namespace gm_title
         if (gameplay_ready && cmd.title_ok)
         {
             set_game_mode(data, GameMode::Gameplay);
+            reset_stack(data.ui.pixels);
         }
     }
 }
