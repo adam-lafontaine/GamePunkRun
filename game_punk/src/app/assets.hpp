@@ -15,7 +15,7 @@ namespace assets
     using ImageInfo = bt::AssetInfo_Image;
 
 
-    constexpr f32 SKY_OVERLAY_ALPHA = 0.3f;
+    constexpr f32 SKY_OVERLAY_ALPHA = 0.4f;
     constexpr f32 SKY_BASE_ALPHA = 1.0f - SKY_OVERLAY_ALPHA;
 
 }
@@ -145,7 +145,73 @@ namespace assets
         }
 
         return true;
-    }    
+    }
+
+
+    static bool apply_color_table_blend(bt::TableFilterImage const& src, bt::ColorTableImage const& table, ImageView const& dst, p32 color, f32 alpha)
+    {
+        if (src.gray.width != dst.width || src.gray.height != dst.height)
+		{
+			return false;
+		}
+
+        auto ia = 1.0f - alpha;
+
+        f32 r = 0.0f;
+        f32 g = 0.0f;
+        f32 b = 0.0f;
+
+        p32 ps;
+
+        auto length = dst.width * dst.height;
+        auto s = src.gray.data_;
+        auto d = dst.matrix_data_;
+        auto t = table.rgba.data_;
+
+        for (u32 i = 0; i < length; i++)
+        {
+            ps = t[s[i]];
+
+            r = ps.red * alpha + color.red * ia + 0.5f;
+            g = ps.green * alpha + color.green * ia + 0.5f;
+            b = ps.blue * alpha + color.blue * ia + 0.5f;
+
+            d[i] = img::to_pixel((u8)r, (u8)g, (u8)b);
+        }
+
+        return true;
+    }
+
+
+    static p32 average_rgba(ImageView const& view)
+    {
+        f32 r = 0.0f;
+        f32 g = 0.0f;
+        f32 b = 0.0f;
+
+        auto length = view.width * view.height;
+        auto data = view.matrix_data_;
+
+        p32 p;
+
+        for (u32 i = 0; i < length; i++)
+        {
+            p = data[i];
+            r += p.red;
+            g += p.green;
+            b += p.blue;
+        }
+
+        r /= length;
+        g /= length;
+        b /= length;
+
+        r += 0.5f;
+        g += 0.5f;
+        b += 0.5f;
+
+        return img::to_pixel((u8)r, (u8)g, (u8)b);
+    }
    
 
 }
@@ -154,46 +220,17 @@ namespace assets
 /* backgrounds */
 
 namespace assets
-{ 
-    static bool init_load_sky_base(Buffer8 const& buffer, SkyAnimation& sky)
-    {
-        using Def = bt::SkyBase_base;
-        Def base;        
-
-        Image part_yx = base.read_rgba_item(buffer, Def::Items::day);
-        
-        auto& dst = sky.base;
-
-        auto& dims = dst.dims.proc;
-
-        bool ok = true;
-        ok &= part_yx.width == dims.width;
-        ok &= dims.height % part_yx.height == 0;        
-
-        if (!ok)
-        {
-            app_assert(ok && "*** Unexpected image part size ***");
-            img::destroy_image(part_yx);
-            return false;
-        }
-
-        // pre-multiplied alpha
-        auto span_part = img::to_span(part_yx);
-        apply_pma(span_part, span_part, SKY_BASE_ALPHA);
-
-        extend_view_y(part_yx, to_image_view(dst));
-        img::destroy_image(part_yx);
-
-        return true;
-    }
-
-
+{     
     static bool init_load_sky_overlay(Buffer8 const& buffer, SkyAnimation& sky)
     {
-        using Def = bt::SkyOverlay_overlay;
+        bt::SkyBase_base base;
+        Image row = base.read_rgba_item(buffer, bt::SkyBase_base::Items::day);
 
-        Def overlay;
-        auto item = Def::Items::ov_13;
+        auto base_color = average_rgba(img::make_view(row));
+        img::destroy_image(row);
+
+        bt::SkyOverlay_overlay overlay;
+        auto item = bt::SkyOverlay_overlay::Items::ov_13;
 
         auto table = overlay.read_table_item(buffer, item);
         auto filter = overlay.read_table_filter_item(buffer, item);
@@ -213,7 +250,7 @@ namespace assets
             return false;
         }
 
-        ok &= apply_color_table_pma(filter, table, to_image_view(dst), SKY_OVERLAY_ALPHA);
+        ok &= apply_color_table_blend(filter, table, to_image_view(dst), base_color, SKY_OVERLAY_ALPHA);
 
         app_assert(ok && "*** bt::color_table_convert() ***");
 
@@ -395,7 +432,6 @@ namespace assets
     static bool load_background_assets(AssetData const& src, BackgroundState& bg_state)
     {
         bool ok = true;
-        ok &= init_load_sky_base(src.bytes, bg_state.sky);
         ok &= init_load_sky_overlay(src.bytes, bg_state.sky);
         render_front_back(bg_state.sky);
 

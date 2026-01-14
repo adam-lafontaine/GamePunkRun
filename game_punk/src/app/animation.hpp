@@ -8,12 +8,10 @@ namespace game_punk
     class SkyAnimation
     {
     public:
-        BackgroundView base;
         SkyOverlayView overlay_src;
 
         ScenePosition ov_pos;
         Vec2Di32 ov_vel;
-        BackgroundView ov_bg;
 
         BackgroundView out[2];
         u8 out_id = 0;
@@ -28,9 +26,7 @@ namespace game_punk
 
     static void count_sky_animation(SkyAnimation& sky, MemoryCounts& counts)
     {
-        count_view(sky.base, counts);
         count_view(sky.overlay_src, counts);
-        count_view(sky.ov_bg, counts);
         count_view(sky.out[0], counts);
         count_view(sky.out[1], counts);
     }
@@ -39,10 +35,8 @@ namespace game_punk
     static bool create_sky_animation(SkyAnimation& sky, Memory& memory)
     {
         bool ok = true;
-
-        ok &= create_view(sky.base, memory);
+        
         ok &= create_view(sky.overlay_src, memory);
-        ok &= create_view(sky.ov_bg, memory);
         ok &= create_view(sky.out[0], memory);
         ok &= create_view(sky.out[1], memory);
 
@@ -52,14 +46,10 @@ namespace game_punk
 
     static void render_front_back(SkyAnimation& sky)
     {
-        auto base = to_span_cx(sky.base);        
-        auto ov = to_span_cx(sky.ov_bg);
         auto front = to_span_cx(sky.out_front());
         auto back = to_span_cx(sky.out_back());
 
-        img::copy(sub_view(sky.overlay_src, sky.ov_pos), to_image_view(sky.ov_bg));
-
-        copy(base, front);
+        img::copy(sub_view(sky.overlay_src, sky.ov_pos), to_image_view(sky.out_front()));
         copy(front, back);
     }
 
@@ -70,9 +60,7 @@ namespace game_punk
         sky.ov_vel = { 4, 2 };
 
         bool ok = true;
-        ok &= has_data(sky.base);
         ok &= has_data(sky.overlay_src);
-        ok &= has_data(sky.ov_bg);
         ok &= has_data(sky.out[0]);
         ok &= has_data(sky.out[1]);
 
@@ -82,9 +70,9 @@ namespace game_punk
     }
 
 
-    static void update_overlay(SkyAnimation& sky)
+    static void update_overlay_position(SkyAnimation& sky)
     {
-        auto ov = to_image_view(sky.ov_bg);
+        auto ov = to_image_view(sky.out_back());
         auto w = ov.width;
         auto h = ov.height;
 
@@ -125,42 +113,10 @@ namespace game_punk
     {
         constexpr u32 frame_wait = 6;
 
-        auto t = game_tick.value_ % frame_wait;
-
-        auto const render_back_part = [&]()
+        if (game_tick.value_ % frame_wait == 0)
         {
-            constexpr auto N = frame_wait - 2;
-
-            auto ov = to_span_cx(sky.ov_bg);
-            auto out = to_span_cx(sky.out_back());
-
-            constexpr auto L1 = ov.length;
-            constexpr auto L2 = out.length;
-            static_assert(L1 == L2);
-            static_assert(L1 % N == 0);
-
-            constexpr u32 length = L1 / N;
-            u32 offset = (t - 2) * length;
-            auto src = sub_view(ov, offset, length);
-            auto dst = sub_view(out, offset, length);
-            add_pma(src, dst);
-        };
-
-        switch (t)
-        {
-        case 0:
-            // expose for rendering
+            update_overlay_position(sky);
             sky.out_swap();
-            copy(sky.base, sky.out_back());
-            break;
-
-        case 1:
-            update_overlay(sky);
-            break;
-
-        default: 
-            render_back_part();
-            break;
         }
 
         return sky.out_front();

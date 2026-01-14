@@ -1,5 +1,5 @@
 #pragma once
-/* timestamp: 1768415282725718785 */
+/* timestamp: 1768424880162386532 */
 
 
 // bin_table_types.hpp
@@ -986,7 +986,7 @@ namespace bin_table
 namespace bin_table
 {
 
-	constexpr u32 VERSION = 2212370305;
+	constexpr u32 VERSION = 392861438;
 	constexpr u32 CLASS_COUNT = 8;
 
 }
