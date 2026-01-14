@@ -15,7 +15,7 @@ namespace assets
     using ImageInfo = bt::AssetInfo_Image;
 
 
-    constexpr f32 SKY_OVERLAY_ALPHA = 0.4f;
+    constexpr f32 SKY_OVERLAY_ALPHA = 0.3f;
     constexpr f32 SKY_BASE_ALPHA = 1.0f - SKY_OVERLAY_ALPHA;
 
 }
