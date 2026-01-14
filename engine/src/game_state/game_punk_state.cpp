@@ -159,11 +159,82 @@ namespace internal
     }
 
 
+    static void tile_table(game::TileTable const& table)
+    {
+        static bool show_inactive = true;
+
+        ImGui::Checkbox("Show Inactive", &show_inactive);
+
+        constexpr int col_id = 0;
+        constexpr int col_pos_x = col_id + 1;
+        constexpr int col_pos_y = col_pos_x + 1;
+        constexpr int col_bmp = col_pos_y + 1;
+        constexpr int col_active = col_bmp + 1;
+        constexpr int n_columns = col_active + 1;
+
+        int table_flags = ImGuiTableFlags_BordersInnerH | ImGuiTableFlags_BordersInnerV;
+        auto table_dims = ImVec2(0.0f, 0.0f);
+
+        if (!ImGui::BeginTable("Lasers##LaserTable", n_columns, table_flags, table_dims)) 
+        { 
+            return; 
+        }
+
+        ImGui::TableSetupColumn("Id", ImGuiTableColumnFlags_WidthFixed, 20.0f);
+        ImGui::TableSetupColumn("X", ImGuiTableColumnFlags_WidthStretch, 20.0f);
+        ImGui::TableSetupColumn("Y", ImGuiTableColumnFlags_WidthStretch, 20.0f);
+        ImGui::TableSetupColumn("Bmp", ImGuiTableColumnFlags_WidthStretch, 20.0f);
+        ImGui::TableSetupColumn("On", ImGuiTableColumnFlags_WidthStretch, 20.0f);
+
+        auto N = table.capacity;
+        auto pos = table.position;
+        auto bmp = table.bitmap_id;
+
+        ImGui::TableHeadersRow();
+
+        for (u32 i = 0; i < N; i++)
+        {
+            if (!show_inactive && !game::is_spawned(table, i))
+            {
+                continue;
+            }
+
+            ImGui::TableNextRow();
+
+            ImGui::TableSetColumnIndex(col_id);
+            ImGui::Text("%u", i);
+
+            ImGui::TableSetColumnIndex(col_pos_x);
+            ImGui::Text("%ld", pos[i].x);
+
+            ImGui::TableSetColumnIndex(col_pos_y);
+            ImGui::Text("%ld", pos[i].y);
+
+            ImGui::TableSetColumnIndex(col_bmp);
+            ImGui::Text("%u", bmp[i]);
+
+            ImGui::TableSetColumnIndex(col_active);
+            ImGui::Text("%d", game::is_spawned(table, i));
+        }
+
+        ImGui::EndTable();
+    }
+
+
     static void tiles(game::TileTable const& table)
     {
         ImGui::SeparatorText("Tiles");
 
         plot_active_tiles(table);
+
+        ImGui::PushStyleVar(ImGuiStyleVar_IndentSpacing, 0.0f);
+        if (ImGui::TreeNode("Table##TilesTreeNode"))
+        {
+            tile_table(table);
+            ImGui::TreePop();
+        }
+        ImGui::PopStyleVar();       
+        
     }
 }
 }
