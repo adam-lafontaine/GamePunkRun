@@ -271,10 +271,6 @@ namespace game_punk
 
         u64 value_ = 0;
 
-        //constexpr GameTick64(u64 v) { static_assert(sizeof(GameTick64) == 8); value_ = v; }
-
-        //GameTick64(u64 v) = delete;
-
         GameTick64() = delete;
 
         static constexpr GameTick64 make(u64 v) { return GameTick64(v); }
@@ -287,7 +283,6 @@ namespace game_punk
         
 
         GameTick64& operator ++ () { ++value_; return *this; }
-
 
         bool operator == (GameTick64 other) const { return value_ == other.value_; }
 

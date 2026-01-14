@@ -115,6 +115,57 @@ namespace internal
         vel.x = v;
     }
 }
+
+
+/* tiles */
+
+namespace internal
+{
+    static void plot_active_tiles(game::TileTable const& table)
+    {
+        //static PlotProps plot;
+
+        constexpr int data_count = 256;
+        constexpr auto plot_min = 0.0f;
+        constexpr auto plot_size = ImVec2(0, 80.0f);
+        constexpr auto data_stride = sizeof(f32);
+
+        auto N = table.capacity;
+
+        auto plot_max = (f32)N;
+
+        static f32 plot_data[data_count] = { 0 };
+        static u8 data_offset = 0;
+
+        int active_count = 0;
+        for (u32 i = 0; i < N; i++)
+        {
+            active_count += game::is_spawned(table, i);
+        }
+
+        plot_data[data_offset++] = (f32)active_count;
+
+        char overlay[32] = { 0 };
+        stb::qsnprintf(overlay, 32, "%d/%d", active_count, (int)N);
+
+        ImGui::PlotLines("##PlotTiles", 
+            plot_data, 
+            data_count, 
+            (int)data_offset, 
+            overlay,
+            plot_min, plot_max, 
+            plot_size, 
+            data_stride);
+    }
+
+
+    static void tiles(game::TileTable const& table)
+    {
+        ImGui::SeparatorText("Tiles");
+
+        plot_active_tiles(table);
+    }
+}
 }
 
 /* game state */
@@ -131,6 +182,7 @@ namespace game_state
         internal::background_animation(data.background.bg_1, "Background 1");
         internal::background_animation(data.background.bg_2, "Background 2");
         internal::player(data);
+        internal::tiles(data.tiles);
 
         ImGui::End();
     }

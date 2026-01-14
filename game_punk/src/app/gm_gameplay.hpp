@@ -37,11 +37,12 @@ namespace internal
         
         bitmaps.data[0] = data.bitmaps.push_item(to_image_view(src.floor_a));
         bitmaps.data[1] = data.bitmaps.push_item(to_image_view(src.floor_b));
+
         Vec2Di64 pos = { 0, 0 };
         for (u32 i = 0; i < 20; i++)
         {
-            auto tile = SpriteDef(data.game_tick, pos, data.tile_bitmaps.front());
-            spawn_sprite(data.sprites, tile);
+            auto tile = TileDef(data.game_tick, pos, data.tile_bitmaps.front());
+            spawn_tile(data.tiles, tile);
             pos.x += tile_w;
             data.tile_bitmaps.next();
         }
@@ -127,24 +128,22 @@ namespace internal
 
     static void draw_tiles(StateData& data)
     {
-        constexpr i32 xmin = -cxpr::GAME_BACKGROUND_WIDTH_PX;
-        constexpr i32 ymin = -cxpr::GAME_BACKGROUND_HEIGHT_PX;
+        constexpr i32 xmin = -(cxpr::GAME_BACKGROUND_WIDTH_PX / 4);
+        constexpr i32 ymin = -(cxpr::GAME_BACKGROUND_HEIGHT_PX / 4);
 
         auto& dq = data.drawq;
         auto& camera = data.camera;
         auto& table = data.tiles;
 
         auto N = table.capacity;
-
-        auto beg = table.tick_begin;
+        
         auto pos = table.position;
         auto bmp = table.bitmap_id;
 
         for (u32 i = 0; i < N; i++)
         {
-            if (beg[i] == GameTick64::none())
+            if (!is_spawned(table, i))
             {
-                table.first_id.value_ = math::min(i, table.first_id.value_);
                 continue;
             }
 
@@ -153,8 +152,7 @@ namespace internal
 
             if (gpos.x < xmin || gpos.y < ymin)
             {
-                // despawn
-                beg[i] = GameTick64::none();                
+                despawn_tile(table, i);
                 continue;
             }
 
