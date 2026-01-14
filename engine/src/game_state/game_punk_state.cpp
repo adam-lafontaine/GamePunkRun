@@ -123,8 +123,6 @@ namespace internal
 {
     static void plot_active_tiles(game::TileTable const& table)
     {
-        //static PlotProps plot;
-
         constexpr int data_count = 256;
         constexpr auto plot_min = 0.0f;
         constexpr auto plot_size = ImVec2(0, 80.0f);
@@ -166,23 +164,21 @@ namespace internal
         ImGui::Checkbox("Show Inactive", &show_inactive);
 
         constexpr int col_id = 0;
-        constexpr int col_pos_x = col_id + 1;
-        constexpr int col_pos_y = col_pos_x + 1;
-        constexpr int col_bmp = col_pos_y + 1;
+        constexpr int col_pos = col_id + 1;
+        constexpr int col_bmp = col_pos + 1;
         constexpr int col_active = col_bmp + 1;
         constexpr int n_columns = col_active + 1;
 
         int table_flags = ImGuiTableFlags_BordersInnerH | ImGuiTableFlags_BordersInnerV;
         auto table_dims = ImVec2(0.0f, 0.0f);
 
-        if (!ImGui::BeginTable("Lasers##LaserTable", n_columns, table_flags, table_dims)) 
+        if (!ImGui::BeginTable("Tiles##TileTable", n_columns, table_flags, table_dims)) 
         { 
             return; 
         }
 
         ImGui::TableSetupColumn("Id", ImGuiTableColumnFlags_WidthFixed, 20.0f);
-        ImGui::TableSetupColumn("X", ImGuiTableColumnFlags_WidthStretch, 20.0f);
-        ImGui::TableSetupColumn("Y", ImGuiTableColumnFlags_WidthStretch, 20.0f);
+        ImGui::TableSetupColumn("Pos", ImGuiTableColumnFlags_WidthStretch, 20.0f);
         ImGui::TableSetupColumn("Bmp", ImGuiTableColumnFlags_WidthStretch, 20.0f);
         ImGui::TableSetupColumn("On", ImGuiTableColumnFlags_WidthStretch, 20.0f);
 
@@ -204,11 +200,8 @@ namespace internal
             ImGui::TableSetColumnIndex(col_id);
             ImGui::Text("%u", i);
 
-            ImGui::TableSetColumnIndex(col_pos_x);
-            ImGui::Text("%ld", pos[i].x);
-
-            ImGui::TableSetColumnIndex(col_pos_y);
-            ImGui::Text("%ld", pos[i].y);
+            ImGui::TableSetColumnIndex(col_pos);
+            ImGui::Text("(%ld, %ld)", pos[i].x, pos[i].y);
 
             ImGui::TableSetColumnIndex(col_bmp);
             ImGui::Text("%u", bmp[i]);
@@ -233,8 +226,123 @@ namespace internal
             tile_table(table);
             ImGui::TreePop();
         }
-        ImGui::PopStyleVar();       
+        ImGui::PopStyleVar();
         
+    }
+
+
+    static void sprite_table(game::SpriteTable const& table)
+    {
+        static bool show_inactive = true;
+
+        ImGui::Checkbox("Show Inactive", &show_inactive);
+
+        constexpr int col_id = 0;
+        constexpr int col_pos = col_id + 1;
+        constexpr int col_vel = col_pos + 1;
+        constexpr int col_active = col_vel + 1;
+        constexpr int n_columns = col_active + 1;
+
+        int table_flags = ImGuiTableFlags_BordersInnerH | ImGuiTableFlags_BordersInnerV;
+        auto table_dims = ImVec2(0.0f, 0.0f);
+
+        if (!ImGui::BeginTable("Tiles##TileTable", n_columns, table_flags, table_dims)) 
+        { 
+            return; 
+        }
+
+        ImGui::TableSetupColumn("Id", ImGuiTableColumnFlags_WidthFixed, 20.0f);
+        ImGui::TableSetupColumn("Pos", ImGuiTableColumnFlags_WidthStretch, 20.0f);
+        ImGui::TableSetupColumn("Vel", ImGuiTableColumnFlags_WidthStretch, 20.0f);
+        ImGui::TableSetupColumn("On", ImGuiTableColumnFlags_WidthStretch, 20.0f);
+
+        auto N = table.capacity;
+        auto pos = table.position;
+        auto vel = table.velocity_px;
+
+        ImGui::TableHeadersRow();
+
+        for (u32 i = 0; i < N; i++)
+        {
+            if (!show_inactive && !game::is_spawned(table, i))
+            {
+                continue;
+            }
+
+            ImGui::TableNextRow();
+
+            ImGui::TableSetColumnIndex(col_id);
+            ImGui::Text("%u", i);
+
+            ImGui::TableSetColumnIndex(col_pos);
+            ImGui::Text("(%ld, %ld)", pos[i].x, pos[i].y);
+
+            ImGui::TableSetColumnIndex(col_vel);
+            ImGui::Text("(%d, %d)", vel[i].x, vel[i].y);
+
+            ImGui::TableSetColumnIndex(col_active);
+            ImGui::Text("%d", game::is_spawned(table, i));
+        }
+
+        ImGui::EndTable();
+    }
+    
+}
+
+
+/* sprites */
+
+namespace internal
+{
+    static void plot_active_sprites(game::SpriteTable const& table)
+    {
+        constexpr int data_count = 256;
+        constexpr auto plot_min = 0.0f;
+        constexpr auto plot_size = ImVec2(0, 80.0f);
+        constexpr auto data_stride = sizeof(f32);
+
+        auto N = table.capacity;
+
+        auto plot_max = (f32)N;
+
+        static f32 plot_data[data_count] = { 0 };
+        static u8 data_offset = 0;
+
+        int active_count = 0;
+        for (u32 i = 0; i < N; i++)
+        {
+            active_count += game::is_spawned(table, i);
+        }
+
+        plot_data[data_offset++] = (f32)active_count;
+
+        char overlay[32] = { 0 };
+        stb::qsnprintf(overlay, 32, "%d/%d", active_count, (int)N);
+
+        ImGui::PlotLines("##PlotSprites", 
+            plot_data, 
+            data_count, 
+            (int)data_offset, 
+            overlay,
+            plot_min, plot_max, 
+            plot_size, 
+            data_stride);
+    }
+
+
+    static void sprites(game::SpriteTable const& table)
+    {
+        ImGui::SeparatorText("Sprites");
+
+        plot_active_sprites(table);
+
+        ImGui::PushStyleVar(ImGuiStyleVar_IndentSpacing, 0.0f);
+        if (ImGui::TreeNode("Table##SpritesTreeNode"))
+        {
+            sprite_table(table);
+            ImGui::TreePop();
+        }
+        ImGui::PopStyleVar();
     }
 }
 }
@@ -249,11 +357,31 @@ namespace game_state
 
         ImGui::Begin("Game State");
 
-        internal::camera(data);
-        internal::background_animation(data.background.bg_1, "Background 1");
-        internal::background_animation(data.background.bg_2, "Background 2");
-        internal::player(data);
-        internal::tiles(data.tiles);
+        if (ImGui::CollapsingHeader("Camera"))
+        {
+            internal::camera(data);
+        }
+
+        if (ImGui::CollapsingHeader("Background"))
+        {
+            internal::background_animation(data.background.bg_1, "Background 1");
+            internal::background_animation(data.background.bg_2, "Background 2");            
+        }
+
+        if (ImGui::CollapsingHeader("Player"))
+        {
+            internal::player(data);
+        }
+
+        if (ImGui::CollapsingHeader("Tiles"))
+        {
+            internal::tiles(data.tiles);
+        }
+
+        if (ImGui::CollapsingHeader("Sprites"))
+        {
+            internal::sprites(data.sprites);
+        }        
 
         ImGui::End();
     }

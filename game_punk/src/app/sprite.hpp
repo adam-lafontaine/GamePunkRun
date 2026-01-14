@@ -11,9 +11,7 @@ namespace game_punk
         u32 first_id = {0};
 
         GameTick64* tick_begin = 0;
-
         Vec2Di64* position = 0;
-
         BitmapID* bitmap_id = 0;
     };
 
@@ -150,14 +148,13 @@ namespace game_punk
         u32 first_id = 0;
 
         GameTick64* tick_begin = 0;
-        GameTick64* tick_end = 0;
-        
-        Vec2Di32* velocity_px = 0;
         Vec2Di64* position = 0;
-
-        SpriteAnimation* animation = 0;
-
         BitmapID* bitmap_id = 0;
+
+        GameTick64* tick_end = 0;        
+        Vec2Di32* velocity_px = 0;
+        SpriteAnimation* animation = 0;
+        
         
         GameTick64& tick_begin_at(ID id) { return tick_begin[id.value_]; }
         //GameTick64& tick_end_at(ID id) { return tick_end[id.value_]; }
@@ -312,13 +309,17 @@ namespace game_punk
 
     static void move_sprites(SpriteTable const& table)
     {
+        auto N = table.capacity;
         auto pos = table.position;
         auto vel = table.velocity_px;
 
-        for (u32 i = 0; i < table.capacity; i++)
+        for (u32 i = 0; i < N; i++)
         {
             pos[i].x += vel[i].x;
             pos[i].y += vel[i].y;
         }
     }
+
+
+    
 }
