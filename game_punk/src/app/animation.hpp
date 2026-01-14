@@ -365,11 +365,8 @@ namespace game_punk
         app_assert(ok && "*** Invalid spritesheet dimensions ***");
 
         an.spritesheet_data = ss.data;
-
         an.bitmap_dims = ss.bitmap_dims;
-
         an.bitmap_count = ss.bitmap_count;
-
         an.ticks_per_bitmap = bmp_ticks;
 
         return ok;

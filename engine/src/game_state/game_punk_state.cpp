@@ -98,7 +98,7 @@ namespace internal
     {
         ImGui::SeparatorText("Player");
 
-        auto id = data.punk_sprite;
+        auto id = data.player_state.sprite;
 
         auto pos = data.sprites.position_at(id);
         auto& vel = data.sprites.velocity_px_at(id);

@@ -16,12 +16,9 @@ namespace internal
         pos.y = tile_h;
 
         auto punk = SpriteDef(data.game_tick, pos, data.bitmaps.push());
-        punk.velocity = { 2, 0 };
-
-        u32 bmp_tick = 10 / punk.velocity.x;
-        set_animation_spritesheet(punk.animation, data.spritesheet.punk_run, bmp_tick);        
-
-        data.punk_sprite = spawn_sprite(data.sprites, punk);
+        data.player_state.sprite = spawn_sprite(data.sprites, punk);
+        
+        set_player_mode(data.player_state, data.sprites, data.spritesheet, SpriteMode::Idle);
     }
 
 
@@ -69,12 +66,38 @@ namespace internal
     }
 
 
+    static void update_player(StateData& data, InputCommand const& cmd)
+    {
+        if (!cmd.action)
+        {
+            return;
+        }
+
+        auto& player = data.player_state;
+
+        switch (player.mode)
+        {
+        case SpriteMode::Idle:
+            set_player_mode(player, data.sprites, data.spritesheet, SpriteMode::Run);
+            break;
+
+        case SpriteMode::Run:
+            set_player_mode(player, data.sprites, data.spritesheet, SpriteMode::Jump);
+            break;
+
+        case SpriteMode::Jump:
+            set_player_mode(player, data.sprites, data.spritesheet, SpriteMode::Idle);
+            break;
+        }
+    }
+
+
     static void update_tiles(StateData& data)
     {
         constexpr auto tile_w = cxpr::TILE_WIDTH;
         
         auto pos = data.scene.game_position.game.x;
-        if (pos % tile_w == 0)
+        if (data.next_tile_position.game.x - pos < (i64)cxpr::GAME_BACKGROUND_WIDTH_PX)
         {
             auto tile = TileDef(data.game_tick, data.next_tile_position.pos_game(), data.tile_bitmaps.front());
             spawn_tile(data.tiles, tile);
@@ -222,7 +245,7 @@ namespace gm_gameplay
         internal::init_punk_sprite(data);
         internal::init_tiles(data);
         
-        app_assert(data.punk_sprite.value_ == PLAYER_ID.value_ && "*** Player not first sprite ***");
+        app_assert(data.player_state.sprite == PLAYER_ID && "*** Player not first sprite ***");
         
         data.game_tick = GameTick64::zero();
     }
@@ -231,11 +254,12 @@ namespace gm_gameplay
     static void update(StateData& data, InputCommand const& cmd)
     {
         internal::update_game_camera(data, cmd);
+        internal::update_player(data, cmd);
 
         move_sprites(data.sprites);
 
         auto& scene_pos = data.scene.game_position.game;
-        auto player_pos = data.sprites.position_at(data.punk_sprite);
+        auto player_pos = data.sprites.position_at(data.player_state.sprite);
 
         scene_pos.x = player_pos.x - PLAYER_SCENE_OFFSET;
         

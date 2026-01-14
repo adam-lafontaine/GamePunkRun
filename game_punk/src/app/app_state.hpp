@@ -62,6 +62,7 @@ namespace game_punk
 
         SpritesheetView punk_run;
         SpritesheetView punk_idle;
+        SpritesheetView punk_jump;
     };
 
 
@@ -72,9 +73,11 @@ namespace game_punk
         constexpr Punk list;
         constexpr auto run = Punk::Items::Punk_run;
         constexpr auto idle = Punk::Items::Punk_idle;
+        constexpr auto jump = Punk::Items::Punk_jump;
 
         count_view(ss_state.punk_run, counts, bt::item_at(list, run));
         count_view(ss_state.punk_idle, counts, bt::item_at(list, idle));
+        count_view(ss_state.punk_jump, counts, bt::item_at(list, jump));
     }
 
 
@@ -84,6 +87,7 @@ namespace game_punk
 
         ok &= create_view(ss_state.punk_run, memory);
         ok &= create_view(ss_state.punk_idle, memory);
+        ok &= create_view(ss_state.punk_jump, memory);
 
         return ok;
     }
@@ -301,5 +305,62 @@ namespace game_punk
         }
 
         return view;
+    }
+}
+
+
+/* player state */
+
+namespace game_punk
+{
+    enum class SpriteMode : u8
+    {
+        Idle,
+        Run,
+        Jump
+    };
+    
+    
+    class PlayerState
+    {
+    public:
+        SpriteID sprite;
+        SpriteMode mode;
+    };
+
+
+    static void set_player_mode(PlayerState& player, SpriteTable table, SpritesheetState const& ss, SpriteMode mode)
+    {
+        player.mode = mode;
+
+        auto& vel = table.velocity_px_at(player.sprite);
+        auto& amn = table.animation_at(player.sprite);
+        auto view = ss.punk_idle;
+        u32 bmp_ticks = 10;
+
+        switch (mode)
+        {
+        case SpriteMode::Idle:
+        {
+            vel = { 0, 0 };
+            bmp_ticks = 15;
+            view = ss.punk_idle;            
+        } break;
+
+        case SpriteMode::Run:
+        {
+            vel = { 2, 0 };
+            bmp_ticks = 10 / vel.x;
+            view = ss.punk_run;
+        } break;
+
+        case SpriteMode::Jump:
+        {
+            u32 bmp_ticks = 10;
+            view = ss.punk_jump;
+        } break;
+        }
+
+        set_animation_spritesheet(amn, view, bmp_ticks);
     }
 }

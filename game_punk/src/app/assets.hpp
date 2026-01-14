@@ -280,12 +280,17 @@ namespace assets
         auto table = list.read_table(buffer);
         auto run = list.read_table_filter_item(buffer, Punk::Items::Punk_run);
         auto idle = list.read_table_filter_item(buffer, Punk::Items::Punk_idle);
+        auto jump = list.read_table_filter_item(buffer, Punk::Items::Punk_jump);
         
         bool ok = true;
 
         ok &= bt::color_table_convert(run, table, to_image_view(ss.punk_run));
         app_assert(ok && "*** bt::color_table_convert() ***");
+
         ok &= bt::color_table_convert(idle, table, to_image_view(ss.punk_idle));
+        app_assert(ok && "*** bt::color_table_convert() ***");
+
+        ok &= bt::color_table_convert(jump, table, to_image_view(ss.punk_jump));
         app_assert(ok && "*** bt::color_table_convert() ***");
 
         table.destroy();

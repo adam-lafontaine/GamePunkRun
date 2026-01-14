@@ -112,7 +112,7 @@ namespace gm_title
         }
         
         auto gameplay_ready = data.asset_data.status == AssetStatus::Success;
-        if (gameplay_ready && cmd.title_ok)
+        if (gameplay_ready && cmd.action)
         {
             set_game_mode(data, GameMode::Gameplay);            
         }

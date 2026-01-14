@@ -153,8 +153,7 @@ namespace game_punk
 
         GameTick64* tick_end = 0;        
         Vec2Di32* velocity_px = 0;
-        SpriteAnimation* animation = 0;
-        
+        SpriteAnimation* animation = 0;        
         
         GameTick64& tick_begin_at(ID id) { return tick_begin[id.value_]; }
         //GameTick64& tick_end_at(ID id) { return tick_end[id.value_]; }
@@ -168,6 +167,7 @@ namespace game_punk
 
     SpriteID& operator ++ (SpriteID& id) { ++id.value_; return id; }
     bool operator < (SpriteID lhs, SpriteID rhs) { return lhs.value_ < rhs.value_; }
+    bool operator == (SpriteID lhs, SpriteID rhs) { return lhs.value_ == rhs.value_; }
 
 
     class SpriteDef

@@ -928,9 +928,8 @@ namespace game_punk
     class InputCommand
     {
     public:
-        
-        // title
-        b8 title_ok = 0;
+    
+        b8 action = 0;
     
         // gameplay
         union
@@ -953,7 +952,7 @@ namespace game_punk
     {
         InputCommand cmd;
 
-        cmd.title_ok = 
+        cmd.action = 
             input.keyboard.kbd_return.pressed || 
             input.keyboard.kbd_space.pressed ||
             input.gamepad.btn_south.pressed;
