@@ -466,7 +466,7 @@ namespace assets
         bool ok = true;
         ok &= load_background_assets(src, data.background);
         ok &= load_spritesheet_assets(src, data.spritesheet);
-        ok &= load_tile_assets(src, data.tiles);
+        ok &= load_tile_assets(src, data.tile_state);
         ok &= load_ui_assets(src, data.ui);
 
         app_assert(ok && "*** Error reading asset data ***");

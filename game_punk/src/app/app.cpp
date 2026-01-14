@@ -60,6 +60,7 @@ namespace game_punk
 #include "image_view.hpp"
 #include "animation.hpp"
 #include "draw.hpp"
+#include "sprite.hpp"
 #include "app_state.hpp"
 
 
@@ -91,15 +92,17 @@ namespace game_punk
 
         BackgroundState background;
         SpritesheetState spritesheet;
-        TileState tiles;
+        TileState tile_state;
         UIState ui;
+
+        BitmapTable bitmaps;
 
         GameScene scene;
         SceneCamera camera;
 
-        DrawQueue drawq;
+        DrawQueue drawq;        
 
-        BitmapTable bitmaps;
+        TileTable tiles;
         SpriteTable sprites;
 
         SpriteAnimation punk_animation;
@@ -134,36 +137,9 @@ namespace game_punk
         reset_ui_state(data.ui);
         set_ui_color(data.ui, 20);
 
-        reset_table(data.bitmaps);        
-        reset_sprite_table(data.sprites);        
-
-        data.punk_bitmap = data.bitmaps.push();        
-
-        constexpr auto tile_h = bt::Tileset_ex_zone().items[0].height;
-        constexpr auto tile_w = bt::Tileset_ex_zone().items[0].width;
-
-        auto pos = data.scene.game_position.pos_game();
-        pos.x += PLAYER_SCENE_OFFSET;
-        pos.y = tile_h;
-
-        auto punk = SpriteDef(data.game_tick, pos, data.punk_bitmap);
-        punk.velocity = { 2, 0 };
-
-        data.punk_sprite = spawn_sprite(data.sprites, punk);
-        app_assert(data.punk_sprite.value_ == PLAYER_ID.value_ && "*** Player not first sprite ***");
-        
-        data.tile_bitmaps.data[0] = data.bitmaps.push(to_image_view(data.tiles.floor_a));
-        data.tile_bitmaps.data[1] = data.bitmaps.push(to_image_view(data.tiles.floor_b));
-        pos = { 0, 0 };
-        for (u32 i = 0; i < 20; i++)
-        {
-            auto tile = SpriteDef(data.game_tick, pos, data.tile_bitmaps.front());
-            spawn_sprite(data.sprites, tile);
-            pos.x += tile_w;
-            data.tile_bitmaps.next();
-        }
-
-        data.next_tile_position = GamePosition(pos, DimCtx::Game);
+        reset_table(data.bitmaps);
+        reset_tile_table(data.tiles);
+        reset_sprite_table(data.sprites);
     }
 
 
@@ -201,11 +177,12 @@ namespace game_punk
 
         count_background_state(data.background, counts);
         count_spritesheet_state(data.spritesheet, counts);
-        count_tile_state(data.tiles, counts);
+        count_tile_state(data.tile_state, counts);
         count_ui_state(data.ui, counts);
         count_queue(data.drawq, counts, 50);
         count_queue(data.loadq, counts, 10);
         count_random(data.rng, counts);
+        count_table(data.tiles, counts, 50);
         count_table(data.sprites, counts, 50);
         count_table(data.bitmaps, counts, 50);
         
@@ -219,11 +196,12 @@ namespace game_punk
 
         ok &= create_background_state(data.background, data.memory);
         ok &= create_spritesheet_state(data.spritesheet, data.memory);
-        ok &= create_tile_state(data.tiles, data.memory);
+        ok &= create_tile_state(data.tile_state, data.memory);
         ok &= create_ui_state(data.ui, data.memory);
         ok &= create_queue(data.drawq, data.memory);
         ok &= create_queue(data.loadq, data.memory);
         ok &= create_random(data.rng, data.memory);
+        ok &= create_table(data.tiles, data.memory);
         ok &= create_table(data.sprites, data.memory);
         ok &= create_table(data.bitmaps, data.memory);
 
@@ -482,7 +460,7 @@ namespace game_punk
         render_screen(data);
         end_update(data);
 
-        //app_crash("*** Update not implemented ***");
+        app_crash("*** Update not implemented ***");
     }
 
 

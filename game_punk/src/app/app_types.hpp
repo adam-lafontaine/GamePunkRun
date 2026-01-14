@@ -78,6 +78,11 @@ namespace cxpr
     constexpr u32 BACKGROUND_2_COUNT = bt::Background_Bg2::count;
     constexpr u32 BACKGROUND_COUNT_MAX = math::cxpr::max(BACKGROUND_1_COUNT, BACKGROUND_2_COUNT);
 
+    constexpr u32 TILE_WIDTH = bt::Tileset_ex_zone().items[0].height;
+    constexpr u32 TILE_HEIGHT = bt::Tileset_ex_zone().items[0].width;
+
+
+
 
 } // cxpr    
 
@@ -443,11 +448,12 @@ namespace game_punk
         u32 capacity = 0;
         u32 size = 0;
 
-        T error;
+        T empty_item;
 
         T* data;
 
-        ID push(T const& obj = {})
+
+        ID push_item(T const& obj)
         {
             ID id;
             id.value_ = capacity;
@@ -462,11 +468,26 @@ namespace game_punk
         }
 
 
-        T& at(ID id)
+        ID push()
+        {
+            ID id;
+            id.value_ = capacity;
+            
+            if (size < capacity)
+            {
+                id.value_ = size;
+                data[size++] = empty_item;
+            }
+
+            return id;
+        }
+
+
+        T& item_at(ID id)
         {
             if (id.value_ >= capacity)
             {
-                return error;
+                return empty_item;
             }
 
             return data[id.value_];
@@ -478,6 +499,10 @@ namespace game_punk
     static void reset_table(ObjectTable<T, TAG>& table)
     {
         table.size = 0;
+        for (u32 i = 0; i < table.capacity; i++)
+        {
+            table.data[i] = table.empty_item;
+        }
     }
 
 
@@ -644,8 +669,7 @@ namespace game_punk
         GameTick64& tick_begin_at(ID id) { return tick_begin[id.value_]; }
         //GameTick64& tick_end_at(ID id) { return tick_end[id.value_]; }
         Vec2Di64& position_at(ID id) { return position[id.value_]; }
-        Vec2Di32& velocity_px_at(ID id) { return velocity_px[id.value_]; }
-        
+        Vec2Di32& velocity_px_at(ID id) { return velocity_px[id.value_]; }        
     };
 
 

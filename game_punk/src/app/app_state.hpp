@@ -145,6 +145,8 @@ namespace game_punk
             p32 colors[CTS];
         } data;
 
+        ImageView fullscreen_view;
+
         MemoryStack<p32> pixels;
 
         u8 font_color_id;
@@ -170,7 +172,10 @@ namespace game_punk
         constexpr Icons icons;
         count_view(ui.data.icons, counts, bt::item_at(icons, Icons::Items::icons));
 
-        auto length = cxpr::GAME_CAMERA_WIDTH_PX * cxpr::GAME_CAMERA_HEIGHT_PX * 2;
+        auto dims = CAMERA_DIMS.proc;
+        count_view(ui.fullscreen_view, counts, dims.width, dims.height);
+
+        auto length = dims.width * dims.height;
         count_stack(ui.pixels, counts, length);
     }
 
@@ -181,6 +186,7 @@ namespace game_punk
         
         ok &= create_view(ui.data.font, memory);
         ok &= create_view(ui.data.icons, memory);
+        ok &= create_view(ui.fullscreen_view, memory);
         ok &= create_stack(ui.pixels, memory);
 
         return ok;
@@ -191,6 +197,7 @@ namespace game_punk
     {
         ui.temp_icon.is_on = 0;
         ui.temp_icon.end_tick = GameTick64::make(1);
+        reset_stack(ui.pixels);
     }
 
 

@@ -353,7 +353,7 @@ namespace game_punk
     };
 
 
-    static bool set_animation_spritesheet(SpriteAnimation& an, SpritesheetView const& ss)
+    static bool set_animation_spritesheet(SpriteAnimation& an, SpritesheetView const& ss, u32 bmp_ticks)
     {
         auto& dims = ss.dims.game;
 
@@ -370,7 +370,7 @@ namespace game_punk
 
         an.bitmap_count = ss.bitmap_count;
 
-        an.ticks_per_bitmap = 6; // Magic!
+        an.ticks_per_bitmap = bmp_ticks;
 
         return ok;
     }

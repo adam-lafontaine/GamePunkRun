@@ -3,14 +3,6 @@ namespace game_punk
 namespace gm_title
 {
 
-/* static data */
-namespace internal
-{
-    static ImageView title_image;
-}
-
-
-
 namespace internal
 {
 
@@ -39,7 +31,7 @@ namespace internal
         filter.gray.height = sh;
         filter.gray.data_ = (u8*)src.keys;
 
-        auto out = img::make_view(gw, gh, push_elements(pixels, gw * gh));
+        auto out = data.ui.fullscreen_view;
         auto converted = img::make_view(sw, sh, push_elements(pixels, sw * sh));        
 
         bool ok = true;
@@ -60,20 +52,19 @@ namespace internal
 
         img::scale_up(converted, scaled, scale);
 
-        title_image = out;        
+        reset_stack(data.ui.pixels);
     }
     
     
-    static void draw_title(SceneCamera const& camera)
+    static void draw_title(StateData const& data)
     {
-
-        img::copy(title_image, to_image_view(camera));
+        img::copy(data.ui.fullscreen_view, to_image_view(data.camera));
     }
 
 
-    static void draw_loading(SceneCamera const& camera)
+    static void draw_loading(StateData const& data)
     {
-        draw_title(camera);
+        draw_title(data);
     }
 }
 }
@@ -109,11 +100,11 @@ namespace gm_title
             break;
 
         case AssetStatus::Loading:
-            internal::draw_loading(camera);
+            internal::draw_loading(data);
             break;
 
         case AssetStatus::Success:
-            internal::draw_title(camera);
+            internal::draw_title(data);
             break;
 
         default:
@@ -123,8 +114,7 @@ namespace gm_title
         auto gameplay_ready = data.asset_data.status == AssetStatus::Success;
         if (gameplay_ready && cmd.title_ok)
         {
-            set_game_mode(data, GameMode::Gameplay);
-            reset_stack(data.ui.pixels);
+            set_game_mode(data, GameMode::Gameplay);            
         }
     }
 }

@@ -7,8 +7,8 @@
 namespace game_punk
 {
     constexpr auto APP_TITLE = "Punk Run";
-    constexpr auto VERSION = "0.2.1";
-    constexpr auto DATE = "2026-01-10";
+    constexpr auto VERSION = "0.3.0";
+    constexpr auto DATE = "2026-01-XX";
 
 
     class StateData;
