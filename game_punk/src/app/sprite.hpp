@@ -136,10 +136,11 @@ namespace game_punk
 }
 
 
-/* sprite soa */
+/* sprite table */
 
-/*namespace game_punk
-{
+namespace game_punk
+{    
+    
     class SpriteTable
     {
     public:
@@ -180,6 +181,7 @@ namespace game_punk
         Vec2D<i64> position;
 
         Vec2D<i32> velocity;
+        SpriteAnimation animation;
         BitmapID bitmap_id;
 
 
@@ -190,7 +192,8 @@ namespace game_punk
             tick_begin = begin;
             position = pos;
             bitmap_id = bmp;
-            velocity = {0};
+            velocity = {};
+            animation = {};
         }
     };
 
@@ -258,17 +261,41 @@ namespace game_punk
         return ok;
     }
 
+    static void despawn_sprite(SpriteTable& table, u32 i)
+    {
+        table.tick_begin[i] = GameTick64::none();
+        table.first_id = math::min(i, table.first_id);
+    }
+    
+    
+    static void despawn_sprite(SpriteTable& table, SpriteID id)
+    {
+        despawn_sprite(table, id.value_);
+    }
 
+
+    static bool is_spawned(SpriteTable const& table, u32 i)
+    {
+        return table.tick_begin[i] < table.tick_end[i];
+    }    
+    
+    
     static SpriteID spawn_sprite(SpriteTable& table, SpriteDef const& def)
     {
+        auto N = table.capacity;
         auto beg = table.tick_begin;
         auto end = table.tick_end;
 
         SpriteID id;
 
         u32 i = table.first_id;
-        for (; i < table.capacity && beg[i] < end[i]; i++)
+        for (; is_spawned(table, i) && i < N; i++)
         { }
+
+        if (i == N)
+        {
+            i = 0;
+        }
 
         id.value_ = i;
         table.first_id = i;
@@ -276,23 +303,15 @@ namespace game_punk
         table.tick_end[i] = def.tick_end;
         table.position[i] = def.position;
         table.velocity_px[i] = def.velocity;
+        table.animation[i] = def.animation;
         table.bitmap_id[i] = def.bitmap_id;
 
         return id;
     }
 
 
-    static void despawn_sprite(SpriteTable& table, SpriteID id)
-    {
-        table.tick_begin_at(id) = GameTick64::none();
-        table.first_id = math::min(id.value_, table.first_id);
-    }
-
-
     static void move_sprites(SpriteTable const& table)
     {
-        auto beg = table.tick_begin;
-        auto end = table.tick_end;
         auto pos = table.position;
         auto vel = table.velocity_px;
 
@@ -302,4 +321,4 @@ namespace game_punk
             pos[i].y += vel[i].y;
         }
     }
-}*/
+}

@@ -15,16 +15,13 @@ namespace internal
         pos.x += PLAYER_SCENE_OFFSET;
         pos.y = tile_h;
 
-        data.punk_bitmap = data.bitmaps.push();
-
-        auto punk = SpriteDef(data.game_tick, pos, data.punk_bitmap);
+        auto punk = SpriteDef(data.game_tick, pos, data.bitmaps.push());
         punk.velocity = { 2, 0 };
 
+        u32 bmp_tick = 10 / punk.velocity.x;
+        set_animation_spritesheet(punk.animation, data.spritesheet.punk_run, bmp_tick);        
+
         data.punk_sprite = spawn_sprite(data.sprites, punk);
-
-        u32 bmp_tick = 10 / punk.velocity.x;                
-
-        set_animation_spritesheet(data.punk_animation, data.spritesheet.punk_run, bmp_tick);
     }
 
 
@@ -72,14 +69,6 @@ namespace internal
     }
 
 
-    static void update_animation_bitmaps(StateData& data)
-    {
-        auto time = data.game_tick - data.sprites.tick_begin_at(data.punk_sprite);
-        auto view = get_animation_bitmap(data.punk_animation, time);
-        data.bitmaps.item_at(data.punk_bitmap) = to_image_view(view);
-    }
-
-
     static void update_tiles(StateData& data)
     {
         constexpr auto tile_w = cxpr::TILE_WIDTH;
@@ -96,9 +85,27 @@ namespace internal
     }
 
 
-    static void update_sprites(StateData& data)
+    static void animate_sprites(StateData& data)
     {
+        auto& table = data.sprites;
 
+        auto N = table.capacity;
+
+        auto beg = table.tick_begin;
+        auto amn = table.animation;
+        auto bmp = table.bitmap_id;
+
+        for (u32 i = 0; i < N; i++)
+        {
+            if (!is_spawned(table, i))
+            {
+                continue;
+            }
+
+            auto time = data.game_tick - beg[i];
+            auto view = get_animation_bitmap(amn[i], time);
+            data.bitmaps.item_at(bmp[i]) = to_image_view(view);
+        }
     }
 }
 
@@ -231,9 +238,9 @@ namespace gm_gameplay
         auto player_pos = data.sprites.position_at(data.punk_sprite);
 
         scene_pos.x = player_pos.x - PLAYER_SCENE_OFFSET;
-
-        internal::update_animation_bitmaps(data);
+        
         internal::update_tiles(data);
+        internal::animate_sprites(data);
 
         internal::draw_background(data);
         internal::draw_tiles(data);

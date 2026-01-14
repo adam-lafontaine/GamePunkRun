@@ -105,9 +105,9 @@ namespace game_punk
         TileTable tiles;
         SpriteTable sprites;
 
-        SpriteAnimation punk_animation;
+        //SpriteAnimation punk_animation;
         SpriteID punk_sprite;
-        BitmapID punk_bitmap;
+        //BitmapID punk_bitmap;
 
         GamePosition next_tile_position;
         RingStackBuffer<BitmapID, 2> tile_bitmaps;
