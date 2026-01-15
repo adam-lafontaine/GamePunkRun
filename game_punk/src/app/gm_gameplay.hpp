@@ -54,8 +54,8 @@ namespace internal
     {
         if (cmd.camera.move)
         {
-            auto dx = ((i32)cmd.camera.east - (i32)cmd.camera.west) * data.camera.speed_px;
-            auto dy = ((i32)cmd.camera.north - (i32)cmd.camera.south) * data.camera.speed_px;
+            auto dx = ((i32)cmd.camera.right - (i32)cmd.camera.left) * data.camera.speed_px;
+            auto dy = ((i32)cmd.camera.up - (i32)cmd.camera.down) * data.camera.speed_px;
 
             Vec2Di8 delta_px;
             delta_px.x = (i8)dx;

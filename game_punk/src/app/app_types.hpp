@@ -938,10 +938,10 @@ namespace game_punk
 
             struct
             {
-                b8 north : 1;
-                b8 south : 1;
-                b8 east : 1;
-                b8 west : 1;
+                b8 up : 1;
+                b8 down : 1;
+                b8 left : 1;
+                b8 right : 1;
             };
 
         } camera;
@@ -950,18 +950,21 @@ namespace game_punk
 
     static InputCommand map_input(Input const& input)
     {
+        auto& kbd = input.keyboard;
+        auto& gpd = input.gamepad;
+
         InputCommand cmd;
 
         cmd.action = 
-            input.keyboard.kbd_return.pressed || 
-            input.keyboard.kbd_space.pressed ||
-            input.gamepad.btn_south.pressed;
+            kbd.kbd_return.pressed || 
+            kbd.kbd_space.pressed ||
+            gpd.btn_south.pressed;
 
         cmd.camera.move = 0;
-        cmd.camera.north = input.keyboard.kbd_up.is_down;
-        cmd.camera.south = input.keyboard.kbd_down.is_down;
-        cmd.camera.east = input.keyboard.kbd_right.is_down;
-        cmd.camera.west = input.keyboard.kbd_left.is_down;
+        cmd.camera.up = kbd.kbd_up.is_down || gpd.btn_dpad_up.is_down;
+        cmd.camera.down = kbd.kbd_down.is_down || gpd.btn_dpad_down.is_down;
+        cmd.camera.right =  kbd.kbd_right.is_down || gpd.btn_dpad_right.is_down;
+        cmd.camera.left = kbd.kbd_left.is_down || gpd.btn_dpad_left.is_down;
 
         //cmd.camera.move = 0; // disable
 

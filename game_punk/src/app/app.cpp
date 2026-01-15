@@ -458,7 +458,7 @@ namespace game_punk
         render_screen(data);
         end_update(data);
 
-        app_crash("*** Update not implemented ***");
+        //app_crash("*** Update not implemented ***");
     }
 
 
