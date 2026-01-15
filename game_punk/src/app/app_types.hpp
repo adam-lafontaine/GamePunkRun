@@ -78,6 +78,11 @@ namespace cxpr
     constexpr u32 BACKGROUND_2_COUNT = bt::Background_Bg2::count;
     constexpr u32 BACKGROUND_COUNT_MAX = math::cxpr::max(BACKGROUND_1_COUNT, BACKGROUND_2_COUNT);
 
+    constexpr u32 TILE_WIDTH = bt::Tileset_ex_zone().items[0].height;
+    constexpr u32 TILE_HEIGHT = bt::Tileset_ex_zone().items[0].width;
+
+
+
 
 } // cxpr    
 
@@ -266,10 +271,6 @@ namespace game_punk
 
         u64 value_ = 0;
 
-        //constexpr GameTick64(u64 v) { static_assert(sizeof(GameTick64) == 8); value_ = v; }
-
-        //GameTick64(u64 v) = delete;
-
         GameTick64() = delete;
 
         static constexpr GameTick64 make(u64 v) { return GameTick64(v); }
@@ -282,7 +283,6 @@ namespace game_punk
         
 
         GameTick64& operator ++ () { ++value_; return *this; }
-
 
         bool operator == (GameTick64 other) const { return value_ == other.value_; }
 
@@ -443,11 +443,12 @@ namespace game_punk
         u32 capacity = 0;
         u32 size = 0;
 
-        T error;
+        T empty_item;
 
         T* data;
 
-        ID push(T const& obj = {})
+
+        ID push_item(T const& obj)
         {
             ID id;
             id.value_ = capacity;
@@ -462,11 +463,26 @@ namespace game_punk
         }
 
 
-        T& at(ID id)
+        ID push()
+        {
+            ID id;
+            id.value_ = capacity;
+            
+            if (size < capacity)
+            {
+                id.value_ = size;
+                data[size++] = empty_item;
+            }
+
+            return id;
+        }
+
+
+        T& item_at(ID id)
         {
             if (id.value_ >= capacity)
             {
-                return error;
+                return empty_item;
             }
 
             return data[id.value_];
@@ -478,6 +494,10 @@ namespace game_punk
     static void reset_table(ObjectTable<T, TAG>& table)
     {
         table.size = 0;
+        for (u32 i = 0; i < table.capacity; i++)
+        {
+            table.data[i] = table.empty_item;
+        }
     }
 
 
@@ -617,166 +637,6 @@ namespace game_punk
     constexpr auto SCENE_DIMS = BACKGROUND_DIMS;
 
 
-}
-
-
-/* sprite table */
-
-namespace game_punk
-{    
-    
-    class SpriteTable
-    {
-    public:
-        struct ID { u32 value_ = 0; };
-
-        u32 capacity = 0;
-        u32 first_id = 0;
-
-        GameTick64* tick_begin = 0;
-        GameTick64* tick_end = 0;
-        
-        Vec2Di32* velocity_px = 0;
-        Vec2Di64* position = 0;
-
-        BitmapID* bitmap_id = 0;
-        
-        GameTick64& tick_begin_at(ID id) { return tick_begin[id.value_]; }
-        //GameTick64& tick_end_at(ID id) { return tick_end[id.value_]; }
-        Vec2Di64& position_at(ID id) { return position[id.value_]; }
-        Vec2Di32& velocity_px_at(ID id) { return velocity_px[id.value_]; }
-        
-    };
-
-
-    using SpriteID = SpriteTable::ID;
-
-
-    class SpriteDef
-    {
-    public:
-        GameTick64 tick_begin = GameTick64::none();
-        GameTick64 tick_end = GameTick64::forever();
-        Vec2D<i64> position;
-
-        Vec2D<i32> velocity;
-        BitmapID bitmap_id;
-
-
-        SpriteDef() = delete;
-
-        SpriteDef(GameTick64 begin, Vec2D<i64> pos, BitmapID bmp)
-        {
-            tick_begin = begin;
-            position = pos;
-            bitmap_id = bmp;
-            velocity = {0};
-        }
-    };
-
-
-    static void reset_sprite_table(SpriteTable& table)
-    {
-        table.first_id = 0;
-
-        span::fill(span::make_view(table.tick_begin, table.capacity), GameTick64::none());
-    }
-
-
-    static void count_table(SpriteTable& table, MemoryCounts& counts, u32 capacity)
-    {
-        table.capacity = capacity;
-        
-        add_count<GameTick64>(counts, 2 * capacity);
-        add_count<Vec2Di64>(counts, capacity);
-        add_count<Vec2Di32>(counts, capacity);
-        add_count<BitmapID>(counts, capacity);
-    }
-
-
-    static bool create_table(SpriteTable& table, Memory& memory)
-    {
-        if (!table.capacity)
-        {
-            app_crash("*** SpriteTable not initialized ***");
-            return false;
-        }
-
-        auto n = table.capacity;
-
-        bool ok = true;
-
-        auto tick_begin = push_mem<GameTick64>(memory, n);
-        ok &= tick_begin.ok;
-
-        auto tick_end = push_mem<GameTick64>(memory, n);
-        ok &= tick_end.ok;
-
-        auto position = push_mem<Vec2Di64>(memory, n);
-        ok &= position.ok;
-
-        auto velocity = push_mem<Vec2Di32>(memory, n);
-        ok &= velocity.ok;
-
-        auto bmp = push_mem<BitmapID>(memory, n);
-        ok &= bmp.ok;
-
-        if (ok)
-        {
-            table.tick_begin = tick_begin.data;
-            table.tick_end = tick_end.data;
-            table.position = position.data;
-            table.velocity_px = velocity.data;
-            table.bitmap_id = bmp.data;
-        }
-
-        return ok;
-    }
-
-
-    static SpriteID spawn_sprite(SpriteTable& table, SpriteDef const& def)
-    {
-        auto beg = table.tick_begin;
-        auto end = table.tick_end;
-
-        SpriteID id;
-
-        u32 i = table.first_id;
-        for (; i < table.capacity && beg[i] < end[i]; i++)
-        { }
-
-        id.value_ = i;
-        table.first_id = i;
-        table.tick_begin[i] = def.tick_begin;
-        table.tick_end[i] = def.tick_end;
-        table.position[i] = def.position;
-        table.velocity_px[i] = def.velocity;
-        table.bitmap_id[i] = def.bitmap_id;
-
-        return id;
-    }
-
-
-    static void despawn_sprite(SpriteTable& table, SpriteID id)
-    {
-        table.tick_begin_at(id) = GameTick64::none();
-        table.first_id = math::min(id.value_, table.first_id);
-    }
-
-
-    static void move_sprites(SpriteTable const& table)
-    {
-        auto beg = table.tick_begin;
-        auto end = table.tick_end;
-        auto pos = table.position;
-        auto vel = table.velocity_px;
-
-        for (u32 i = 0; i < table.capacity; i++)
-        {
-            pos[i].x += vel[i].x;
-            pos[i].y += vel[i].y;
-        }
-    }
 }
 
 
@@ -1068,9 +928,8 @@ namespace game_punk
     class InputCommand
     {
     public:
-        
-        // title
-        b8 title_ok = 0;
+    
+        b8 action = 0;
     
         // gameplay
         union
@@ -1079,10 +938,10 @@ namespace game_punk
 
             struct
             {
-                b8 north : 1;
-                b8 south : 1;
-                b8 east : 1;
-                b8 west : 1;
+                b8 up : 1;
+                b8 down : 1;
+                b8 left : 1;
+                b8 right : 1;
             };
 
         } camera;
@@ -1091,18 +950,21 @@ namespace game_punk
 
     static InputCommand map_input(Input const& input)
     {
+        auto& kbd = input.keyboard;
+        auto& gpd = input.gamepad;
+
         InputCommand cmd;
 
-        cmd.title_ok = 
-            input.keyboard.kbd_return.pressed || 
-            input.keyboard.kbd_space.pressed ||
-            input.gamepad.btn_south.pressed;
+        cmd.action = 
+            kbd.kbd_return.pressed || 
+            kbd.kbd_space.pressed ||
+            gpd.btn_south.pressed;
 
         cmd.camera.move = 0;
-        cmd.camera.north = input.keyboard.kbd_up.is_down;
-        cmd.camera.south = input.keyboard.kbd_down.is_down;
-        cmd.camera.east = input.keyboard.kbd_right.is_down;
-        cmd.camera.west = input.keyboard.kbd_left.is_down;
+        cmd.camera.up = kbd.kbd_up.is_down || gpd.btn_dpad_up.is_down;
+        cmd.camera.down = kbd.kbd_down.is_down || gpd.btn_dpad_down.is_down;
+        cmd.camera.right =  kbd.kbd_right.is_down || gpd.btn_dpad_right.is_down;
+        cmd.camera.left = kbd.kbd_left.is_down || gpd.btn_dpad_left.is_down;
 
         //cmd.camera.move = 0; // disable
 

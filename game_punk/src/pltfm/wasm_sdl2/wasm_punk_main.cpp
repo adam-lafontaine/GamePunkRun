@@ -51,10 +51,10 @@ union EmState
     {
         u32 has_console:1;
         u32 has_gamepad:1;
-        u32 has_btn_up:1;
-        u32 has_btn_down:1;
-        u32 has_btn_left:1;
-        u32 has_btn_right:1;
+        u32 has_dpad_up:1;
+        u32 has_dpad_down:1;
+        u32 has_dpad_left:1;
+        u32 has_dpad_right:1;
         u32 has_btn_a:1;
         u32 has_btn_b:1;
         u32 has_btn_x:1;
@@ -359,27 +359,22 @@ static void main_loop()
 static void print_controls()
 {
     constexpr auto str = ""
-    /*" ___________________________________________________\n"
+    " ___________________________________________________\n"
     "|                          | Gamepad  | Keyboard    |\n" 
     "| Gameplay Controls        | (mobile) | (desktop)   |\n" 
     "|__________________________|__________|_____________|\n"
-    "| Rotate clockwise         | Right    | Arrow Right |\n"
-    "| Rotate counter-clockwise | Left     | Arrow Left  |\n"
-    "| Accelerate               | Up       | Arrow Up    |\n"
-    "| Decelerate               | Down     | Arrow Down  |\n"
+    "| Action/Change animation  | A        | Spacebar    |\n"
     "|__________________________|__________|_____________|\n"
     "\n"
     " ___________________________________________________\n"
     "|                          | Gamepad  | Keyboard    |\n" 
-    "| Menu Controls            | (mobile) | (desktop)   |\n" 
+    "| Camera Controls          | (mobile) | (desktop)   |\n" 
     "|__________________________|__________|_____________|\n" 
-    "| Navigate Right           | Right    | Arrow Right |\n"
-    "| Navigate Left            | Left     | Arrow Left  |\n"
-    "| Navigate Up              | Up       | Arrow Up    |\n"
-    "| Navigate Down            | Down     | Arrow Down  |\n"
-    "| Select                   | A        | Enter       |\n"
-    "| Reset options (upgrades) | Y        | Space       |\n"
-    "|__________________________|__________|_____________|\n"*/
+    "| Move Right               | Right    | Arrow Right |\n"
+    "| Move Left                | Left     | Arrow Left  |\n"
+    "| Move Up                  | Up       | Arrow Up    |\n"
+    "| Move Down                | Down     | Arrow Down  |\n"
+    "|__________________________|__________|_____________|\n"
     ;
 
     printf(str);
@@ -490,16 +485,16 @@ extern "C"
     {
         EmState state{};
 
-        state.has_console = 1;
-        state.has_gamepad = 1;
-        state.has_btn_up = 0;
-        state.has_btn_down = 0;
-        state.has_btn_left = 0;
-        state.has_btn_right = 0;
-        state.has_btn_a = 1;
-        state.has_btn_b = 0;
-        state.has_btn_x = 0;
-        state.has_btn_y = 0;
+        state.has_console   = 1;
+        state.has_gamepad   = 1;
+        state.has_dpad_up    = 1;
+        state.has_dpad_down  = 1;
+        state.has_dpad_left  = 1;
+        state.has_dpad_right = 1;
+        state.has_btn_a     = 1;
+        state.has_btn_b     = 0;
+        state.has_btn_x     = 0;
+        state.has_btn_y     = 0;
 
         return state.state;
     }
