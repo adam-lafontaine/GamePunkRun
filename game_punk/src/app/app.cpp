@@ -234,10 +234,12 @@ namespace game_punk
 
 #include "assets.hpp"
 
+
 namespace game_punk
 {
     static void set_game_mode(StateData& data, GameMode mode);
 }
+
 
 #include "gm_title.hpp"
 #include "gm_gameplay.hpp"
@@ -308,8 +310,7 @@ namespace game_punk
     {
         refresh_random(data.rng);
 
-        push_load_background(data.background.bg_1, data.loadq);
-        push_load_background(data.background.bg_2, data.loadq);
+        
 
         load_all(data.asset_data, data.loadq);
     }
@@ -318,18 +319,8 @@ namespace game_punk
     static void render_screen(StateData& data)
     {
         draw(data.drawq);
-
-        auto s = to_span(data.camera);
-        for (u32 i = 0; i < s.length; i++)
-        {
-            s.data[i].alpha = 255;
-        }
     }
 }
-
-
-
-
 
 
 /* api */
@@ -458,7 +449,7 @@ namespace game_punk
         render_screen(data);
         end_update(data);
 
-        //app_crash("*** Update not implemented ***");
+        app_crash("*** Update not implemented ***");
     }
 
 

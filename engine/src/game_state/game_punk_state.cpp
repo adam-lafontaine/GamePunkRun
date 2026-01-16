@@ -81,15 +81,16 @@ namespace internal
         auto& w = an.work_asset_ids.data;
         auto& s = an.select_asset_ids.data;
 
+        auto wi = an.work_asset_ids.cursor;
         auto wc = an.work_asset_ids.count;
         auto sc = an.select_asset_ids.size;
-        auto id = an.load_cmd.ctx.item_id;
+        auto id = an.current_background.value_;
 
         auto uw = [&](int i) { return (u32)w[i].value_; };
         auto us = [&](int i) { return (u32)s[i].value_; };
 
-        ImGui::Text(" Select (%2u): %2u, %2u, %2u, %2u, %2u, %2u, %2u, %2u, %2u, %2u, %2u, %2u", sc, us(0), us(1), us(2), us(3), us(4), us(5), us(6), us(7), us(8), us(9), us(10), us(11));
-        ImGui::Text("Working (%2u): %2u, %2u, %2u, %2u", wc, uw(0), uw(1), uw(2), uw(3));
+        ImGui::Text(" Select   (%2u): %2u, %2u, %2u, %2u, %2u, %2u, %2u, %2u, %2u, %2u, %2u, %2u", sc, us(0), us(1), us(2), us(3), us(4), us(5), us(6), us(7), us(8), us(9), us(10), us(11));
+        ImGui::Text("Working (%u/%u): %2u, %2u, %2u, %2u", wi, wc, uw(0), uw(1), uw(2), uw(3));
         ImGui::Text("Last: %u", id);        
     }
 

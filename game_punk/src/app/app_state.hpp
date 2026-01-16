@@ -31,8 +31,8 @@ namespace game_punk
     {  
         count_sky_animation(bg.sky, counts);
         
-        count_background_animation(bg.bg_1, counts);
-        count_background_animation(bg.bg_2, counts);
+        count_background_animation(bg.bg_1, counts, bt::Background_Bg1::count);
+        count_background_animation(bg.bg_2, counts, bt::Background_Bg2::count);
     }
 
 

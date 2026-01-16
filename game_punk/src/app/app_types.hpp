@@ -789,8 +789,14 @@ namespace game_punk
     {
         mb::destroy_buffer(gd.bytes);
     }
+    
+}
 
 
+/* load asset queue */
+
+namespace game_punk
+{
     class LoadContext
     {
     public:
@@ -918,6 +924,14 @@ namespace game_punk
         table.destroy();
         filter.destroy();
     }
+}
+
+
+/* process asset queue */
+
+namespace game_punk
+{
+
 }
 
 

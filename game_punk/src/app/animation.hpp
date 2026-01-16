@@ -171,21 +171,23 @@ namespace game_punk
         class AssetID
         {
         public:
-            u8 value_ = (u8)cxpr::BACKGROUND_COUNT_MAX;
+            u8 value_ = (u8)0;
 
             AssetID(){}
             AssetID(u8 v) { value_ = v; }
-        };        
+        };
+
+        SpanView<BackgroundFilterView> background_filters;
+        BackgroundView background_data[2] = { 0 };
         
         u32 speed_shift = 0;
-        u64 load_pos = 0;
+        p32 primary_color;
 
-        BackgroundView background_data[2] = { 0 };
+        u64 load_pos = 0;
+        AssetID current_background;
 
         RingStackBuffer<AssetID, 4> work_asset_ids;
         RandomStackBuffer<AssetID, cxpr::BACKGROUND_COUNT_MAX - 4> select_asset_ids;
-
-        LoadAssetCommand load_cmd;
     };
 
 
@@ -219,10 +221,17 @@ namespace game_punk
     }
 
 
-    static void count_background_animation(BackgroundAnimation& an, MemoryCounts& counts)
+    static void count_background_animation(BackgroundAnimation& an, MemoryCounts& counts, u32 n_backgrounds)
     {
         count_view(an.background_data[0], counts);
         count_view(an.background_data[1], counts);
+        count_span(an.background_filters, counts, n_backgrounds);
+
+        BackgroundFilterView filter;
+        for (u32 i = 0; i < n_backgrounds; i++)
+        {
+            count_view(filter, counts);
+        }
     }
 
 
@@ -232,6 +241,12 @@ namespace game_punk
 
         ok &= create_view(an.background_data[0], memory);
         ok &= create_view(an.background_data[1], memory);
+
+        ok &= create_span(an.background_filters, memory);
+        for (u32 i = 0; i < an.background_filters.length; i++)
+        {
+            ok &= create_view(an.background_filters.data[i], memory);
+        }
 
         return ok;
     }
@@ -265,28 +280,20 @@ namespace game_punk
             an.load_pos = pos;
 
             // select next background to load
-            auto bg_id = an.select_asset_ids.get(rng);
+            an.current_background = an.select_asset_ids.get(rng);
 
             // swap selected id with working id
             auto& work_id = an.work_asset_ids.front();
             an.select_asset_ids.set(work_id);
-            work_id = bg_id;
+            work_id = an.current_background;
             an.work_asset_ids.next();
 
-            // signal load
-            an.load_cmd.is_active = 1;
-            an.load_cmd.ctx.item_id = bg_id.value_;
-            an.load_cmd.ctx.dst = to_image_view(an.background_data[data_2]);
+            auto src = to_span(an.background_filters.data[an.current_background.value_]);
+            auto dst = to_span(an.background_data[data_2]);
+            bt::alpha_filter_convert(src, dst, an.primary_color);
         }
 
         return bp;
-    }
-
-
-    static void push_load_background(BackgroundAnimation& an, LoadAssetQueue& lq)
-    {
-        push_load(lq, an.load_cmd);
-        an.load_cmd.is_active = 0;
     }
 }
 
