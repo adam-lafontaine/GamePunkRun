@@ -17,7 +17,11 @@ https://itch.io/c/2053292/cyberpunk-pixel-art
 * [ ] Single asset color table
 
 
-### v 0.3.0
+### v0.4.0
+* [x] Pre-load background filters
+
+
+### v0.3.0
 * [x] Tile table SOA
 * [x] Sprite table SOA
 * [x] Add tiles and sprites to engine UI

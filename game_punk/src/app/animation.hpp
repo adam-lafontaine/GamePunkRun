@@ -168,16 +168,11 @@ namespace game_punk
     class BackgroundAnimation
     {
     public:
-        class AssetID
-        {
-        public:
-            u8 value_ = (u8)0;
 
-            AssetID(){}
-            AssetID(u8 v) { value_ = v; }
-        };
+        using FilterTable = ObjectTable<BackgroundFilterView>;
+        using AssetID = FilterTable::ID;
 
-        SpanView<BackgroundFilterView> background_filters;
+        FilterTable background_filters;
         BackgroundView background_data[2] = { 0 };
         
         u32 speed_shift = 0;
@@ -211,12 +206,12 @@ namespace game_punk
         
         for (u32 i = 0; i < WC; i++)
         {
-            an.work_asset_ids.data[i] = i;
+            an.work_asset_ids.data[i] = {(u16)i};
         }
 
         for (u32 i = 0; i < SC; i++)
         {
-            an.select_asset_ids.data[i] = i + WC;
+            an.select_asset_ids.data[i] = { (u16)(i + WC) };
         }
     }
 
@@ -225,7 +220,7 @@ namespace game_punk
     {
         count_view(an.background_data[0], counts);
         count_view(an.background_data[1], counts);
-        count_span(an.background_filters, counts, n_backgrounds);
+        count_table(an.background_filters, counts, n_backgrounds);
 
         BackgroundFilterView filter;
         for (u32 i = 0; i < n_backgrounds; i++)
@@ -242,10 +237,13 @@ namespace game_punk
         ok &= create_view(an.background_data[0], memory);
         ok &= create_view(an.background_data[1], memory);
 
-        ok &= create_span(an.background_filters, memory);
-        for (u32 i = 0; i < an.background_filters.length; i++)
+        auto& filters = an.background_filters;
+
+        ok &= create_table(filters, memory);
+        for (u32 i = 0; i < filters.capacity; i++)
         {
-            ok &= create_view(an.background_filters.data[i], memory);
+            auto id = filters.push();
+            ok &= create_view(filters.item_at(id), memory);
         }
 
         return ok;
@@ -288,7 +286,7 @@ namespace game_punk
             work_id = an.current_background;
             an.work_asset_ids.next();
 
-            auto src = to_span(an.background_filters.data[an.current_background.value_]);
+            auto src = to_span(an.background_filters.item_at(an.current_background));
             auto dst = to_span(an.background_data[data_2]);
             bt::alpha_filter_convert(src, dst, an.primary_color);
         }

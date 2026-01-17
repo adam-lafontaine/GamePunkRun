@@ -432,7 +432,7 @@ namespace game_punk
 
 namespace game_punk
 {
-    template <typename T, u32 TAG>
+    template <typename T, u32 TAG = 0>
     class ObjectTable
     {
     public:
@@ -924,14 +924,6 @@ namespace game_punk
         table.destroy();
         filter.destroy();
     }
-}
-
-
-/* process asset queue */
-
-namespace game_punk
-{
-
 }
 
 

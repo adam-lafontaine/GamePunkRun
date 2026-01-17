@@ -277,6 +277,7 @@ namespace assets
 
         auto table = list.read_table(buffer);
         auto color = table.at(color_id);
+        table.destroy();
 
         bg.select_asset_ids.size = BG_DEF::count - bg.work_asset_ids.count;
 
@@ -284,7 +285,7 @@ namespace assets
 
         bool ok = true;
 
-        ok &= list.count == bg.background_filters.length;
+        ok &= list.count == bg.background_filters.capacity;
         app_assert(ok && "*** Unexpected number of backgrounds ***");
 
         // store filters in memory
@@ -307,8 +308,6 @@ namespace assets
             filter.destroy();
         }
 
-        table.destroy();
-        
         return ok;
     }
 
