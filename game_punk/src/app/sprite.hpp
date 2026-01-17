@@ -13,6 +13,9 @@ namespace game_punk
         GameTick64* tick_begin = 0;
         Vec2Di64* position = 0;
         BitmapID* bitmap_id = 0;
+
+
+        //ImageView& bitmap_at(ID id, BitmapTable& data) { return data.item_at(bitmap_id[id.value_]); }
     };
 
 
@@ -153,13 +156,19 @@ namespace game_punk
 
         GameTick64* tick_end = 0;        
         Vec2Di32* velocity_px = 0;
-        SpriteAnimation* animation = 0;        
+        //SpriteAnimation* animation = 0;
+        AnimationID* animation_id = 0;
         
         GameTick64& tick_begin_at(ID id) { return tick_begin[id.value_]; }
         //GameTick64& tick_end_at(ID id) { return tick_end[id.value_]; }
         Vec2Di64& position_at(ID id) { return position[id.value_]; }
         Vec2Di32& velocity_px_at(ID id) { return velocity_px[id.value_]; }
-        SpriteAnimation& animation_at(ID id) { return animation[id.value_]; }
+        AnimationID& animation_at(ID id) { return animation_id[id.value_]; }
+
+
+        //ImageView& bitmap_at(ID id, BitmapTable& data) { return data.item_at(bitmap_id[id.value_]); }
+
+        //SpriteAnimation& animation_at(ID id, AnimationTable& data) { return data.item_at(animation_id[id.value_]); }
     };
 
 
@@ -178,19 +187,21 @@ namespace game_punk
         Vec2D<i64> position;
 
         Vec2D<i32> velocity;
-        SpriteAnimation animation;
+        //SpriteAnimation animation;
         BitmapID bitmap_id;
+        AnimationID animation_id;
 
 
         SpriteDef() = delete;
 
-        SpriteDef(GameTick64 begin, Vec2D<i64> pos, BitmapID bmp)
+        SpriteDef(GameTick64 begin, Vec2D<i64> pos, BitmapID bmp, AnimationID amn)
         {
             tick_begin = begin;
             position = pos;
             bitmap_id = bmp;
+            animation_id = amn;
             velocity = {};
-            animation = {};
+            //animation = {};
         }
     };
 
@@ -211,7 +222,7 @@ namespace game_punk
         add_count<Vec2Di64>(counts, capacity);
         add_count<Vec2Di32>(counts, capacity);
         add_count<BitmapID>(counts, capacity);
-        add_count<SpriteAnimation>(counts, capacity);
+        add_count<AnimationID>(counts, capacity);
     }
 
 
@@ -242,7 +253,7 @@ namespace game_punk
         auto bmp = push_mem<BitmapID>(memory, n);
         ok &= bmp.ok;
 
-        auto animation = push_mem<SpriteAnimation>(memory, n);
+        auto animation = push_mem<AnimationID>(memory, n);
         ok &= animation.ok;
 
         if (ok)
@@ -252,11 +263,12 @@ namespace game_punk
             table.position = position.data;
             table.velocity_px = velocity.data;
             table.bitmap_id = bmp.data;
-            table.animation = animation.data;
+            table.animation_id = animation.data;
         }
 
         return ok;
     }
+    
 
     static void despawn_sprite(SpriteTable& table, u32 i)
     {
@@ -300,7 +312,7 @@ namespace game_punk
         table.tick_end[i] = def.tick_end;
         table.position[i] = def.position;
         table.velocity_px[i] = def.velocity;
-        table.animation[i] = def.animation;
+        table.animation_id[i] = def.animation_id;
         table.bitmap_id[i] = def.bitmap_id;
 
         return id;

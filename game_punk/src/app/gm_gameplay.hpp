@@ -11,14 +11,33 @@ namespace internal
     {
         constexpr auto tile_h = cxpr::TILE_WIDTH;
 
+        auto& bitmaps = data.bitmaps;
+        auto& animations = data.animations;
+        auto& player = data.player_state;
+        auto& spritesheets = data.spritesheets;
+
+        auto idle = animations.push();
+        auto run = animations.push();
+        auto jump = animations.push();
+
+        set_animation_spritesheet(animations.item_at(idle), spritesheets.punk_idle, 15);
+        set_animation_spritesheet(animations.item_at(run), spritesheets.punk_run, 5);
+        set_animation_spritesheet(animations.item_at(jump), spritesheets.punk_jump, 15);
+
+        player.animation_at(SpriteMode::Idle) = idle;
+        player.animation_at(SpriteMode::Run) = run;
+        player.animation_at(SpriteMode::Jump) = jump;
+
+        auto bmp = bitmaps.push();
+
         auto pos = data.scene.game_position.pos_game();
         pos.x += PLAYER_SCENE_OFFSET;
         pos.y = tile_h;
 
-        auto punk = SpriteDef(data.game_tick, pos, data.bitmaps.push());
-        data.player_state.sprite = spawn_sprite(data.sprites, punk);
-        
-        set_player_mode(data.player_state, data.sprites, data.spritesheet, SpriteMode::Idle);
+        auto punk = SpriteDef(data.game_tick, pos, bmp, idle);
+        player.sprite = spawn_sprite(data.sprites, punk);
+
+        player.current_mode = SpriteMode::Idle;
     }
 
 
@@ -73,31 +92,39 @@ namespace internal
             return;
         }
 
-        auto& player = data.player_state;
+        auto& player = data.player_state;        
+        auto mode = player.current_mode;
 
-        switch (player.mode)
+        switch (mode)
         {
         case SpriteMode::Idle:
-            set_player_mode(player, data.sprites, data.spritesheet, SpriteMode::Run);
+            mode = SpriteMode::Run;
             break;
 
         case SpriteMode::Run:
-            set_player_mode(player, data.sprites, data.spritesheet, SpriteMode::Jump);
+            mode = SpriteMode::Jump;
             break;
 
         case SpriteMode::Jump:
-            set_player_mode(player, data.sprites, data.spritesheet, SpriteMode::Idle);
+            mode = SpriteMode::Idle;
             break;
         }
+
+        set_player_mode(player, data.sprites, mode);
     }
 
 
     static void update_tiles(StateData& data)
     {
         constexpr auto tile_w = cxpr::TILE_WIDTH;
+        constexpr auto limit = (i64)(cxpr::GAME_BACKGROUND_WIDTH_PX - 2 * tile_w);
+
+        auto tile_x = data.next_tile_position.game.x;
+        auto scene_x = data.scene.game_position.game.x;
         
-        auto pos = data.scene.game_position.game.x;
-        if (data.next_tile_position.game.x - pos < (i64)cxpr::GAME_BACKGROUND_WIDTH_PX)
+        auto delta = tile_x - scene_x;
+
+        if (delta < limit)
         {
             auto tile = TileDef(data.game_tick, data.next_tile_position.pos_game(), data.tile_bitmaps.front());
             spawn_tile(data.tiles, tile);
@@ -115,7 +142,7 @@ namespace internal
         auto N = table.capacity;
 
         auto beg = table.tick_begin;
-        auto amn = table.animation;
+        auto amn = table.animation_id;
         auto bmp = table.bitmap_id;
 
         for (u32 i = 0; i < N; i++)
@@ -126,7 +153,7 @@ namespace internal
             }
 
             auto time = data.game_tick - beg[i];
-            auto view = get_animation_bitmap(amn[i], time);
+            auto view = get_animation_bitmap(data.animations.item_at(amn[i]), time);
             data.bitmaps.item_at(bmp[i]) = to_image_view(view);
         }
     }

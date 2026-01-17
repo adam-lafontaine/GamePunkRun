@@ -56,9 +56,9 @@ namespace game_punk
 
 namespace game_punk
 {
-    class SpritesheetState
+    class SpritesheetList
     {
-    public:        
+    public:
 
         SpritesheetView punk_run;
         SpritesheetView punk_idle;
@@ -66,7 +66,7 @@ namespace game_punk
     };
 
 
-    static void count_spritesheet_state(SpritesheetState& ss_state, MemoryCounts& counts)
+    static void count_spritesheet_list(SpritesheetList& ss_state, MemoryCounts& counts)
     {
         using Punk = bt::Spriteset_Punk;
 
@@ -81,7 +81,7 @@ namespace game_punk
     }
 
 
-    static bool create_spritesheet_state(SpritesheetState& ss_state, Memory& memory)
+    static bool create_spritesheet_list(SpritesheetList& ss_state, Memory& memory)
     {
         bool ok = true;
 
@@ -315,9 +315,20 @@ namespace game_punk
 {
     enum class SpriteMode : u8
     {
-        Idle,
+        Idle = 0,
         Run,
-        Jump
+        Jump,
+        Count
+    };
+
+
+    template <typename T, typename ENUM>
+    class EnumArray
+    {
+    public:
+        T data[(u32)ENUM::Count];
+
+        T& item_at(ENUM id) { return data[(u32)id]; }
     };
     
     
@@ -325,42 +336,37 @@ namespace game_punk
     {
     public:
         SpriteID sprite;
-        SpriteMode mode;
+        SpriteMode current_mode;
+
+        EnumArray<AnimationID, SpriteMode> mode_animations;
+
+        AnimationID& animation_at(SpriteMode mode) { return mode_animations.item_at(mode); }
+
+        AnimationID get_animation() { return mode_animations.item_at(current_mode); }
     };
 
 
-    static void set_player_mode(PlayerState& player, SpriteTable table, SpritesheetState const& ss, SpriteMode mode)
+    static void set_player_mode(PlayerState& player, SpriteTable sprites, SpriteMode mode)
     {
-        player.mode = mode;
-
-        auto& vel = table.velocity_px_at(player.sprite);
-        auto& amn = table.animation_at(player.sprite);
-        auto view = ss.punk_idle;
-        u32 bmp_ticks = 10;
+        auto& vel = sprites.velocity_px_at(player.sprite);
+        auto& amn = sprites.animation_at(player.sprite);
 
         switch (mode)
         {
         case SpriteMode::Idle:
-        {
             vel = { 0, 0 };
-            bmp_ticks = 15;
-            view = ss.punk_idle;            
-        } break;
+            break;
 
         case SpriteMode::Run:
-        {
             vel = { 2, 0 };
-            bmp_ticks = 10 / vel.x;
-            view = ss.punk_run;
-        } break;
+            break;
 
         case SpriteMode::Jump:
-        {
-            u32 bmp_ticks = 10;
-            view = ss.punk_jump;
-        } break;
+            //vel = { 0, 0 };
+            break;
         }
 
-        set_animation_spritesheet(amn, view, bmp_ticks);
+        player.current_mode = mode;
+        amn = player.get_animation(); 
     }
 }

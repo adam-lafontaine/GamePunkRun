@@ -91,11 +91,12 @@ namespace game_punk
         GameMode game_mode;
 
         BackgroundState background;
-        SpritesheetState spritesheet;
+        SpritesheetList spritesheets;
         TileState tile_state;
         UIState ui;
 
         BitmapTable bitmaps;
+        AnimationTable animations;
 
         GameScene scene;
         SceneCamera camera;
@@ -136,6 +137,7 @@ namespace game_punk
         set_ui_color(data.ui, 20);
 
         reset_table(data.bitmaps);
+        reset_table(data.animations);
         reset_tile_table(data.tiles);
         reset_sprite_table(data.sprites);
     }
@@ -174,7 +176,7 @@ namespace game_punk
         };        
 
         count_background_state(data.background, counts);
-        count_spritesheet_state(data.spritesheet, counts);
+        count_spritesheet_list(data.spritesheets, counts);
         count_tile_state(data.tile_state, counts);
         count_ui_state(data.ui, counts);
         count_queue(data.drawq, counts, 50);
@@ -183,6 +185,7 @@ namespace game_punk
         count_table(data.tiles, counts, 50);
         count_table(data.sprites, counts, 50);
         count_table(data.bitmaps, counts, 50);
+        count_table(data.animations, counts, 10);
         
         data.memory = create_memory(counts);
         if (!data.memory.ok)
@@ -193,7 +196,7 @@ namespace game_punk
         bool ok = true;
 
         ok &= create_background_state(data.background, data.memory);
-        ok &= create_spritesheet_state(data.spritesheet, data.memory);
+        ok &= create_spritesheet_list(data.spritesheets, data.memory);
         ok &= create_tile_state(data.tile_state, data.memory);
         ok &= create_ui_state(data.ui, data.memory);
         ok &= create_queue(data.drawq, data.memory);
@@ -202,6 +205,7 @@ namespace game_punk
         ok &= create_table(data.tiles, data.memory);
         ok &= create_table(data.sprites, data.memory);
         ok &= create_table(data.bitmaps, data.memory);
+        ok &= create_table(data.animations, data.memory);
 
         ok &= verify_allocated(data.memory);
 
@@ -411,7 +415,6 @@ namespace game_punk
         auto& data = get_data(state);
         auto& camera = data.camera;
         auto& bg = data.background;
-        auto& sprite = data.spritesheet;
 
         bool ok = true;
 

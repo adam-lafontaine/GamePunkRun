@@ -306,7 +306,7 @@ namespace game_punk
 
         u32 bitmap_count = 0;
 
-        u32 ticks_per_bitmap;
+        u32 bitmap_ticks;
 
         p32* spritesheet_data = 0;
 
@@ -328,7 +328,7 @@ namespace game_punk
         an.spritesheet_data = ss.data;
         an.bitmap_dims = ss.bitmap_dims;
         an.bitmap_count = ss.bitmap_count;
-        an.ticks_per_bitmap = bmp_ticks;
+        an.bitmap_ticks = bmp_ticks;
 
         return ok;
     }
@@ -338,11 +338,11 @@ namespace game_punk
     {
         p32* data = 0;
 
-        auto t = time.value_ % (an.bitmap_count * an.ticks_per_bitmap);
+        auto t = time.value_ % (an.bitmap_count * an.bitmap_ticks);
 
         auto dims = an.bitmap_dims.proc;
 
-        auto b = t / an.ticks_per_bitmap;
+        auto b = t / an.bitmap_ticks;
         if (b < an.bitmap_count)
         {
             auto offset = b * dims.width * dims.height;
@@ -358,4 +358,11 @@ namespace game_punk
         return view;
     }
 
+}
+
+
+namespace game_punk
+{
+    using AnimationTable = ObjectTable<SpriteAnimation>;
+    using AnimationID = AnimationTable::ID;
 }

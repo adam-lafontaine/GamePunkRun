@@ -322,7 +322,7 @@ namespace game_punk
 {
 namespace assets
 {
-    static bool load_sprites_punk(Buffer8 const& buffer, SpritesheetState const& ss)
+    static bool load_sprites_punk(Buffer8 const& buffer, SpritesheetList const& ss)
     {
         using Punk = bt::Spriteset_Punk;
 
@@ -456,7 +456,7 @@ namespace assets
     }
 
 
-    static bool load_spritesheet_assets(AssetData const& src, SpritesheetState const& ss_state)
+    static bool load_spritesheet_assets(AssetData const& src, SpritesheetList const& ss_state)
     {  
         bool ok = true;
 
@@ -520,7 +520,7 @@ namespace assets
 
         bool ok = true;
         ok &= load_background_assets(src, data.background);
-        ok &= load_spritesheet_assets(src, data.spritesheet);
+        ok &= load_spritesheet_assets(src, data.spritesheets);
         ok &= load_tile_assets(src, data.tile_state);
         ok &= load_ui_assets(src, data.ui);
 

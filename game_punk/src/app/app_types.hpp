@@ -529,8 +529,8 @@ namespace game_punk
     }
 
 
-    using BitmapTable = ObjectTable<ImageView, 0>;
-    using BitmapID = BitmapTable::ID;
+    using BitmapTable = ObjectTable<ImageView>;
+    using BitmapID = BitmapTable::ID;    
 }
 
 
