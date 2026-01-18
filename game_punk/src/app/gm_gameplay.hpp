@@ -87,30 +87,34 @@ namespace internal
 
     static void update_player(StateData& data, InputCommand const& cmd)
     {
-        if (!cmd.action)
+        auto& player = data.player_state;
+        
+        if (cmd.action)
         {
-            return;
+            auto mode = player.current_mode;
+
+            switch (mode)
+            {
+            case SpriteMode::Idle:
+                mode = SpriteMode::Run;
+                break;
+
+            case SpriteMode::Run:
+                mode = SpriteMode::Jump;
+                break;
+
+            case SpriteMode::Jump:
+                mode = SpriteMode::Idle;
+                break;
+            }
+
+            set_player_mode(player, data.sprites, mode);
         }
 
-        auto& player = data.player_state;        
-        auto mode = player.current_mode;
 
-        switch (mode)
-        {
-        case SpriteMode::Idle:
-            mode = SpriteMode::Run;
-            break;
+        auto& amn = data.animations.item_at(player.get_mode_animation());
 
-        case SpriteMode::Run:
-            mode = SpriteMode::Jump;
-            break;
-
-        case SpriteMode::Jump:
-            mode = SpriteMode::Idle;
-            break;
-        }
-
-        set_player_mode(player, data.sprites, mode);
+        amn.play = !cmd.pause;
     }
 
 

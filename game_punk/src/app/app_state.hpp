@@ -342,7 +342,7 @@ namespace game_punk
 
         AnimationID& animation_at(SpriteMode mode) { return mode_animations.item_at(mode); }
 
-        AnimationID get_animation() { return mode_animations.item_at(current_mode); }
+        AnimationID get_mode_animation() { return mode_animations.item_at(current_mode); }
     };
 
 
@@ -367,6 +367,6 @@ namespace game_punk
         }
 
         player.current_mode = mode;
-        amn = player.get_animation(); 
+        amn = player.get_mode_animation(); 
     }
 }

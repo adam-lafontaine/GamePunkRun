@@ -308,9 +308,12 @@ namespace game_punk
 
         u32 bitmap_ticks;
 
-        p32* spritesheet_data = 0;
+        b8 play = 1;
 
         ContextDims bitmap_dims;
+        p32* spritesheet_data = 0;
+
+        u32 offset = 0;
     };
 
 
@@ -330,29 +333,36 @@ namespace game_punk
         an.bitmap_count = ss.bitmap_count;
         an.bitmap_ticks = bmp_ticks;
 
+        an.play = 1;
+        an.offset = 0;
+
         return ok;
     }
 
 
-    static SpriteView get_animation_bitmap(SpriteAnimation const& an, TickQty32 time)
+    static SpriteView get_animation_bitmap(SpriteAnimation& an, TickQty32 time)
     {
         p32* data = 0;
 
-        auto t = time.value_ % (an.bitmap_count * an.bitmap_ticks);
+        SpriteView view;
+        view.dims = an.bitmap_dims;
 
         auto dims = an.bitmap_dims.proc;
 
-        auto b = t / an.bitmap_ticks;
-        if (b < an.bitmap_count)
+        if (an.play)
         {
-            auto offset = b * dims.width * dims.height;
-            data = an.spritesheet_data + offset;
+            auto t = time.value_ % (an.bitmap_count * an.bitmap_ticks);
+            auto b = t / an.bitmap_ticks;
+            if (b < an.bitmap_count)
+            {
+                an.offset = b * dims.width * dims.height;                
+            }
         }
+        
+        data = an.spritesheet_data + an.offset;
 
         app_assert(data);
-
-        SpriteView view;
-        view.dims = an.bitmap_dims;
+        
         view.data = data;
 
         return view;
