@@ -300,24 +300,37 @@ namespace game_punk
 
 namespace game_punk
 {
+    using AnimationFn = u32 (*)(Vec2Di32 vel);
+
+
+    template <u32 N>
+    static u32 constant_ticks(Vec2Di32 vel)
+    {
+        return N;
+    }
+    
+    
+    static u32 punk_run_ticks(Vec2Di32 vel)
+    {
+        auto x = (u32)math::cxpr::clamp(vel.x, 1, 10);
+        return 10u / x;
+    }
+    
+    
     class SpriteAnimation
     {
     public:
 
         u32 bitmap_count = 0;
 
-        u32 bitmap_ticks;
-
-        b8 play = 1;
+        AnimationFn get_ticks;
 
         ContextDims bitmap_dims;
         p32* spritesheet_data = 0;
-
-        u32 offset = 0;
     };
 
 
-    static bool set_animation_spritesheet(SpriteAnimation& an, SpritesheetView const& ss, u32 bmp_ticks)
+    static bool init_animation(SpriteAnimation& an, SpritesheetView const& ss, AnimationFn ticks_fn)
     {
         auto& dims = ss.dims.game;
 
@@ -331,16 +344,14 @@ namespace game_punk
         an.spritesheet_data = ss.data;
         an.bitmap_dims = ss.bitmap_dims;
         an.bitmap_count = ss.bitmap_count;
-        an.bitmap_ticks = bmp_ticks;
 
-        an.play = 1;
-        an.offset = 0;
+        an.get_ticks = ticks_fn;
 
         return ok;
     }
 
 
-    static SpriteView get_animation_bitmap(SpriteAnimation& an, TickQty32 time)
+    static SpriteView get_animation_bitmap(SpriteAnimation& an, Vec2Di32 vel, TickQty32 time)
     {
         p32* data = 0;
 
@@ -349,17 +360,13 @@ namespace game_punk
 
         auto dims = an.bitmap_dims.proc;
 
-        if (an.play)
-        {
-            auto t = time.value_ % (an.bitmap_count * an.bitmap_ticks);
-            auto b = t / an.bitmap_ticks;
-            if (b < an.bitmap_count)
-            {
-                an.offset = b * dims.width * dims.height;                
-            }
-        }
+        auto ticks = an.get_ticks(vel);
+
+        auto t = time.value_ % (an.bitmap_count * ticks);
+        auto b = t / ticks;
+        auto offset = b * dims.width * dims.height;
         
-        data = an.spritesheet_data + an.offset;
+        data = an.spritesheet_data + offset;
 
         app_assert(data);
         

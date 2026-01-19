@@ -20,9 +20,9 @@ namespace internal
         auto run = animations.push();
         auto jump = animations.push();
 
-        set_animation_spritesheet(animations.item_at(idle), spritesheets.punk_idle, 15);
-        set_animation_spritesheet(animations.item_at(run), spritesheets.punk_run, 5);
-        set_animation_spritesheet(animations.item_at(jump), spritesheets.punk_jump, 15);
+        init_animation(animations.item_at(run), spritesheets.punk_run, punk_run_ticks);
+        init_animation(animations.item_at(idle), spritesheets.punk_idle, constant_ticks<15>);
+        init_animation(animations.item_at(jump), spritesheets.punk_jump, constant_ticks<30>);
 
         player.animation_at(SpriteMode::Idle) = idle;
         player.animation_at(SpriteMode::Run) = run;
@@ -113,8 +113,6 @@ namespace internal
 
 
         auto& amn = data.animations.item_at(player.get_mode_animation());
-
-        amn.play = !cmd.pause;
     }
 
 
@@ -146,6 +144,7 @@ namespace internal
         auto N = table.capacity;
 
         auto beg = table.tick_begin;
+        auto vel = table.velocity_px;
         auto amn = table.animation_id;
         auto bmp = table.bitmap_id;
 
@@ -157,7 +156,7 @@ namespace internal
             }
 
             auto time = data.game_tick - beg[i];
-            auto view = get_animation_bitmap(data.animations.item_at(amn[i]), time);
+            auto view = get_animation_bitmap(data.animations.item_at(amn[i]), vel[i], time);
             data.bitmaps.item_at(bmp[i]) = to_image_view(view);
         }
     }

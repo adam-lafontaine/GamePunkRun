@@ -81,7 +81,7 @@ namespace internal
         auto& w = an.work_asset_ids.data;
         auto& s = an.select_asset_ids.data;
 
-        auto wi = an.work_asset_ids.cursor;
+        auto wi = an.work_asset_ids.cursor.value_;
         auto wc = an.work_asset_ids.count;
         auto sc = an.select_asset_ids.size;
         auto id = an.current_background.value_;

@@ -358,7 +358,7 @@ namespace game_punk
             break;
 
         case SpriteMode::Run:
-            vel = { 2, 0 };
+            vel = { 10, 0 };
             break;
 
         case SpriteMode::Jump:
