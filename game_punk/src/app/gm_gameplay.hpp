@@ -16,28 +16,18 @@ namespace internal
         auto& player = data.player_state;
         auto& spritesheets = data.spritesheets;
 
-        auto idle = animations.push();
-        auto run = animations.push();
-        auto jump = animations.push();
-
-        init_animation(animations.item_at(run), spritesheets.punk_run, punk_run_ticks);
-        init_animation(animations.item_at(idle), spritesheets.punk_idle, constant_ticks<15>);
-        init_animation(animations.item_at(jump), spritesheets.punk_jump, constant_ticks<30>);
-
-        player.animation_at(SpriteMode::Idle) = idle;
-        player.animation_at(SpriteMode::Run) = run;
-        player.animation_at(SpriteMode::Jump) = jump;
-
         auto bmp = bitmaps.push();
 
         auto pos = data.scene.game_position.pos_game();
         pos.x += PLAYER_SCENE_OFFSET;
         pos.y = tile_h;
 
-        auto punk = SpriteDef(data.game_tick, pos, bmp, idle);
-        player.sprite = spawn_sprite(data.sprites, punk);
+        auto mode = SpriteMode::Idle;
 
-        player.current_mode = SpriteMode::Idle;
+        auto punk = SpriteDef(data.game_tick, pos, bmp, SpriteName::Punk, mode);
+
+        player.sprite = spawn_sprite(data.sprites, punk);
+        player.current_mode = mode;
     }
 
 
@@ -106,13 +96,13 @@ namespace internal
             case SpriteMode::Jump:
                 mode = SpriteMode::Idle;
                 break;
+
+            default:
+                break;
             }
 
             set_player_mode(player, data.sprites, mode);
         }
-
-
-        auto& amn = data.animations.item_at(player.get_mode_animation());
     }
 
 
@@ -145,7 +135,7 @@ namespace internal
 
         auto beg = table.tick_begin;
         auto vel = table.velocity_px;
-        auto amn = table.animation_id;
+        auto afn = table.animate;
         auto bmp = table.bitmap_id;
 
         for (u32 i = 0; i < N; i++)
@@ -156,7 +146,7 @@ namespace internal
             }
 
             auto time = data.game_tick - beg[i];
-            auto view = get_animation_bitmap(data.animations.item_at(amn[i]), vel[i], time);
+            auto view = afn[i](data.animations, vel[i], time);
             data.bitmaps.item_at(bmp[i]) = to_image_view(view);
         }
     }

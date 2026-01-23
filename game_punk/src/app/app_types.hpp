@@ -530,7 +530,17 @@ namespace game_punk
 
 
     using BitmapTable = ObjectTable<ImageView>;
-    using BitmapID = BitmapTable::ID;    
+    using BitmapID = BitmapTable::ID;  
+    
+    
+    template <typename T, typename ENUM>
+    class EnumArray
+    {
+    public:
+        T data[(u32)ENUM::Count];
+
+        T& item_at(ENUM id) { return data[(u32)id]; }
+    };
 }
 
 

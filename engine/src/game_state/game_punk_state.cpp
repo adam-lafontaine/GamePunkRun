@@ -205,7 +205,7 @@ namespace internal
             ImGui::Text("(%ld, %ld)", pos[i].x, pos[i].y);
 
             ImGui::TableSetColumnIndex(col_bmp);
-            ImGui::Text("%u", bmp[i]);
+            ImGui::Text("%u", bmp[i].value_);
 
             ImGui::TableSetColumnIndex(col_active);
             ImGui::Text("%d", game::is_spawned(table, i));

@@ -58,9 +58,10 @@ namespace game_punk
 #include "memory.hpp"
 #include "app_types.hpp"
 #include "image_view.hpp"
-#include "animation.hpp"
-#include "draw.hpp"
+#include "sky_background.hpp"
+#include "tile.hpp"
 #include "sprite.hpp"
+#include "draw.hpp"
 #include "app_state.hpp"
 
 
@@ -96,7 +97,8 @@ namespace game_punk
         UIState ui;
 
         BitmapTable bitmaps;
-        AnimationTable animations;
+        //AnimationTable animations;
+        AnimationList animations;
 
         GameScene scene;
         SceneCamera camera;
@@ -137,7 +139,7 @@ namespace game_punk
         set_ui_color(data.ui, 20);
 
         reset_table(data.bitmaps);
-        reset_table(data.animations);
+        //reset_table(data.animations);
         reset_tile_table(data.tiles);
         reset_sprite_table(data.sprites);
     }
@@ -185,7 +187,7 @@ namespace game_punk
         count_table(data.tiles, counts, 50);
         count_table(data.sprites, counts, 50);
         count_table(data.bitmaps, counts, 50);
-        count_table(data.animations, counts, 10);
+        //count_table(data.animations, counts, 10);
         
         data.memory = create_memory(counts);
         if (!data.memory.ok)
@@ -205,7 +207,7 @@ namespace game_punk
         ok &= create_table(data.tiles, data.memory);
         ok &= create_table(data.sprites, data.memory);
         ok &= create_table(data.bitmaps, data.memory);
-        ok &= create_table(data.animations, data.memory);
+        //ok &= create_table(data.animations, data.memory);
 
         ok &= verify_allocated(data.memory);
 
@@ -419,6 +421,7 @@ namespace game_punk
         bool ok = true;
 
         ok &= init_screen_camera(camera, screen);
+        ok &= init_animation_list(data.animations, data.spritesheets);
 
         reset_state_data(data);
 

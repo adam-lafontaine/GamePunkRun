@@ -1,136 +1,6 @@
 #pragma once
 
 
-/* background state */
-
-namespace game_punk
-{
-    class BackgroundState
-    {
-    public:
-
-        SkyAnimation sky;
-
-        BackgroundAnimation bg_1;
-        BackgroundAnimation bg_2;
-    };
-
-
-    static void reset_background_state(BackgroundState& bg)
-    {   
-        reset_sky_animation(bg.sky);
-
-        reset_background_animation(bg.bg_1);
-        reset_background_animation(bg.bg_2);
-        bg.bg_1.speed_shift = 1;
-        bg.bg_2.speed_shift = 0;
-    }
-
-
-    static void count_background_state(BackgroundState& bg, MemoryCounts& counts)
-    {  
-        count_sky_animation(bg.sky, counts);
-        
-        count_background_animation(bg.bg_1, counts, bt::Background_Bg1::count);
-        count_background_animation(bg.bg_2, counts, bt::Background_Bg2::count);
-    }
-
-
-    static bool create_background_state(BackgroundState& bg_state, Memory& memory)
-    {
-        bool ok = true;
-
-        ok &= create_sky_animation(bg_state.sky, memory);
-
-        ok &= create_background_animation(bg_state.bg_1, memory);
-        ok &= create_background_animation(bg_state.bg_2, memory);
-
-        return ok;
-    }
-
-
-}
-
-
-/* spritesheet state */
-
-namespace game_punk
-{
-    class SpritesheetList
-    {
-    public:
-
-        SpritesheetView punk_run;
-        SpritesheetView punk_idle;
-        SpritesheetView punk_jump;
-    };
-
-
-    static void count_spritesheet_list(SpritesheetList& ss_state, MemoryCounts& counts)
-    {
-        using Punk = bt::Spriteset_Punk;
-
-        constexpr Punk list;
-        constexpr auto run = Punk::Items::Punk_run;
-        constexpr auto idle = Punk::Items::Punk_idle;
-        constexpr auto jump = Punk::Items::Punk_jump;
-
-        count_view(ss_state.punk_run, counts, bt::item_at(list, run));
-        count_view(ss_state.punk_idle, counts, bt::item_at(list, idle));
-        count_view(ss_state.punk_jump, counts, bt::item_at(list, jump));
-    }
-
-
-    static bool create_spritesheet_list(SpritesheetList& ss_state, Memory& memory)
-    {
-        bool ok = true;
-
-        ok &= create_view(ss_state.punk_run, memory);
-        ok &= create_view(ss_state.punk_idle, memory);
-        ok &= create_view(ss_state.punk_jump, memory);
-
-        return ok;
-    }
-}
-
-
-/* tile state */
-
-namespace game_punk
-{
-    class TileState
-    {
-    public:
-        TileView floor_a;
-        TileView floor_b;
-    };
-
-
-    static void count_tile_state(TileState& tiles, MemoryCounts& counts)
-    {
-        using Ex = bt::Tileset_ex_zone;
-
-        constexpr Ex list;
-        constexpr auto f2 = Ex::Items::floor_02;
-        constexpr auto f3 = Ex::Items::floor_03;
-
-        count_view(tiles.floor_a, counts, bt::item_at(list, f2));
-        count_view(tiles.floor_b, counts, bt::item_at(list, f3));
-    }
-
-
-    static bool create_tile_state(TileState& tiles, Memory& memory)
-    {
-        bool ok = true;
-
-        ok &= create_view(tiles.floor_a, memory);
-        ok &= create_view(tiles.floor_b, memory);
-
-        return ok;
-    }
-}
-
-
 /* ui state */
 
 namespace game_punk
@@ -313,60 +183,21 @@ namespace game_punk
 
 namespace game_punk
 {
-    enum class SpriteMode : u8
-    {
-        Idle = 0,
-        Run,
-        Jump,
-        Count
-    };
-
-
-    template <typename T, typename ENUM>
-    class EnumArray
-    {
-    public:
-        T data[(u32)ENUM::Count];
-
-        T& item_at(ENUM id) { return data[(u32)id]; }
-    };
-    
     
     class PlayerState
     {
     public:
         SpriteID sprite;
         SpriteMode current_mode;
-
-        EnumArray<AnimationID, SpriteMode> mode_animations;
-
-        AnimationID& animation_at(SpriteMode mode) { return mode_animations.item_at(mode); }
-
-        AnimationID get_mode_animation() { return mode_animations.item_at(current_mode); }
     };
 
 
     static void set_player_mode(PlayerState& player, SpriteTable sprites, SpriteMode mode)
     {
         auto& vel = sprites.velocity_px_at(player.sprite);
-        auto& amn = sprites.animation_at(player.sprite);
-
-        switch (mode)
-        {
-        case SpriteMode::Idle:
-            vel = { 0, 0 };
-            break;
-
-        case SpriteMode::Run:
-            vel = { 10, 0 };
-            break;
-
-        case SpriteMode::Jump:
-            //vel = { 0, 0 };
-            break;
-        }
+        auto& afn = sprites.animate_at(player.sprite);       
 
         player.current_mode = mode;
-        amn = player.get_mode_animation(); 
+        afn = get_animate_fn(SpriteName::Punk, mode);
     }
 }
