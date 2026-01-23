@@ -66,13 +66,14 @@ namespace game_punk
 }
 
 
+/* animation base */
+
 namespace game_punk
 {
     class AnimationBase
     {
     public:
         ContextDims bitmap_dims;
-        u32 bitmap_count = 0;
         p32* spritesheet_data = 0;
 
 
@@ -94,14 +95,31 @@ namespace game_punk
             return view;
         }
     };
-    
-    
+
+}
+
+
+/* punk sprite animations */
+
+namespace game_punk
+{
     class PunkRunAnimation
     {
     public:
         static constexpr u32 bitmap_count = 6;
 
         AnimationBase base;
+
+        SpriteView get_bitmap(Vec2Di32 vel, TickQty32 time) const
+        {
+            auto x = (u32)math::cxpr::clamp(vel.x, 1, 10);
+            auto ticks = 10u / x;
+
+            auto t = time.value_ % (bitmap_count * ticks);
+            auto bitmap_id = t / ticks;
+
+            return base.bitmap_at(bitmap_id);
+        }
     };
 
 
@@ -111,6 +129,16 @@ namespace game_punk
         static constexpr u32 bitmap_count = 4;
 
         AnimationBase base;
+
+        SpriteView get_bitmap(TickQty32 time) const
+        {
+            u32 ticks = 15;
+
+            auto t = time.value_ % (bitmap_count * ticks);
+            auto bitmap_id = t / ticks;
+
+            return base.bitmap_at(bitmap_id);
+        }
     };
 
 
@@ -120,9 +148,25 @@ namespace game_punk
         static constexpr u32 bitmap_count = 4;
 
         AnimationBase base;
+
+        SpriteView get_bitmap(Vec2Di32 vel, TickQty32 time) const
+        {
+            u32 ticks = 30; // TODO velocity etc
+
+            auto t = time.value_ % (bitmap_count * ticks);
+            auto bitmap_id = t / ticks;
+
+            return base.bitmap_at(bitmap_id);
+        }
     };
 
+}
 
+
+/* animation list */
+
+namespace game_punk
+{
     static bool init_animation(auto& an, SpritesheetView const& ss)
     {
         bool ok = ss.bitmap_count == an.bitmap_count;
@@ -136,8 +180,7 @@ namespace game_punk
         ok &= dims.width > dims.height;
         ok &= dims.width % dims.height == 0;
         app_assert(ok && "*** Invalid spritesheet dimensions ***");
-
-        an.base.bitmap_count = an.bitmap_count;
+        
         an.base.bitmap_dims = ss.bitmap_dims;
         an.base.spritesheet_data = ss.data;        
 
@@ -181,41 +224,19 @@ namespace game_punk
 
     static SpriteView animate_punk_run(AnimationList const& list, Vec2Di32 vel, TickQty32 time)
     {
-        auto x = (u32)math::cxpr::clamp(vel.x, 1, 10);
-        auto ticks = 10u / x;
-
-        auto& an = list.punk_run.base;
-
-        auto t = time.value_ % (an.bitmap_count * ticks);
-        auto bitmap_id = t / ticks;
-
-        return an.bitmap_at(bitmap_id);
+        return list.punk_run.get_bitmap(vel, time);
     }
 
 
     static SpriteView animate_punk_idle(AnimationList const& list, Vec2Di32 vel, TickQty32 time)
     {
-        u32 ticks = 15;
-
-        auto& an = list.punk_idle.base;
-
-        auto t = time.value_ % (an.bitmap_count * ticks);
-        auto bitmap_id = t / ticks;
-
-        return an.bitmap_at(bitmap_id);
+        return list.punk_idle.get_bitmap(time);
     }
 
 
     static SpriteView animate_punk_jump(AnimationList const& list, Vec2Di32 vel, TickQty32 time)
     {
-        u32 ticks = 30; // TODO velocity etc
-
-        auto& an = list.punk_jump.base;
-
-        auto t = time.value_ % (an.bitmap_count * ticks);
-        auto bitmap_id = t / ticks;
-
-        return an.bitmap_at(bitmap_id);
+        return list.punk_jump.get_bitmap(vel, time);
     }
 
 
@@ -269,20 +290,12 @@ namespace game_punk
         GameTick64* tick_end = 0;        
         Vec2Di32* velocity_px = 0;
         AnimateFn* animate = 0;
-        //AnimationID* animation_id = 0;
         
         GameTick64& tick_begin_at(ID id) { return tick_begin[id.value_]; }
         //GameTick64& tick_end_at(ID id) { return tick_end[id.value_]; }
         Vec2Di64& position_at(ID id) { return position[id.value_]; }
         Vec2Di32& velocity_px_at(ID id) { return velocity_px[id.value_]; }
         AnimateFn& animate_at(ID id) { return animate[id.value_]; }
-
-        //AnimationID& animation_at(ID id) { return animation_id[id.value_]; }
-
-
-        //ImageView& bitmap_at(ID id, BitmapTable& data) { return data.item_at(bitmap_id[id.value_]); }
-
-        //SpriteAnimation& animation_at(ID id, AnimationTable& data) { return data.item_at(animation_id[id.value_]); }
     };
 
 

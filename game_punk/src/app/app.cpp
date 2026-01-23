@@ -97,7 +97,6 @@ namespace game_punk
         UIState ui;
 
         BitmapTable bitmaps;
-        //AnimationTable animations;
         AnimationList animations;
 
         GameScene scene;

@@ -195,7 +195,9 @@ namespace game_punk
     static void set_player_mode(PlayerState& player, SpriteTable sprites, SpriteMode mode)
     {
         auto& vel = sprites.velocity_px_at(player.sprite);
-        auto& afn = sprites.animate_at(player.sprite);       
+        auto& afn = sprites.animate_at(player.sprite);
+
+        vel.x = mode == SpriteMode::Idle ? 0 : 2;
 
         player.current_mode = mode;
         afn = get_animate_fn(SpriteName::Punk, mode);
