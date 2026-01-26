@@ -197,9 +197,27 @@ namespace game_punk
         auto& vel = sprites.velocity_px_at(player.sprite);
         auto& afn = sprites.animate_at(player.sprite);
 
-        vel.x = mode == SpriteMode::Idle ? 0 : 2;
-
         player.current_mode = mode;
         afn = get_animate_fn(SpriteName::Punk, mode);
+
+        switch (mode)
+        {
+        case SpriteMode::Idle:
+            vel = { 0, 0 };
+            break;
+
+        case SpriteMode::Run:
+            vel = { 2, 0 };
+            break;
+
+        case SpriteMode::Jump:
+            vel.y = 4;
+            break;
+
+        default:
+            break;
+        }
+
+        vel.x = mode == SpriteMode::Idle ? 0 : 2;
     }
 }

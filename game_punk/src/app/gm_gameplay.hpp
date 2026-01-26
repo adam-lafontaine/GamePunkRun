@@ -78,11 +78,12 @@ namespace internal
     static void update_player(StateData& data, InputCommand const& cmd)
     {
         auto& player = data.player_state;
+        auto& vel = data.sprites.velocity_px_at(player.sprite);
+
+        auto mode = player.current_mode;
         
         if (cmd.action)
         {
-            auto mode = player.current_mode;
-
             switch (mode)
             {
             case SpriteMode::Idle:
@@ -90,10 +91,6 @@ namespace internal
                 break;
 
             case SpriteMode::Run:
-                mode = SpriteMode::Jump;
-                break;
-
-            case SpriteMode::Jump:
                 mode = SpriteMode::Idle;
                 break;
 
@@ -102,6 +99,23 @@ namespace internal
             }
 
             set_player_mode(player, data.sprites, mode);
+        }
+        else if (cmd.jump)
+        {
+            set_player_mode(player, data.sprites, SpriteMode::Jump);
+        }
+        else
+        {
+            switch (mode)
+            {
+            case SpriteMode::Jump:
+                vel.y -= 1; // TODO sprite stuff
+                vel.y = math::max(vel.y, -1);
+                break;
+
+            default:
+                break;
+            }
         }
     }
 

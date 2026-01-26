@@ -55,6 +55,7 @@ namespace game_punk
 }
 
 
+#include "coords.hpp"
 #include "memory.hpp"
 #include "app_types.hpp"
 #include "image_view.hpp"
@@ -138,7 +139,6 @@ namespace game_punk
         set_ui_color(data.ui, 20);
 
         reset_table(data.bitmaps);
-        //reset_table(data.animations);
         reset_tile_table(data.tiles);
         reset_sprite_table(data.sprites);
     }
@@ -186,7 +186,6 @@ namespace game_punk
         count_table(data.tiles, counts, 50);
         count_table(data.sprites, counts, 50);
         count_table(data.bitmaps, counts, 50);
-        //count_table(data.animations, counts, 10);
         
         data.memory = create_memory(counts);
         if (!data.memory.ok)
@@ -206,7 +205,6 @@ namespace game_punk
         ok &= create_table(data.tiles, data.memory);
         ok &= create_table(data.sprites, data.memory);
         ok &= create_table(data.bitmaps, data.memory);
-        //ok &= create_table(data.animations, data.memory);
 
         ok &= verify_allocated(data.memory);
 

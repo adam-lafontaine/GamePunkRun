@@ -151,10 +151,15 @@ namespace game_punk
 
         SpriteView get_bitmap(Vec2Di32 vel, TickQty32 time) const
         {
-            u32 ticks = 30; // TODO velocity etc
+            u32 bitmap_id = 0;
 
-            auto t = time.value_ % (bitmap_count * ticks);
-            auto bitmap_id = t / ticks;
+            auto t = time.value_ % bitmap_count;
+
+            switch (vel.y)
+            {
+            case 0:
+                break;
+            }
 
             return base.bitmap_at(bitmap_id);
         }
@@ -284,12 +289,13 @@ namespace game_punk
         u32 first_id = 0;
 
         GameTick64* tick_begin = 0;
-        Vec2Di64* position = 0;
-        BitmapID* bitmap_id = 0;
+        GameTick64* tick_end = 0;
 
-        GameTick64* tick_end = 0;        
         Vec2Di32* velocity_px = 0;
+        Vec2Di64* position = 0;                
+        
         AnimateFn* animate = 0;
+        BitmapID* bitmap_id = 0;
         
         GameTick64& tick_begin_at(ID id) { return tick_begin[id.value_]; }
         //GameTick64& tick_end_at(ID id) { return tick_end[id.value_]; }

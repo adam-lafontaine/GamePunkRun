@@ -947,7 +947,7 @@ namespace game_punk
     
         b8 action = 0;
 
-        b8 pause = 0;
+        b8 jump = 0;
     
         // gameplay
         union
@@ -974,9 +974,12 @@ namespace game_punk
         InputCommand cmd;
 
         cmd.action = 
-            kbd.kbd_return.pressed || 
-            kbd.kbd_space.pressed ||
+            kbd.kbd_return.pressed ||
             gpd.btn_south.pressed;
+
+        cmd.jump = 
+            kbd.kbd_space.pressed ||
+            gpd.btn_north.pressed;
 
         cmd.camera.move = 0;
         cmd.camera.up = kbd.kbd_up.is_down || gpd.btn_dpad_up.is_down;
