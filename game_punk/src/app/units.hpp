@@ -134,8 +134,15 @@ namespace units
         GameDimension operator + (GameDimension other) { return GameDimension(value_ + other.value_); }
         GameDimension operator - (GameDimension other) { return GameDimension(value_ - other.value_); }
 
+        GameDimension operator + (GameDimension other) const { return GameDimension(value_ + other.value_); }
+        GameDimension operator - (GameDimension other) const { return GameDimension(value_ - other.value_); }
+
+        GameDimension operator += (GameDimension other) { value_ += other.value_; return *this; }
+
         static constexpr GameDimension make(i64 v) { return GameDimension(v); }
         static constexpr GameDimension zero() { return GameDimension(0); }
+
+        i64 get() { return value_; }
     };
 
 
@@ -149,11 +156,18 @@ namespace units
 
         SceneDimension() = delete;
 
-        SceneDimension operator + (GameDimension other) { return SceneDimension(value_ + other.value_); }
-        SceneDimension operator - (GameDimension other) { return SceneDimension(value_ - other.value_); }
+        SceneDimension operator + (SceneDimension other) { return SceneDimension(value_ + other.value_); }
+        SceneDimension operator - (SceneDimension other) { return SceneDimension(value_ - other.value_); }
+
+        SceneDimension operator += (SceneDimension other) { value_ += other.value_; return *this; }
 
         static constexpr SceneDimension make(i32 v) { return SceneDimension(v); }
         static constexpr SceneDimension zero() { return SceneDimension(0); }
+
+        i32 get() { return value_; }
     };
+
+
+    static i32 delta_i32(SceneDimension a, SceneDimension b) { return a.value_ - b.value_; }
 }
 }

@@ -111,10 +111,12 @@ namespace game_punk
 
     static void push_draw(DrawQueue& dq, BackgroundView const& bg, SceneCamera const& camera)
     {
+        constexpr auto zero = units::SceneDimension::zero();
+
         auto bmp = to_image_view(bg);
         auto out = to_image_view(camera);
 
-        ScenePosition pos(0, 0, DimCtx::Proc);
+        ScenePosition pos(zero, zero, DimCtx::Proc);
 
         auto p = delta_pos_px(pos, camera.scene_position);
 
@@ -136,13 +138,16 @@ namespace game_punk
     {
         auto out = to_image_view(camera);
 
-        auto pos = ScenePosition(0, 0, DimCtx::Proc);
+        auto vs = make_vec_scene(0, 0);
+        auto pos = ScenePosition(vs, DimCtx::Proc);
         auto p = delta_pos_px(pos, camera.scene_position);
         auto bmp = to_image_view_first(pair);
 
         push_draw_view(dq, bmp, out, p);
 
-        pos.proc.y = pair.height1;
+        vs = make_vec_scene(0, pair.height1);
+
+        pos = ScenePosition(vs, DimCtx::Proc);
         p = delta_pos_px(pos, camera.scene_position);
         bmp = to_image_view_second(pair);
         if (bmp.height)

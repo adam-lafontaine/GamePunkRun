@@ -317,7 +317,7 @@ namespace game_punk
     public:
         GameTick64 tick_begin = GameTick64::none();
         GameTick64 tick_end = GameTick64::forever();
-        Vec2D<i64> position;
+        Point2Di64 position;
 
         Vec2D<i32> velocity;
 
@@ -327,7 +327,7 @@ namespace game_punk
 
         SpriteDef() = delete;
 
-        SpriteDef(GameTick64 begin, Vec2D<i64> pos, BitmapID bmp, SpriteName name, SpriteMode mode)
+        SpriteDef(GameTick64 begin, Point2Di64 pos, BitmapID bmp, SpriteName name, SpriteMode mode)
         {
             tick_begin = begin;
             position = pos;

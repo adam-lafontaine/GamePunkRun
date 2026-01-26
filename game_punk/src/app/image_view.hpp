@@ -271,7 +271,12 @@ namespace game_punk
 
     static SubView sub_view(SkyOverlayView const& view, ScenePosition pos)
     {
-        return sub_view(view, pos.proc);
+        Vec2Di32 p = {
+            pos.proc.x.get(),
+            pos.proc.y.get()
+        };
+
+        return sub_view(view, p);
     }
 }
 

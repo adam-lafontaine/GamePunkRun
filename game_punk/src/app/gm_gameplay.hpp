@@ -18,9 +18,10 @@ namespace internal
 
         auto bmp = bitmaps.push();
 
-        auto pos = data.scene.game_position.pos_game();
-        pos.x += PLAYER_SCENE_OFFSET;
-        pos.y = tile_h;
+        Point2Di64 pos = {
+            data.scene.game_position.pos_game().x.value_ + PLAYER_SCENE_OFFSET,
+            tile_h
+        };
 
         auto mode = SpriteMode::Idle;
 
@@ -50,7 +51,7 @@ namespace internal
             data.tile_bitmaps.next();
         }
 
-        data.next_tile_position = GamePosition(pos, DimCtx::Game);
+        data.next_tile_position = GamePosition(make_vec_game(pos.x, pos.y), DimCtx::Game);
     }
 }
 
@@ -127,15 +128,20 @@ namespace internal
 
         auto tile_x = data.next_tile_position.game.x;
         auto scene_x = data.scene.game_position.game.x;
+
+        Point2Di64 pos {
+            data.next_tile_position.pos_game().x.get(),
+            data.next_tile_position.pos_game().y.get()
+        };
         
-        auto delta = tile_x - scene_x;
+        auto delta = (tile_x - scene_x).get();
 
         if (delta < limit)
         {
-            auto tile = TileDef(data.game_tick, data.next_tile_position.pos_game(), data.tile_bitmaps.front());
+            auto tile = TileDef(data.game_tick, pos, data.tile_bitmaps.front());
             spawn_tile(data.tiles, tile);
 
-            data.next_tile_position.game.x += tile_w;
+            data.next_tile_position.game.x += units::GameDimension::make(tile_w);
             data.tile_bitmaps.next();
         }
     }
@@ -178,7 +184,7 @@ namespace internal
         auto& camera = data.camera;
         auto& rng = data.rng;
 
-        auto pos = data.scene.game_position.game.x;
+        auto pos = data.scene.game_position.game.x.get();
 
         auto sky = get_sky_animation(bg.sky, data.game_tick);
         auto bg1 = get_animation_pair(bg.bg_1, rng, pos);
@@ -211,10 +217,12 @@ namespace internal
                 continue;
             }
 
-            auto dps = delta_pos_scene(GamePosition(pos[i], DimCtx::Game), data.scene);
+            auto gp = pos[i];
+
+            auto dps = delta_pos_scene(GamePosition(make_vec_game(gp.x, gp.y), DimCtx::Game), data.scene);
             auto gpos = dps.pos_game();
 
-            if (gpos.x < xmin || gpos.y < ymin)
+            if (gpos.x.get() < xmin || gpos.y.get() < ymin)
             {
                 despawn_tile(table, i);
                 continue;
@@ -250,10 +258,12 @@ namespace internal
                 continue;
             }
 
-            auto dps = delta_pos_scene(GamePosition(pos[i], DimCtx::Game), data.scene);
+            auto gp = pos[i];
+
+            auto dps = delta_pos_scene(GamePosition(make_vec_game(gp.x, gp.y), DimCtx::Game), data.scene);
             auto gpos = dps.pos_game();
 
-            if (gpos.x < xmin || gpos.y < ymin)
+            if (gpos.x.get() < xmin || gpos.y.get() < ymin)
             {
                 beg[i] = GameTick64::none();
                 sprites.first_id = math::min(i, sprites.first_id);
@@ -295,7 +305,7 @@ namespace gm_gameplay
         auto& scene_pos = data.scene.game_position.game;
         auto player_pos = data.sprites.position_at(data.player_state.sprite);
 
-        scene_pos.x = player_pos.x - PLAYER_SCENE_OFFSET;
+        scene_pos.x = units::GameDimension::make(player_pos.x - PLAYER_SCENE_OFFSET);
         
         internal::update_tiles(data);
         internal::animate_sprites(data);

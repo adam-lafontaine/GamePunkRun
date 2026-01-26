@@ -626,15 +626,40 @@ namespace game_punk
     };
 
 
-    using GamePosition = ContextPosition<i64>;
-    using ScenePosition = ContextPosition<i32>;
+    using GamePosition = ContextPosition<units::GameDimension>;
+    using ScenePosition = ContextPosition<units::SceneDimension>;
+
+    using VecGame = Vec2D<units::GameDimension>;
+    using VecScene = Vec2D<units::SceneDimension>;
+
+    
+    static inline VecGame make_vec_game(i64 x, i64 y)
+    {
+        VecGame vec = {
+            .x = units::GameDimension::make(x),
+            .y = units::GameDimension::make(y)
+        };
+
+        return vec;
+    }
+
+
+    static inline VecScene make_vec_scene(i32 x, i32 y)
+    {
+        VecScene vec = {
+            .x = units::SceneDimension::make(x),
+            .y = units::SceneDimension::make(y)
+        };
+        
+        return vec;
+    }
 
     
     static Point2Di32 delta_pos_px(ScenePosition a, ScenePosition b)
     {
         Point2Di32 p;
-        p.x = a.proc.x - b.proc.x;
-        p.y = a.proc.y - b.proc.y;
+        p.x = units::delta_i32(a.proc.x, b.proc.x);
+        p.y = units::delta_i32(a.proc.y, b.proc.y);
 
         return p;
     }
@@ -665,7 +690,8 @@ namespace game_punk
 
     static void reset_game_scene(GameScene& scene)
     {
-        scene.game_position = GamePosition(0, 0, DimCtx::Game);
+        constexpr auto zero = units::GameDimension::zero();
+        scene.game_position = GamePosition(zero, zero, DimCtx::Game);
     }
 
 
@@ -673,12 +699,14 @@ namespace game_punk
     {
         constexpr u32 dmax = 10 * math::cxpr::max(cxpr::GAME_BACKGROUND_WIDTH_PX, cxpr::GAME_BACKGROUND_HEIGHT_PX);
         
-        auto dx = pos.proc.x - scene.game_position.proc.x;
-        auto dy = pos.proc.y - scene.game_position.proc.y;
+        auto dx = (pos.proc.x - scene.game_position.proc.x).value_;
+        auto dy = (pos.proc.y - scene.game_position.proc.y).value_;
 
         app_assert(math::abs(dx) < dmax && math::abs(dy) < dmax);
 
-        return ScenePosition((i32)dx, (i32)dy, DimCtx::Proc);        
+        auto vec = make_vec_scene((i32)dx, (i32)dy);
+
+        return ScenePosition(vec, DimCtx::Proc);        
     }
 
 
@@ -724,7 +752,9 @@ namespace game_punk
 
     static void reset_screen_camera(SceneCamera& camera)
     {
-        camera.scene_position = ScenePosition(10, 16, DimCtx::Game);
+        auto pos = make_vec_scene(10, 16);
+
+        camera.scene_position = ScenePosition(pos, DimCtx::Game);
         camera.speed_px = 2;
     }
 
@@ -732,18 +762,20 @@ namespace game_punk
     static void move_camera(SceneCamera& camera, Vec2Di8 delta_px)
     {        
         auto cam_dims = CAMERA_DIMS.game;
-        auto& pos = camera.scene_position.game;
+        auto pos = camera.scene_position.pos_game();
 
-        auto pos_x = (i32)pos.x + delta_px.x;
-        auto pos_y = (i32)pos.y + delta_px.y;
+        i32 pos_x = pos.x.get() + delta_px.x;
+        i32 pos_y = pos.y.get() + delta_px.y;
 
         auto max_dims = SCENE_DIMS.game;
 
         auto x_max = (i32)(max_dims.width - cam_dims.width);
         auto y_max = (i32)(max_dims.height - cam_dims.height);
 
-        pos.x = (u32)math::cxpr::clamp(pos_x, 0, x_max);
-        pos.y = (u32)math::cxpr::clamp(pos_y, 0, y_max);
+        pos_x = math::cxpr::clamp(pos_x, 0, x_max);
+        pos_y = math::cxpr::clamp(pos_y, 0, y_max);
+
+        camera.scene_position = ScenePosition(make_vec_scene(pos_x, pos_y), DimCtx::Game);
     }
 
 

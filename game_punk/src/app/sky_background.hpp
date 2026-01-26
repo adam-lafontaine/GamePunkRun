@@ -56,7 +56,8 @@ namespace game_punk
 
     static void reset_sky_animation(SkyAnimation& sky)
     {
-        sky.ov_pos.proc = { 0, 0 };
+        auto vs = make_vec_scene(0, 0);
+        sky.ov_pos = ScenePosition(vs, DimCtx::Proc);
         sky.ov_vel = { 4, 2 };
 
         bool ok = true;
@@ -84,8 +85,8 @@ namespace game_punk
         auto& pos = sky.ov_pos.proc;
         auto& vel = sky.ov_vel;
 
-        i32 x = pos.x + vel.x;
-        i32 y = pos.y + vel.y;
+        i32 x = pos.x.get() + vel.x;
+        i32 y = pos.y.get() + vel.y;
 
         if (x < 0 || x > xm)
         {
@@ -93,7 +94,7 @@ namespace game_punk
         }
         else
         {
-            pos.x = (u32)x;
+            pos.x = units::SceneDimension::make(x);
         }
 
         if (y < 0 || y > ym)
@@ -102,10 +103,10 @@ namespace game_punk
         }
         else
         {
-            pos.y = (u32)y;
+            pos.y = units::SceneDimension::make(y);
         }
 
-        img::copy(sub_view(data_ov, pos), ov);
+        img::copy(sub_view(data_ov, sky.ov_pos), ov);
     }
     
     
