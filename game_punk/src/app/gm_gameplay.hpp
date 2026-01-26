@@ -9,7 +9,7 @@ namespace internal
 {
     static void init_punk_sprite(StateData& data)
     {
-        constexpr auto tile_h = cxpr::TILE_WIDTH;
+        constexpr auto tile_h = cxpr::TILE_HEIGHT_PX;
 
         auto& bitmaps = data.bitmaps;
         auto& animations = data.animations;
@@ -33,7 +33,7 @@ namespace internal
 
     static void init_tiles(StateData& data)
     {
-        constexpr auto tile_w = cxpr::TILE_WIDTH;
+        constexpr auto tile_w = cxpr::TILE_WIDTH_PX;
 
         auto& src = data.tile_state;
         auto& bitmaps = data.tile_bitmaps;
@@ -122,7 +122,7 @@ namespace internal
 
     static void update_tiles(StateData& data)
     {
-        constexpr auto tile_w = cxpr::TILE_WIDTH;
+        constexpr auto tile_w = cxpr::TILE_WIDTH_PX;
         constexpr auto limit = (i64)(cxpr::GAME_BACKGROUND_WIDTH_PX - 2 * tile_w);
 
         auto tile_x = data.next_tile_position.game.x;

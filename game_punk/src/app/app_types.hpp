@@ -78,8 +78,8 @@ namespace cxpr
     constexpr u32 BACKGROUND_2_COUNT = bt::Background_Bg2::count;
     constexpr u32 BACKGROUND_COUNT_MAX = math::cxpr::max(BACKGROUND_1_COUNT, BACKGROUND_2_COUNT);
 
-    constexpr u32 TILE_WIDTH = bt::Tileset_ex_zone().items[0].height;
-    constexpr u32 TILE_HEIGHT = bt::Tileset_ex_zone().items[0].width;
+    constexpr u32 TILE_WIDTH_PX = bt::Tileset_ex_zone().items[0].height;
+    constexpr u32 TILE_HEIGHT_PX = bt::Tileset_ex_zone().items[0].width;
 
 
 
@@ -680,6 +680,9 @@ namespace game_punk
 
         return ScenePosition((i32)dx, (i32)dy, DimCtx::Proc);        
     }
+
+
+    
 }
 
 

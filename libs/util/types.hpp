@@ -89,6 +89,7 @@ public:
 };*/
 
 using Vec2Di8 = Vec2D<i8>;
+using Vec2Du8 = Vec2D<u8>;
 using Vec2Di32 = Vec2D<i32>;
 using Vec2Df32 = Vec2D<f32>;
 using Vec2Du32 = Vec2D<u32>;
