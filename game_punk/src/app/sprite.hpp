@@ -66,6 +66,14 @@ namespace game_punk
 }
 
 
+/* acceleration */
+
+namespace game_punk
+{
+
+}
+
+
 /* animation base */
 
 namespace game_punk
@@ -289,7 +297,10 @@ namespace game_punk
         u32 capacity = 0;
         u32 first_id = 0;
 
-        GameTick64* tick_begin = 0;
+        SpriteName* name = 0;
+        SpriteMode* mode = 0;
+
+        GameTick64* mode_begin = 0;
         GameTick64* tick_end = 0;
 
         TileAcc* acceleration_x = 0;
@@ -304,11 +315,12 @@ namespace game_punk
         AnimateFn* animate = 0;
         BitmapID* bitmap_id = 0;
         
-        GameTick64& tick_begin_at(ID id) { return tick_begin[id.value_]; }
+        GameTick64& mode_begin_at(ID id) { return mode_begin[id.value_]; }
         TileSpeed& velocity_x_at(ID id) { return speed_x[id.value_]; }
         
         AnimateFn& animate_at(ID id) { return animate[id.value_]; }
 
+        SpriteName get_name(ID id) const { return name[id.value_]; }
         TileDim get_tile_x(ID id) const { return position_x[id.value_]; }
         VecTile get_tile_pos(ID id) const { return { position_x[id.value_], position_y[id.value_] }; }
         VecSpeed get_tile_velocity(ID id) const { return { speed_x[id.value_], speed_y[id.value_] }; }
@@ -319,45 +331,23 @@ namespace game_punk
 
     SpriteID& operator ++ (SpriteID& id) { ++id.value_; return id; }
     bool operator < (SpriteID lhs, SpriteID rhs) { return lhs.value_ < rhs.value_; }
-    bool operator == (SpriteID lhs, SpriteID rhs) { return lhs.value_ == rhs.value_; }
-
-
-    class SpriteDef
-    {
-    public:
-        GameTick64 tick_begin = GameTick64::none();
-        GameTick64 tick_end = GameTick64::forever();
-
-        VecSpeed velocity = vec_zero<TileSpeed>();
-        VecTile position = vec_zero<TileDim>();
-
-        BitmapID bitmap_id;
-        AnimateFn animate;
-
-
-        SpriteDef() = delete;
-
-        SpriteDef(GameTick64 begin, VecTile pos, BitmapID bmp, SpriteName name, SpriteMode mode)
-        {
-            tick_begin = begin;
-            position = pos;
-            bitmap_id = bmp;
-            animate = get_animate_fn(name, mode);
-        }
-    };
+    bool operator == (SpriteID lhs, SpriteID rhs) { return lhs.value_ == rhs.value_; }    
 
 
     static void reset_sprite_table(SpriteTable& table)
     {
         table.first_id = 0;
 
-        span::fill(span::make_view(table.tick_begin, table.capacity), GameTick64::none());
+        span::fill(span::make_view(table.mode_begin, table.capacity), GameTick64::none());
     }
 
 
     static void count_table(SpriteTable& table, MemoryCounts& counts, u32 capacity)
     {
         table.capacity = capacity;
+
+        add_count<SpriteName>(counts, capacity);
+        add_count<SpriteMode>(counts, capacity);
         
         add_count<GameTick64>(counts, 2 * capacity);
 
@@ -382,8 +372,14 @@ namespace game_punk
 
         bool ok = true;
 
-        auto tick_begin = push_mem<GameTick64>(memory, n);
-        ok &= tick_begin.ok;
+        auto name = push_mem<SpriteName>(memory, n);
+        ok &= name.ok;
+
+        auto mode = push_mem<SpriteMode>(memory, n);
+        ok &= mode.ok;
+
+        auto mode_begin = push_mem<GameTick64>(memory, n);
+        ok &= mode_begin.ok;
 
         auto tick_end = push_mem<GameTick64>(memory, n);
         ok &= tick_end.ok;
@@ -414,7 +410,10 @@ namespace game_punk
 
         if (ok)
         {
-            table.tick_begin = tick_begin.data;
+            table.name = name.data;
+            table.mode = mode.data;
+
+            table.mode_begin = mode_begin.data;
             table.tick_end = tick_end.data;
 
             table.acceleration_x = acc_x.data;
@@ -432,28 +431,63 @@ namespace game_punk
 
         return ok;
     }
+        
     
-    
+}
+
+
+/* spawn sprite */
+
+namespace game_punk
+{
+    class SpriteDef
+    {
+    public:
+        SpriteName name;
+        SpriteMode mode;
+
+        GameTick64 mode_begin = GameTick64::none();
+        GameTick64 tick_end = GameTick64::forever();
+
+        VecSpeed velocity = vec_zero<TileSpeed>();
+        VecTile position = vec_zero<TileDim>();
+
+        BitmapID bitmap_id;
+        AnimateFn animate;
+
+
+        SpriteDef() = delete;
+
+        SpriteDef(GameTick64 begin, VecTile pos, BitmapID bmp, SpriteName s_name, SpriteMode s_mode)
+        {
+            name = s_name;
+            mode = s_mode;
+            mode_begin = begin;
+            position = pos;
+            bitmap_id = bmp;
+            animate = get_animate_fn(s_name, s_mode);
+        }
+    };
+
+
     static void despawn_sprite(SpriteTable& table, SpriteID id)
     {
         auto i = id.value_;
 
-        table.tick_begin[i] = GameTick64::none();
+        table.mode_begin[i] = GameTick64::none();
         table.first_id = math::min(i, table.first_id);
     }
 
 
     static bool is_spawned(SpriteTable const& table, SpriteID id)
     {
-        return table.tick_begin[id.value_] < table.tick_end[id.value_];
+        return table.mode_begin[id.value_] < table.tick_end[id.value_];
     }    
     
     
     static SpriteID spawn_sprite(SpriteTable& table, SpriteDef const& def)
     {
         auto N = table.capacity;
-        auto beg = table.tick_begin;
-        auto end = table.tick_end;
 
         SpriteID id;
 
@@ -474,7 +508,11 @@ namespace game_punk
 
         id.value_ = i;
         table.first_id = i;
-        table.tick_begin[i] = def.tick_begin;
+
+        table.name[i] = def.name;
+        table.mode[i] = def.mode;
+
+        table.mode_begin[i] = def.mode_begin;
         table.tick_end[i] = def.tick_end;
 
         table.acceleration_x[i] = TileAcc::zero();
@@ -492,7 +530,27 @@ namespace game_punk
         return id;
     }
 
+}
 
+
+/* update sprites */
+
+namespace game_punk
+{
+    static void set_sprite_mode(SpriteTable& table, SpriteID id, SpriteMode mode, GameTick64 tick)
+    {
+        if (!is_spawned(table, id))
+        {
+            return;
+        }
+
+        auto name = table.get_name(id);
+
+        table.mode_begin_at(id) = tick;
+        table.animate_at(id) = get_animate_fn(name, mode);
+    }
+    
+    
     static void move_sprites_x(SpriteTable const& table)
     {
         auto N = table.capacity;
@@ -546,7 +604,4 @@ namespace game_punk
             pos_y[i] += vel_y[i];
         }
     }
-
-
-    
 }

@@ -82,6 +82,7 @@ namespace internal
         //auto& vel = data.sprites.velocity_px_at(player.sprite);
 
         auto mode = player.current_mode;
+        auto tick = data.game_tick;
         
         if (cmd.action)
         {
@@ -99,11 +100,11 @@ namespace internal
                 break;
             }
 
-            set_player_mode(player, data.sprites, mode);
+            set_player_mode(player, data.sprites, mode, tick);
         }
         else if (cmd.jump)
         {
-            set_player_mode(player, data.sprites, SpriteMode::Jump);
+            set_player_mode(player, data.sprites, SpriteMode::Jump, tick);
         }
         /*else
         {
@@ -149,7 +150,7 @@ namespace internal
 
         auto N = table.capacity;
 
-        auto beg = table.tick_begin;
+        auto beg = table.mode_begin;
         auto afn = table.animate;
         auto bmp = table.bitmap_id;
 
@@ -248,7 +249,7 @@ namespace internal
         auto tick = data.game_tick;
         auto N = sprites.capacity;
 
-        auto beg = sprites.tick_begin;
+        auto beg = sprites.mode_begin;
         auto end = sprites.tick_end;
         auto bmp = sprites.bitmap_id;
 

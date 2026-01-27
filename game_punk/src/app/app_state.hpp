@@ -192,15 +192,15 @@ namespace game_punk
     };
 
 
-    static void set_player_mode(PlayerState& player, SpriteTable sprites, SpriteMode mode)
+    static void set_player_mode(PlayerState& player, SpriteTable sprites, SpriteMode mode, GameTick64 tick)
     {
         constexpr auto run_speed = TileSpeed::make(1.0f / 16);
 
+        set_sprite_mode(sprites, player.sprite, mode, tick);
+
         auto& vel = sprites.velocity_x_at(player.sprite);
-        auto& afn = sprites.animate_at(player.sprite);
 
         player.current_mode = mode;
-        afn = get_animate_fn(SpriteName::Punk, mode);
 
         switch (mode)
         {
