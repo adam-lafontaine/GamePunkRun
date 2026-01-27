@@ -110,9 +110,10 @@ namespace game_punk
 
         AnimationBase base;
 
-        SpriteView get_bitmap(Vec2Di32 vel, TickQty32 time) const
+        SpriteView get_bitmap(VecSpeed vel, TickQty32 time) const
         {
-            auto x = (u32)math::cxpr::clamp(vel.x, 1, 10);
+            auto s = to_delta_px(vel.x);
+            auto x = (u32)math::cxpr::clamp(s, 1, 10);
             auto ticks = 10u / x;
 
             auto t = time.value_ % (bitmap_count * ticks);
@@ -149,17 +150,17 @@ namespace game_punk
 
         AnimationBase base;
 
-        SpriteView get_bitmap(Vec2Di32 vel, TickQty32 time) const
+        SpriteView get_bitmap(VecSpeed vel, TickQty32 time) const
         {
             u32 bitmap_id = 0;
 
             auto t = time.value_ % bitmap_count;
 
-            switch (vel.y)
+            /*switch (vel.y)
             {
             case 0:
                 break;
-            }
+            }*/
 
             return base.bitmap_at(bitmap_id);
         }
@@ -215,10 +216,10 @@ namespace game_punk
     }
 
 
-    using AnimateFn = SpriteView (*)(AnimationList const& list, Vec2Di32 vel, TickQty32 time);
+    using AnimateFn = SpriteView (*)(AnimationList const& list, VecSpeed vel, TickQty32 time);
 
 
-    static SpriteView animate_error(AnimationList const& list, Vec2Di32 vel, TickQty32 time)
+    static SpriteView animate_error(AnimationList const& list, VecSpeed vel, TickQty32 time)
     {
         auto& an = list.punk_jump.base;
         auto bitmap_id = 0;
@@ -227,19 +228,19 @@ namespace game_punk
     }
 
 
-    static SpriteView animate_punk_run(AnimationList const& list, Vec2Di32 vel, TickQty32 time)
+    static SpriteView animate_punk_run(AnimationList const& list, VecSpeed vel, TickQty32 time)
     {
         return list.punk_run.get_bitmap(vel, time);
     }
 
 
-    static SpriteView animate_punk_idle(AnimationList const& list, Vec2Di32 vel, TickQty32 time)
+    static SpriteView animate_punk_idle(AnimationList const& list, VecSpeed vel, TickQty32 time)
     {
         return list.punk_idle.get_bitmap(time);
     }
 
 
-    static SpriteView animate_punk_jump(AnimationList const& list, Vec2Di32 vel, TickQty32 time)
+    static SpriteView animate_punk_jump(AnimationList const& list, VecSpeed vel, TickQty32 time)
     {
         return list.punk_jump.get_bitmap(vel, time);
     }
@@ -291,16 +292,16 @@ namespace game_punk
         GameTick64* tick_begin = 0;
         GameTick64* tick_end = 0;
 
-        Vec2Di32* velocity_px = 0;
-        Vec2Di64* position = 0;                
+        VecAcc* acceleration = 0;
+        VecSpeed* velocity = 0;
+        VecTile* position = 0;
         
         AnimateFn* animate = 0;
         BitmapID* bitmap_id = 0;
         
         GameTick64& tick_begin_at(ID id) { return tick_begin[id.value_]; }
-        //GameTick64& tick_end_at(ID id) { return tick_end[id.value_]; }
-        Vec2Di64& position_at(ID id) { return position[id.value_]; }
-        Vec2Di32& velocity_px_at(ID id) { return velocity_px[id.value_]; }
+        VecSpeed& velocity_at(ID id) { return velocity[id.value_]; }
+        VecTile& position_at(ID id) { return position[id.value_]; }
         AnimateFn& animate_at(ID id) { return animate[id.value_]; }
     };
 
@@ -317,9 +318,9 @@ namespace game_punk
     public:
         GameTick64 tick_begin = GameTick64::none();
         GameTick64 tick_end = GameTick64::forever();
-        Point2Di64 position;
 
-        Vec2D<i32> velocity;
+        VecSpeed velocity = vec_zero<TileSpeed>();
+        VecTile position = vec_zero<TileDim>();
 
         BitmapID bitmap_id;
         AnimateFn animate;
@@ -327,13 +328,12 @@ namespace game_punk
 
         SpriteDef() = delete;
 
-        SpriteDef(GameTick64 begin, Point2Di64 pos, BitmapID bmp, SpriteName name, SpriteMode mode)
+        SpriteDef(GameTick64 begin, VecTile pos, BitmapID bmp, SpriteName name, SpriteMode mode)
         {
             tick_begin = begin;
             position = pos;
             bitmap_id = bmp;
             animate = get_animate_fn(name, mode);
-            velocity = {};
         }
     };
 
@@ -351,8 +351,9 @@ namespace game_punk
         table.capacity = capacity;
         
         add_count<GameTick64>(counts, 2 * capacity);
-        add_count<Vec2Di64>(counts, capacity);
-        add_count<Vec2Di32>(counts, capacity);
+        add_count<VecAcc>(counts, capacity);
+        add_count<VecSpeed>(counts, capacity);
+        add_count<VecTile>(counts, capacity);
         add_count<BitmapID>(counts, capacity);
         add_count<AnimateFn>(counts, capacity);
     }
@@ -376,11 +377,14 @@ namespace game_punk
         auto tick_end = push_mem<GameTick64>(memory, n);
         ok &= tick_end.ok;
 
-        auto position = push_mem<Vec2Di64>(memory, n);
-        ok &= position.ok;
+        auto acc = push_mem<VecAcc>(memory, n);
+        ok &= acc.ok;
 
-        auto velocity = push_mem<Vec2Di32>(memory, n);
+        auto velocity = push_mem<VecSpeed>(memory, n);
         ok &= velocity.ok;
+
+        auto position = push_mem<VecTile>(memory, n);
+        ok &= position.ok;
 
         auto bmp = push_mem<BitmapID>(memory, n);
         ok &= bmp.ok;
@@ -392,8 +396,9 @@ namespace game_punk
         {
             table.tick_begin = tick_begin.data;
             table.tick_end = tick_end.data;
+            table.acceleration = acc.data;
+            table.velocity = velocity.data;
             table.position = position.data;
-            table.velocity_px = velocity.data;
             table.bitmap_id = bmp.data;
             table.animate = animate.data;
         }
@@ -442,8 +447,9 @@ namespace game_punk
         table.first_id = i;
         table.tick_begin[i] = def.tick_begin;
         table.tick_end[i] = def.tick_end;
+        table.acceleration[i] = vec_zero<TileAcc>();
+        table.velocity[i] = def.velocity;
         table.position[i] = def.position;
-        table.velocity_px[i] = def.velocity;
         table.animate[i] = def.animate;
         table.bitmap_id[i] = def.bitmap_id;
 
@@ -454,11 +460,16 @@ namespace game_punk
     static void move_sprites(SpriteTable const& table)
     {
         auto N = table.capacity;
+
+        auto acc = table.acceleration;
+        auto vel = table.velocity;
         auto pos = table.position;
-        auto vel = table.velocity_px;
 
         for (u32 i = 0; i < N; i++)
         {
+            vel[i].x += acc[i].x;
+            vel[i].y += acc[i].y;
+
             pos[i].x += vel[i].x;
             pos[i].y += vel[i].y;
         }

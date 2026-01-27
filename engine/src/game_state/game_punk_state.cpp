@@ -102,18 +102,18 @@ namespace internal
         auto id = data.player_state.sprite;
 
         auto pos = data.sprites.position_at(id);
-        auto& vel = data.sprites.velocity_px_at(id);
+        auto& vel = data.sprites.velocity_at(id);
 
-        ImGui::Text("Position: (%u, %u)", (u32)pos.x, (u32)pos.y);
-        ImGui::Text("Velocity: (%d, %d), ", vel.x, vel.y);
+        ImGui::Text("Position: (%4.1f, %4.1f)", pos.x.get(), pos.y.get());
+        ImGui::Text("Velocity: (%3.2f, %3.2f), ", vel.x.get(), vel.y.get());
 
-        static int v = 0;
+        /*static int v = 0;
 
         v = vel.x;
 
         ImGui::InputInt("Vel x", &v);
 
-        vel.x = v;
+        vel.x = v;*/
     }
 }
 
@@ -259,7 +259,7 @@ namespace internal
 
         auto N = table.capacity;
         auto pos = table.position;
-        auto vel = table.velocity_px;
+        auto vel = table.velocity;
 
         ImGui::TableHeadersRow();
 
@@ -276,10 +276,10 @@ namespace internal
             ImGui::Text("%u", i);
 
             ImGui::TableSetColumnIndex(col_pos);
-            ImGui::Text("(%ld, %ld)", pos[i].x, pos[i].y);
+            ImGui::Text("(%4.0f, %4.0f)", pos[i].x.get(), pos[i].y.get());
 
             ImGui::TableSetColumnIndex(col_vel);
-            ImGui::Text("(%d, %d)", vel[i].x, vel[i].y);
+            ImGui::Text("(%3.2f, %3.2f)", vel[i].x.get(), vel[i].y.get());
 
             ImGui::TableSetColumnIndex(col_active);
             ImGui::Text("%d", game::is_spawned(table, i));

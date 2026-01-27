@@ -194,7 +194,9 @@ namespace game_punk
 
     static void set_player_mode(PlayerState& player, SpriteTable sprites, SpriteMode mode)
     {
-        auto& vel = sprites.velocity_px_at(player.sprite);
+        constexpr auto run_speed = TileSpeed::make(1.0f / 16);
+
+        auto& vel = sprites.velocity_at(player.sprite);
         auto& afn = sprites.animate_at(player.sprite);
 
         player.current_mode = mode;
@@ -203,21 +205,21 @@ namespace game_punk
         switch (mode)
         {
         case SpriteMode::Idle:
-            vel = { 0, 0 };
+            vel = vec_zero<TileSpeed>();
             break;
 
         case SpriteMode::Run:
-            vel = { 2, 0 };
+            vel = { run_speed, TileSpeed::zero() };
             break;
 
         case SpriteMode::Jump:
-            vel.y = 4;
+            
             break;
 
         default:
             break;
         }
 
-        vel.x = mode == SpriteMode::Idle ? 0 : 2;
+        //vel.x = mode == SpriteMode::Idle ? 0 : 2;
     }
 }

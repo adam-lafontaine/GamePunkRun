@@ -71,7 +71,7 @@ namespace game_punk
     {
     public:
         GameTick64 tick_begin = GameTick64::none();
-        VecTile position = { TileDim::zero(), TileDim::zero() };
+        VecTile position = vec_zero<TileDim>();
         BitmapID bitmap_id;
 
         TileDef() = delete;
