@@ -150,19 +150,22 @@ namespace internal
         auto N = table.capacity;
 
         auto beg = table.tick_begin;
-        auto vel = table.velocity;
         auto afn = table.animate;
         auto bmp = table.bitmap_id;
 
         for (u32 i = 0; i < N; i++)
         {
-            if (!is_spawned(table, i))
+            SpriteID id = { i };
+
+            if (!is_spawned(table, id))
             {
                 continue;
             }
 
+            auto vel = table.get_tile_velocity(id);
+
             auto time = data.game_tick - beg[i];
-            auto view = afn[i](data.animations, vel[i], time);
+            auto view = afn[i](data.animations, vel, time);
             data.bitmaps.item_at(bmp[i]) = to_image_view(view);
         }
     }
@@ -180,9 +183,9 @@ namespace internal
         auto& camera = data.camera;
         auto& rng = data.rng;
 
-        auto tile = data.scene.game_position.pos_game().x.get();
+        auto tile = data.scene.game_position.pos_game().x;
 
-        auto pos = (u64)(cxpr::TILE_WIDTH_PX * tile);
+        auto pos = to_pixel_pos(tile);
 
         auto sky = get_sky_animation(bg.sky, data.game_tick);
         auto bg1 = get_animation_pair(bg.bg_1, rng, pos);
@@ -211,7 +214,9 @@ namespace internal
 
         for (u32 i = 0; i < N; i++)
         {
-            if (!is_spawned(table, i))
+            TileID id = { i };
+
+            if (!is_spawned(table, id))
             {
                 continue;
             }
@@ -221,7 +226,7 @@ namespace internal
 
             if (gpos.x.get() < xmin || gpos.y.get() < ymin)
             {
-                despawn_tile(table, i);
+                despawn_tile(table, id);
                 continue;
             }            
 
@@ -245,7 +250,6 @@ namespace internal
 
         auto beg = sprites.tick_begin;
         auto end = sprites.tick_end;
-        auto pos = sprites.position;
         auto bmp = sprites.bitmap_id;
 
         for (u32 i = 0; i < N; i++)
@@ -255,7 +259,11 @@ namespace internal
                 continue;
             }
 
-            auto spos = to_scene_pos(pos[i], data.scene);
+            SpriteID id = { i };
+
+            auto tile = sprites.get_tile_pos(id);
+
+            auto spos = to_scene_pos(tile, data.scene);
             auto gpos = spos.pos_game();
 
             if (gpos.x.get() < xmin || gpos.y.get() < ymin)
@@ -294,13 +302,13 @@ namespace gm_gameplay
     {
         internal::update_game_camera(data, cmd);
         internal::update_player(data, cmd);
-
-        move_sprites(data.sprites);
+        
+        move_sprites_xy(data.sprites);
 
         auto& scene_pos = data.scene.game_position.game;
-        auto player_pos = data.sprites.position_at(data.player_state.sprite);
+        auto player_pos = data.sprites.get_tile_x(data.player_state.sprite);
 
-        scene_pos.x = player_pos.x;
+        scene_pos.x = player_pos;
         scene_pos.x -= to_delta_tile(PLAYER_SCENE_OFFSET);
         
         internal::update_tiles(data);

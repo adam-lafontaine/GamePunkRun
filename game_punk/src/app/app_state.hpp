@@ -196,7 +196,7 @@ namespace game_punk
     {
         constexpr auto run_speed = TileSpeed::make(1.0f / 16);
 
-        auto& vel = sprites.velocity_at(player.sprite);
+        auto& vel = sprites.velocity_x_at(player.sprite);
         auto& afn = sprites.animate_at(player.sprite);
 
         player.current_mode = mode;
@@ -205,11 +205,11 @@ namespace game_punk
         switch (mode)
         {
         case SpriteMode::Idle:
-            vel = vec_zero<TileSpeed>();
+            vel = TileSpeed::zero();
             break;
 
         case SpriteMode::Run:
-            vel = { run_speed, TileSpeed::zero() };
+            vel = run_speed;
             break;
 
         case SpriteMode::Jump:

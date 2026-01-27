@@ -292,17 +292,26 @@ namespace game_punk
         GameTick64* tick_begin = 0;
         GameTick64* tick_end = 0;
 
-        VecAcc* acceleration = 0;
-        VecSpeed* velocity = 0;
-        VecTile* position = 0;
+        TileAcc* acceleration_x = 0;
+        TileAcc* acceleration_y = 0;
+
+        TileSpeed* speed_x = 0;
+        TileSpeed* speed_y = 0;
+
+        TileDim* position_x = 0;
+        TileDim* position_y = 0;
         
         AnimateFn* animate = 0;
         BitmapID* bitmap_id = 0;
         
         GameTick64& tick_begin_at(ID id) { return tick_begin[id.value_]; }
-        VecSpeed& velocity_at(ID id) { return velocity[id.value_]; }
-        VecTile& position_at(ID id) { return position[id.value_]; }
+        TileSpeed& velocity_x_at(ID id) { return speed_x[id.value_]; }
+        
         AnimateFn& animate_at(ID id) { return animate[id.value_]; }
+
+        TileDim get_tile_x(ID id) const { return position_x[id.value_]; }
+        VecTile get_tile_pos(ID id) const { return { position_x[id.value_], position_y[id.value_] }; }
+        VecSpeed get_tile_velocity(ID id) const { return { speed_x[id.value_], speed_y[id.value_] }; }
     };
 
 
@@ -351,9 +360,11 @@ namespace game_punk
         table.capacity = capacity;
         
         add_count<GameTick64>(counts, 2 * capacity);
-        add_count<VecAcc>(counts, capacity);
-        add_count<VecSpeed>(counts, capacity);
-        add_count<VecTile>(counts, capacity);
+
+        add_count<TileAcc>(counts, 2 * capacity);
+        add_count<TileSpeed>(counts, 2 * capacity);
+        add_count<TileDim>(counts, 2 * capacity);
+
         add_count<BitmapID>(counts, capacity);
         add_count<AnimateFn>(counts, capacity);
     }
@@ -377,14 +388,23 @@ namespace game_punk
         auto tick_end = push_mem<GameTick64>(memory, n);
         ok &= tick_end.ok;
 
-        auto acc = push_mem<VecAcc>(memory, n);
-        ok &= acc.ok;
+        auto acc_x = push_mem<TileAcc>(memory, n);
+        ok &= acc_x.ok;
 
-        auto velocity = push_mem<VecSpeed>(memory, n);
-        ok &= velocity.ok;
+        auto acc_y = push_mem<TileAcc>(memory, n);
+        ok &= acc_y.ok;
 
-        auto position = push_mem<VecTile>(memory, n);
-        ok &= position.ok;
+        auto speed_x = push_mem<TileSpeed>(memory, n);
+        ok &= speed_x.ok;
+
+        auto speed_y = push_mem<TileSpeed>(memory, n);
+        ok &= speed_y.ok;
+
+        auto position_x = push_mem<TileDim>(memory, n);
+        ok &= position_x.ok;
+
+        auto position_y = push_mem<TileDim>(memory, n);
+        ok &= position_y.ok;
 
         auto bmp = push_mem<BitmapID>(memory, n);
         ok &= bmp.ok;
@@ -396,9 +416,16 @@ namespace game_punk
         {
             table.tick_begin = tick_begin.data;
             table.tick_end = tick_end.data;
-            table.acceleration = acc.data;
-            table.velocity = velocity.data;
-            table.position = position.data;
+
+            table.acceleration_x = acc_x.data;
+            table.acceleration_y = acc_y.data;
+
+            table.speed_x = speed_x.data;
+            table.speed_y = speed_y.data;
+
+            table.position_x = position_x.data;
+            table.position_y = position_y.data;
+
             table.bitmap_id = bmp.data;
             table.animate = animate.data;
         }
@@ -406,23 +433,19 @@ namespace game_punk
         return ok;
     }
     
-
-    static void despawn_sprite(SpriteTable& table, u32 i)
-    {
-        table.tick_begin[i] = GameTick64::none();
-        table.first_id = math::min(i, table.first_id);
-    }
-    
     
     static void despawn_sprite(SpriteTable& table, SpriteID id)
     {
-        despawn_sprite(table, id.value_);
+        auto i = id.value_;
+
+        table.tick_begin[i] = GameTick64::none();
+        table.first_id = math::min(i, table.first_id);
     }
 
 
-    static bool is_spawned(SpriteTable const& table, u32 i)
+    static bool is_spawned(SpriteTable const& table, SpriteID id)
     {
-        return table.tick_begin[i] < table.tick_end[i];
+        return table.tick_begin[id.value_] < table.tick_end[id.value_];
     }    
     
     
@@ -435,8 +458,14 @@ namespace game_punk
         SpriteID id;
 
         u32 i = table.first_id;
-        for (; is_spawned(table, i) && i < N; i++)
-        { }
+        for (; i < N; i++)
+        { 
+            id = { i };
+            if (!is_spawned(table, id))
+            {
+                break;
+            }
+        }
 
         if (i == N)
         {
@@ -447,9 +476,16 @@ namespace game_punk
         table.first_id = i;
         table.tick_begin[i] = def.tick_begin;
         table.tick_end[i] = def.tick_end;
-        table.acceleration[i] = vec_zero<TileAcc>();
-        table.velocity[i] = def.velocity;
-        table.position[i] = def.position;
+
+        table.acceleration_x[i] = TileAcc::zero();
+        table.acceleration_y[i] = TileAcc::zero();
+
+        table.speed_x[i] = def.velocity.x;
+        table.speed_y[i] = def.velocity.y;
+
+        table.position_x[i] = def.position.x;
+        table.position_y[i] = def.position.y;
+
         table.animate[i] = def.animate;
         table.bitmap_id[i] = def.bitmap_id;
 
@@ -457,21 +493,57 @@ namespace game_punk
     }
 
 
-    static void move_sprites(SpriteTable const& table)
+    static void move_sprites_x(SpriteTable const& table)
     {
         auto N = table.capacity;
 
-        auto acc = table.acceleration;
-        auto vel = table.velocity;
-        auto pos = table.position;
+        auto acc = table.acceleration_x;
+        auto vel = table.speed_x;
+        auto pos = table.position_x;
 
         for (u32 i = 0; i < N; i++)
         {
-            vel[i].x += acc[i].x;
-            vel[i].y += acc[i].y;
+            vel[i] += acc[i];
+            pos[i] += vel[i];
+        }
+    }
 
-            pos[i].x += vel[i].x;
-            pos[i].y += vel[i].y;
+
+    static void move_sprites_y(SpriteTable const& table)
+    {
+        auto N = table.capacity;
+
+        auto acc = table.acceleration_y;
+        auto vel = table.speed_y;
+        auto pos = table.position_y;
+
+        for (u32 i = 0; i < N; i++)
+        {
+            vel[i] += acc[i];
+            pos[i] += vel[i];
+        }
+    }
+
+
+    static void move_sprites_xy(SpriteTable const& table)
+    {
+        auto N = table.capacity;
+
+        auto acc_x = table.acceleration_x;
+        auto vel_x = table.speed_x;
+        auto pos_x = table.position_x;
+
+        auto acc_y = table.acceleration_y;
+        auto vel_y = table.speed_y;
+        auto pos_y = table.position_y;
+
+        for (u32 i = 0; i < N; i++)
+        {
+            vel_x[i] += acc_x[i];
+            vel_y[i] += acc_y[i];
+
+            pos_x[i] += vel_x[i];
+            pos_y[i] += vel_y[i];
         }
     }
 

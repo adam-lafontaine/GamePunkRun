@@ -101,8 +101,8 @@ namespace internal
 
         auto id = data.player_state.sprite;
 
-        auto pos = data.sprites.position_at(id);
-        auto& vel = data.sprites.velocity_at(id);
+        auto pos = data.sprites.get_tile_pos(id);
+        auto vel = data.sprites.get_tile_velocity(id);
 
         ImGui::Text("Position: (%4.1f, %4.1f)", pos.x.get(), pos.y.get());
         ImGui::Text("Velocity: (%3.2f, %3.2f), ", vel.x.get(), vel.y.get());
@@ -139,7 +139,8 @@ namespace internal
         int active_count = 0;
         for (u32 i = 0; i < N; i++)
         {
-            active_count += game::is_spawned(table, i);
+            game::TileID id = { i };
+            active_count += game::is_spawned(table, id);
         }
 
         plot_data[data_offset++] = (f32)active_count;
@@ -191,7 +192,8 @@ namespace internal
 
         for (u32 i = 0; i < N; i++)
         {
-            if (!show_inactive && !game::is_spawned(table, i))
+            game::TileID id = { i };
+            if (!show_inactive && !game::is_spawned(table, id))
             {
                 continue;
             }
@@ -208,7 +210,7 @@ namespace internal
             ImGui::Text("%u", bmp[i].value_);
 
             ImGui::TableSetColumnIndex(col_active);
-            ImGui::Text("%d", game::is_spawned(table, i));
+            ImGui::Text("%d", game::is_spawned(table, id));
         }
 
         ImGui::EndTable();
@@ -258,17 +260,19 @@ namespace internal
         ImGui::TableSetupColumn("On", ImGuiTableColumnFlags_WidthStretch, 20.0f);
 
         auto N = table.capacity;
-        auto pos = table.position;
-        auto vel = table.velocity;
 
         ImGui::TableHeadersRow();
 
         for (u32 i = 0; i < N; i++)
         {
-            if (!show_inactive && !game::is_spawned(table, i))
+            game::SpriteID id = { i };
+
+            if (!show_inactive && !game::is_spawned(table, id))
             {
                 continue;
             }
+            auto pos = table.get_tile_pos(id);
+            auto vel = table.get_tile_velocity(id);
 
             ImGui::TableNextRow();
 
@@ -276,13 +280,13 @@ namespace internal
             ImGui::Text("%u", i);
 
             ImGui::TableSetColumnIndex(col_pos);
-            ImGui::Text("(%4.0f, %4.0f)", pos[i].x.get(), pos[i].y.get());
+            ImGui::Text("(%4.0f, %4.0f)", pos.x.get(), pos.y.get());
 
             ImGui::TableSetColumnIndex(col_vel);
-            ImGui::Text("(%3.2f, %3.2f)", vel[i].x.get(), vel[i].y.get());
+            ImGui::Text("(%3.2f, %3.2f)", vel.x.get(), vel.y.get());
 
             ImGui::TableSetColumnIndex(col_active);
-            ImGui::Text("%d", game::is_spawned(table, i));
+            ImGui::Text("%d", game::is_spawned(table, id));
         }
 
         ImGui::EndTable();
@@ -312,7 +316,8 @@ namespace internal
         int active_count = 0;
         for (u32 i = 0; i < N; i++)
         {
-            active_count += game::is_spawned(table, i);
+            game::SpriteID id = { i };
+            active_count += game::is_spawned(table, id);
         }
 
         plot_data[data_offset++] = (f32)active_count;

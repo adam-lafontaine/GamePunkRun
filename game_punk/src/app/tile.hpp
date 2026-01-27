@@ -53,11 +53,6 @@ namespace game_punk
         GameTick64* tick_begin = 0;
         VecTile* position = 0;
         BitmapID* bitmap_id = 0;
-
-
-
-
-        //ImageView& bitmap_at(ID id, BitmapTable& data) { return data.item_at(bitmap_id[id.value_]); }
     };
 
 
@@ -133,24 +128,20 @@ namespace game_punk
 
         return ok;
     }
-
-
-    static void despawn_tile(TileTable& table, u32 i)
-    {
-        table.tick_begin[i] = GameTick64::none();
-        table.first_id = math::min(i, table.first_id);
-    }
     
     
     static void despawn_tile(TileTable& table, TileID id)
     {
-        despawn_tile(table, id.value_);
+        auto i = id.value_;
+
+        table.tick_begin[i] = GameTick64::none();
+        table.first_id = math::min(i, table.first_id);
     }
 
 
-    static bool is_spawned(TileTable const& table, u32 i)
+    static bool is_spawned(TileTable const& table,TileID id)
     {
-        return table.tick_begin[i] != GameTick64::none();
+        return table.tick_begin[id.value_] != GameTick64::none();
     }
     
     
@@ -160,8 +151,14 @@ namespace game_punk
 
         TileID id;
         u32 i = table.first_id;
-        for (; is_spawned(table, i) && i < N; i++)
-        { }
+        for (; i < N; i++)
+        {
+            id = { i };
+            if (!is_spawned(table, id))
+            {
+                break;
+            }
+        }
 
         if (i == N)
         {

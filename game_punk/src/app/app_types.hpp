@@ -627,9 +627,6 @@ namespace game_punk
     };
 
 
-    
-
-
     constexpr auto BACKGROUND_DIMS = ContextDims(cxpr::GAME_BACKGROUND_WIDTH_PX, cxpr::GAME_BACKGROUND_HEIGHT_PX, DimCtx::Game);
 
     constexpr auto CAMERA_DIMS = ContextDims(cxpr::GAME_CAMERA_WIDTH_PX, cxpr::GAME_CAMERA_HEIGHT_PX, DimCtx::Game);
@@ -644,7 +641,6 @@ namespace game_punk
 
 namespace game_punk
 {
-    //using GameDim = units::GameDimension;
     using SceneDim = units::SceneDimension;
     using TileDim = units::TileDimension;
 
@@ -652,11 +648,9 @@ namespace game_punk
     using TileSpeed = units::TileSpeed;
     using TileDelta = units::TileDelta;
 
-    //using GamePosition = ContextPosition<GameDim>;
     using ScenePosition = ContextPosition<SceneDim>;
     using TilePosition = ContextPosition<TileDim>;
-
-    //using VecGame = Vec2D<GameDim>;
+    
     using VecScene = Vec2D<SceneDim>;
     using VecTile = Vec2D<TileDim>;
     using VecAcc = Vec2D<TileAcc>;
@@ -669,9 +663,22 @@ namespace game_punk
     }
 
 
-    static TileDelta to_delta_tile(u32 px)
+    static TileDelta to_delta_tile(f32 delta_px)
     {
-        return TileDelta::make((f32)px / cxpr::TILE_WIDTH_PX);
+        return TileDelta::make(delta_px / cxpr::TILE_WIDTH_PX);
+    }
+
+
+    template <typename T>
+    static TileDelta to_delta_tile(T px)
+    {
+        return to_delta_tile((f32)px);
+    }
+
+
+    static u64 to_pixel_pos(TileDim tile)
+    {
+        return (u64)(cxpr::TILE_WIDTH_PX * tile.get());
     }
 
 
@@ -682,17 +689,6 @@ namespace game_punk
 
         return vec;
     }
-
-    
-    /*static inline VecGame make_vec_game(i64 x, i64 y)
-    {
-        VecGame vec = {
-            .x = GameDim::make(x),
-            .y = GameDim::make(y)
-        };
-
-        return vec;
-    }*/
 
 
     static inline VecScene make_vec_scene(i32 x, i32 y)
@@ -732,24 +728,8 @@ namespace game_punk
 
     static void reset_game_scene(GameScene& scene)
     {
-        //constexpr auto zero = GameDim::zero();
         scene.game_position = TilePosition(vec_zero<TileDim>(), DimCtx::Game);
     }
-
-
-    /*static ScenePosition to_scene_pos(GamePosition const& pos, GameScene const& scene)
-    {
-        constexpr u32 dmax = 10 * math::cxpr::max(cxpr::GAME_BACKGROUND_WIDTH_PX, cxpr::GAME_BACKGROUND_HEIGHT_PX);
-        
-        auto dx = (pos.proc.x - scene.game_position.proc.x).value_;
-        auto dy = (pos.proc.y - scene.game_position.proc.y).value_;
-
-        app_assert(math::abs(dx) < dmax && math::abs(dy) < dmax);
-
-        auto vec = make_vec_scene((i32)dx, (i32)dy);
-
-        return ScenePosition(vec, DimCtx::Proc);        
-    }*/
 
 
     static SceneDim to_scene_dim(TileDim tile, TileDim ref)

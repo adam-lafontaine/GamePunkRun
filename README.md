@@ -19,7 +19,8 @@ https://itch.io/c/2053292/cyberpunk-pixel-art
 
 ### v0.4.0
 * [x] Pre-load background filters
-* [ ] Tile positions
+* [x] Tile positions
+* [x] Separate sprite x y dimensions
 
 
 ### v0.3.0
