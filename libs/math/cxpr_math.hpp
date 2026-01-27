@@ -589,7 +589,22 @@ namespace math
 {
 namespace cxpr
 {
-    
+    inline constexpr f32 modf(f32 num, f32* iptr)
+    {
+        auto i = (i32)num;
+        *iptr = (f32)i;
+
+        return num - i;
+    }
+
+
+    inline constexpr f64 modf(f64 num, f64* iptr)
+    {
+        auto i = (i64)num;
+        *iptr = (f64)i;
+
+        return num - i;
+    }
 }
 }
 

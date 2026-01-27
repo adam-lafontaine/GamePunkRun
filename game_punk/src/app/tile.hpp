@@ -51,8 +51,10 @@ namespace game_punk
         u32 first_id = {0};
 
         GameTick64* tick_begin = 0;
-        Vec2Di64* position = 0;
+        VecTile* position = 0;
         BitmapID* bitmap_id = 0;
+
+
 
 
         //ImageView& bitmap_at(ID id, BitmapTable& data) { return data.item_at(bitmap_id[id.value_]); }
@@ -69,12 +71,12 @@ namespace game_punk
     {
     public:
         GameTick64 tick_begin = GameTick64::none();
-        Vec2D<i64> position;
+        VecTile position = { TileDim::zero(), TileDim::zero() };
         BitmapID bitmap_id;
 
         TileDef() = delete;
 
-        TileDef(GameTick64 begin, Vec2D<i64> pos, BitmapID bmp)
+        TileDef(GameTick64 begin, VecTile pos, BitmapID bmp)
         {
             tick_begin = begin;
             position = pos;
@@ -96,7 +98,7 @@ namespace game_punk
         table.capacity = capacity;
 
         add_count<GameTick64>(counts, capacity);
-        add_count<Vec2Di64>(counts, capacity);
+        add_count<VecTile>(counts, capacity);
         add_count<BitmapID>(counts, capacity);
     }
 
@@ -116,7 +118,7 @@ namespace game_punk
         auto tick_begin = push_mem<GameTick64>(memory, n);
         ok &= tick_begin.ok;
 
-        auto position = push_mem<Vec2Di64>(memory, n);
+        auto position = push_mem<VecTile>(memory, n);
         ok &= position.ok;
 
         auto bmp = push_mem<BitmapID>(memory, n);

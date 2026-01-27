@@ -68,9 +68,9 @@ namespace internal
     {
         ImGui::SeparatorText("Camera");
 
-        auto dims = data.camera.scene_position.game;
+        auto dims = data.camera.scene_position.pos_game();
 
-        ImGui::Text("Position: (%u, %u)", dims.x, dims.y);
+        ImGui::Text("Position: (%d, %d)", dims.x.get(), dims.y.get());
     }
 
 
@@ -202,7 +202,7 @@ namespace internal
             ImGui::Text("%u", i);
 
             ImGui::TableSetColumnIndex(col_pos);
-            ImGui::Text("(%ld, %ld)", pos[i].x, pos[i].y);
+            ImGui::Text("(%4.0f, %4.0f)", pos[i].x.get(), pos[i].y.get());
 
             ImGui::TableSetColumnIndex(col_bmp);
             ImGui::Text("%u", bmp[i].value_);

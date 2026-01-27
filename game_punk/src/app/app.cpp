@@ -110,7 +110,7 @@ namespace game_punk
 
         PlayerState player_state;
 
-        GamePosition next_tile_position;
+        TilePosition next_tile_position;
         RingStackBuffer<BitmapID, 2> tile_bitmaps;
 
         Memory memory;

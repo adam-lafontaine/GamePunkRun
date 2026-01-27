@@ -623,21 +623,45 @@ namespace game_punk
 
 
         Vec2D<T> pos_game() { return { game.x, game.y }; }
+        Vec2D<T> pos_game() const { return { game.x, game.y }; }
     };
 
 
-    using GamePosition = ContextPosition<units::GameDimension>;
-    using ScenePosition = ContextPosition<units::SceneDimension>;
+    
 
-    using VecGame = Vec2D<units::GameDimension>;
-    using VecScene = Vec2D<units::SceneDimension>;
+
+    constexpr auto BACKGROUND_DIMS = ContextDims(cxpr::GAME_BACKGROUND_WIDTH_PX, cxpr::GAME_BACKGROUND_HEIGHT_PX, DimCtx::Game);
+
+    constexpr auto CAMERA_DIMS = ContextDims(cxpr::GAME_CAMERA_WIDTH_PX, cxpr::GAME_CAMERA_HEIGHT_PX, DimCtx::Game);
+
+    constexpr auto SCENE_DIMS = BACKGROUND_DIMS;
+
+
+}
+
+
+/* positions */
+
+namespace game_punk
+{
+    using GameDim = units::GameDimension;
+    using SceneDim = units::SceneDimension;
+    using TileDim = units::TileDimension;
+
+    using GamePosition = ContextPosition<GameDim>;
+    using ScenePosition = ContextPosition<SceneDim>;
+    using TilePosition = ContextPosition<TileDim>;
+
+    using VecGame = Vec2D<GameDim>;
+    using VecScene = Vec2D<SceneDim>;
+    using VecTile = Vec2D<TileDim>;
 
     
     static inline VecGame make_vec_game(i64 x, i64 y)
     {
         VecGame vec = {
-            .x = units::GameDimension::make(x),
-            .y = units::GameDimension::make(y)
+            .x = GameDim::make(x),
+            .y = GameDim::make(y)
         };
 
         return vec;
@@ -647,8 +671,8 @@ namespace game_punk
     static inline VecScene make_vec_scene(i32 x, i32 y)
     {
         VecScene vec = {
-            .x = units::SceneDimension::make(x),
-            .y = units::SceneDimension::make(y)
+            .x = SceneDim::make(x),
+            .y = SceneDim::make(y)
         };
         
         return vec;
@@ -663,15 +687,6 @@ namespace game_punk
 
         return p;
     }
-
-
-    constexpr auto BACKGROUND_DIMS = ContextDims(cxpr::GAME_BACKGROUND_WIDTH_PX, cxpr::GAME_BACKGROUND_HEIGHT_PX, DimCtx::Game);
-
-    constexpr auto CAMERA_DIMS = ContextDims(cxpr::GAME_CAMERA_WIDTH_PX, cxpr::GAME_CAMERA_HEIGHT_PX, DimCtx::Game);
-
-    constexpr auto SCENE_DIMS = BACKGROUND_DIMS;
-
-
 }
 
 
@@ -690,12 +705,12 @@ namespace game_punk
 
     static void reset_game_scene(GameScene& scene)
     {
-        constexpr auto zero = units::GameDimension::zero();
+        constexpr auto zero = GameDim::zero();
         scene.game_position = GamePosition(zero, zero, DimCtx::Game);
     }
 
 
-    static ScenePosition delta_pos_scene(GamePosition const& pos, GameScene const& scene)
+    static ScenePosition to_scene_pos(GamePosition const& pos, GameScene const& scene)
     {
         constexpr u32 dmax = 10 * math::cxpr::max(cxpr::GAME_BACKGROUND_WIDTH_PX, cxpr::GAME_BACKGROUND_HEIGHT_PX);
         
@@ -707,6 +722,33 @@ namespace game_punk
         auto vec = make_vec_scene((i32)dx, (i32)dy);
 
         return ScenePosition(vec, DimCtx::Proc);        
+    }
+
+
+    static SceneDim to_scene_dim(TileDim tile, GameDim ref)
+    {
+        constexpr auto tile_w = cxpr::TILE_WIDTH_PX;
+
+        auto delta_px = tile.convert_i(tile_w) - ref.get() + tile.convert_f(tile_w);
+
+        return SceneDim::make((i32)delta_px);
+    }
+
+
+    static ScenePosition to_scene_pos(VecTile const& tile, GameScene const& scene)
+    {
+        auto ref = scene.game_position.pos_game();
+
+        auto x = to_scene_dim(tile.x, ref.x);
+        auto y = to_scene_dim(tile.y, ref.y);
+
+        return ScenePosition(x, y, DimCtx::Game);
+    }
+
+
+    static ScenePosition to_scene_pos(TilePosition const& pos, GameScene const& scene)
+    {
+        return to_scene_pos(pos.pos_game(), scene);
     }
 
 

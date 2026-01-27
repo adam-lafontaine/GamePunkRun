@@ -34,7 +34,8 @@ namespace internal
 
     static void init_tiles(StateData& data)
     {
-        constexpr auto tile_w = cxpr::TILE_WIDTH_PX;
+        const auto zero = TileDim::zero();
+        const auto one = units::TileDelta::make(1.0f);
 
         auto& src = data.tile_state;
         auto& bitmaps = data.tile_bitmaps;
@@ -42,16 +43,16 @@ namespace internal
         bitmaps.data[0] = data.bitmaps.push_item(to_image_view(src.floor_a));
         bitmaps.data[1] = data.bitmaps.push_item(to_image_view(src.floor_b));
 
-        Vec2Di64 pos = { 0, 0 };
+        VecTile pos = { zero, zero };
         for (u32 i = 0; i < 20; i++)
         {
             auto tile = TileDef(data.game_tick, pos, data.tile_bitmaps.front());
             spawn_tile(data.tiles, tile);
-            pos.x += tile_w;
+            pos.x += one;
             data.tile_bitmaps.next();
         }
 
-        data.next_tile_position = GamePosition(make_vec_game(pos.x, pos.y), DimCtx::Game);
+        data.next_tile_position = TilePosition(pos, DimCtx::Game);
     }
 }
 
@@ -123,25 +124,21 @@ namespace internal
 
     static void update_tiles(StateData& data)
     {
+        constexpr auto one = units::TileDelta::make(1.0f);
         constexpr auto tile_w = cxpr::TILE_WIDTH_PX;
-        constexpr auto limit = (i64)(cxpr::GAME_BACKGROUND_WIDTH_PX - 2 * tile_w);
+        constexpr auto limit = (i32)(cxpr::GAME_BACKGROUND_WIDTH_PX - 2 * tile_w);
 
-        auto tile_x = data.next_tile_position.game.x;
-        auto scene_x = data.scene.game_position.game.x;
-
-        Point2Di64 pos {
-            data.next_tile_position.pos_game().x.get(),
-            data.next_tile_position.pos_game().y.get()
-        };
+        auto scene = to_scene_pos(data.next_tile_position, data.scene);
         
-        auto delta = (tile_x - scene_x).get();
+        auto delta = scene.pos_game().x.get();
 
         if (delta < limit)
         {
+            auto pos = data.next_tile_position.pos_game();
             auto tile = TileDef(data.game_tick, pos, data.tile_bitmaps.front());
             spawn_tile(data.tiles, tile);
 
-            data.next_tile_position.game.x += units::GameDimension::make(tile_w);
+            data.next_tile_position.game.x += one;
             data.tile_bitmaps.next();
         }
     }
@@ -201,6 +198,7 @@ namespace internal
         constexpr i32 xmin = -(cxpr::GAME_BACKGROUND_WIDTH_PX / 4);
         constexpr i32 ymin = -(cxpr::GAME_BACKGROUND_HEIGHT_PX / 4);
 
+        auto& scene = data.scene;
         auto& dq = data.drawq;
         auto& camera = data.camera;
         auto& table = data.tiles;
@@ -217,10 +215,8 @@ namespace internal
                 continue;
             }
 
-            auto gp = pos[i];
-
-            auto dps = delta_pos_scene(GamePosition(make_vec_game(gp.x, gp.y), DimCtx::Game), data.scene);
-            auto gpos = dps.pos_game();
+            auto spos = to_scene_pos(pos[i], scene);
+            auto gpos = spos.pos_game();
 
             if (gpos.x.get() < xmin || gpos.y.get() < ymin)
             {
@@ -229,7 +225,7 @@ namespace internal
             }
 
             auto view = data.bitmaps.item_at(bmp[i]);
-            push_draw(dq, view, dps, camera);
+            push_draw(dq, view, spos, camera);
         }
     }
     
@@ -260,8 +256,8 @@ namespace internal
 
             auto gp = pos[i];
 
-            auto dps = delta_pos_scene(GamePosition(make_vec_game(gp.x, gp.y), DimCtx::Game), data.scene);
-            auto gpos = dps.pos_game();
+            auto spos = to_scene_pos(GamePosition(make_vec_game(gp.x, gp.y), DimCtx::Game), data.scene);
+            auto gpos = spos.pos_game();
 
             if (gpos.x.get() < xmin || gpos.y.get() < ymin)
             {
@@ -271,7 +267,7 @@ namespace internal
             }
             
             auto view = data.bitmaps.item_at(bmp[i]);
-            push_draw(dq, view, dps, camera);
+            push_draw(dq, view, spos, camera);
         }
     }
 }

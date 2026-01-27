@@ -85,17 +85,82 @@ namespace units
         static constexpr TileSpeed make(f32 v) { return TileSpeed(v); }
         static constexpr TileSpeed zero() { return TileSpeed(0.0f); }
     };
-    
-    
+
+
+    using TileDelta = TileSpeed;
+
+
     class TileDimension
     {
+    private:
+        
+        class ValueT
+        {
+        public:
+            u32 i_part;
+            f32 f_part;
+
+            constexpr ValueT(){}
+        };
+
+        ValueT value_;
+
+        constexpr TileDimension(u32 i, f32 f) 
+        { 
+            auto adj = f < 0.0f;
+            value_.i_part = i - adj;
+            value_.f_part = f + adj;
+        }
+
+
+        void add(f32 delta)
+        {
+            auto f = value_.f_part + delta;
+            f32 i;
+            f = math::modf(f, &i);
+            auto adj = f < 0.0f;
+            value_.i_part += (i32)i - adj;
+            value_.f_part = f + adj;
+        }
+
+    public:
+
+        TileDimension() = delete;
+
+        //TileDimension operator + (TileDimension other) { return TileDimension((u16)(value_.full + other.value_.full)); }
+        //TileDimension operator - (TileDimension other) { return TileDimension((u16)(value_.full - other.value_.full)); }
+
+        //TileDimension& operator += (TileDimension other) { value_.full += other.value_.full; return *this; }
+
+        TileDimension& operator += (TileDelta other) { add(other.value_); return *this; }
+        TileDimension& operator -= (TileDelta other) { add(-other.value_); return *this; }
+
+        static constexpr TileDimension make(u32 v) 
+        {
+            return TileDimension(v, 0.0f);
+        }
+
+        static TileDimension zero() { return make(0.0f); }
+
+        i64 convert_i(u32 len) { return len * value_.i_part; }
+        i64 convert_f(u32 len) { return (i64)(len * value_.f_part); }
+
+        f32 get() { return (f32)value_.i_part + value_.f_part; }
+    };
+    
+    
+    /*class TileDimension
+    {
+    public:
+        static constexpr f32 limit = 256.0f;
+
     private:
         constexpr TileDimension(f32 v) { value_ = v; }
         
         f32 wrap(f32 v)
         {
-            v = math::fmod(v, 256.0f);
-            v += (v < 0.0f) * 256.0f;
+            v = math::fmod(v, limit);
+            v += (v < 0.0f) * limit;
             return v;
         }
 
@@ -107,11 +172,15 @@ namespace units
         TileDimension operator + (TileDimension other) { return TileDimension(wrap(value_ + other.value_)); }
         TileDimension operator - (TileDimension other) { return TileDimension(wrap(value_ - other.value_)); }
 
+        TileDimension& operator += (TileDimension other) { value_ = wrap(value_ + other.value_); return *this; }
+
         TileDimension& operator += (TileSpeed other) { value_ = wrap(value_ + other.value_); return *this; }
 
         static constexpr TileDimension make(f32 v) { return TileDimension(v); }
         static constexpr TileDimension zero() { return TileDimension(0.0f); }
-    };
+
+        f32 get() { return value_; }
+    };*/
     
 }
 }
