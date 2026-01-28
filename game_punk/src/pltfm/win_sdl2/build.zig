@@ -102,7 +102,7 @@ pub fn build(b: *std.Build) void
 
     const copy_sdl_mixer = b.addInstallBinFile(
         b.path(bin_all ++ "/SDL2_mixer.dll"),
-        "SDL2_mixer2.dll"
+        "SDL2_mixer.dll"
     );
     b.getInstallStep().dependOn(&copy_sdl_mixer.step);
 

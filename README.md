@@ -26,7 +26,7 @@ https://itch.io/c/2053292/cyberpunk-pixel-art
 * [x] Enable jump motion with animation
 * [x] Automate release builds
 * [x] CMS page
-* [ ] Itch.io
+* [x] Itch.io
 
 
 ### v0.3.0
