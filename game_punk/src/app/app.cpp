@@ -55,12 +55,14 @@ namespace game_punk
 }
 
 
+#include "units.hpp"
 #include "memory.hpp"
 #include "app_types.hpp"
 #include "image_view.hpp"
-#include "animation.hpp"
-#include "draw.hpp"
+#include "sky_background.hpp"
+#include "tile.hpp"
 #include "sprite.hpp"
+#include "draw.hpp"
 #include "app_state.hpp"
 
 
@@ -91,11 +93,12 @@ namespace game_punk
         GameMode game_mode;
 
         BackgroundState background;
-        SpritesheetState spritesheet;
+        SpritesheetList spritesheets;
         TileState tile_state;
         UIState ui;
 
         BitmapTable bitmaps;
+        AnimationList animations;
 
         GameScene scene;
         SceneCamera camera;
@@ -107,7 +110,7 @@ namespace game_punk
 
         PlayerState player_state;
 
-        GamePosition next_tile_position;
+        TilePosition next_tile_position;
         RingStackBuffer<BitmapID, 2> tile_bitmaps;
 
         Memory memory;
@@ -174,7 +177,7 @@ namespace game_punk
         };        
 
         count_background_state(data.background, counts);
-        count_spritesheet_state(data.spritesheet, counts);
+        count_spritesheet_list(data.spritesheets, counts);
         count_tile_state(data.tile_state, counts);
         count_ui_state(data.ui, counts);
         count_queue(data.drawq, counts, 50);
@@ -193,7 +196,7 @@ namespace game_punk
         bool ok = true;
 
         ok &= create_background_state(data.background, data.memory);
-        ok &= create_spritesheet_state(data.spritesheet, data.memory);
+        ok &= create_spritesheet_list(data.spritesheets, data.memory);
         ok &= create_tile_state(data.tile_state, data.memory);
         ok &= create_ui_state(data.ui, data.memory);
         ok &= create_queue(data.drawq, data.memory);
@@ -234,10 +237,12 @@ namespace game_punk
 
 #include "assets.hpp"
 
+
 namespace game_punk
 {
     static void set_game_mode(StateData& data, GameMode mode);
 }
+
 
 #include "gm_title.hpp"
 #include "gm_gameplay.hpp"
@@ -308,8 +313,7 @@ namespace game_punk
     {
         refresh_random(data.rng);
 
-        push_load_background(data.background.bg_1, data.loadq);
-        push_load_background(data.background.bg_2, data.loadq);
+        
 
         load_all(data.asset_data, data.loadq);
     }
@@ -318,18 +322,8 @@ namespace game_punk
     static void render_screen(StateData& data)
     {
         draw(data.drawq);
-
-        auto s = to_span(data.camera);
-        for (u32 i = 0; i < s.length; i++)
-        {
-            s.data[i].alpha = 255;
-        }
     }
 }
-
-
-
-
 
 
 /* api */
@@ -420,11 +414,11 @@ namespace game_punk
         auto& data = get_data(state);
         auto& camera = data.camera;
         auto& bg = data.background;
-        auto& sprite = data.spritesheet;
 
         bool ok = true;
 
         ok &= init_screen_camera(camera, screen);
+        ok &= init_animation_list(data.animations, data.spritesheets);
 
         reset_state_data(data);
 

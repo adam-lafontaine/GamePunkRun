@@ -37,7 +37,6 @@ EXE := punk_run
 HTMLFLAGS := 
 HTMLFLAGS += --shell-file out_template.html
 
-
 LDFLAGS :=
 
 ROOT := ../../..
@@ -45,6 +44,7 @@ ROOT := ../../..
 BUILD := $(ROOT)/build/wasm_sdl2
 
 OUT := $(BUILD)/$(EXE).html
+ITCH_IO := itch_io_index.html
 
 OUT_WASM := $(BUILD)/$(EXE).wasm
 OUT_JS   := $(BUILD)/$(EXE).js
@@ -63,6 +63,7 @@ SRC := wasm_punk_main.cpp
 build:
 	$(EPP) $(EPPFLAGS) $(HTMLFLAGS) -o $(OUT) $(SRC) $(LDFLAGS)
 	cp $(BIN_DATA) $(BUILD)
+	cp $(ITCH_IO) $(BUILD)
 	
 
 cms:

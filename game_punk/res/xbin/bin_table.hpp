@@ -1,5 +1,5 @@
 #pragma once
-/* timestamp: 1768424880162386532 */
+/* timestamp: 1768603739191737755 */
 
 
 // bin_table_types.hpp
@@ -65,6 +65,8 @@ namespace bin_table
 		ImageGray gray;
 
 		void destroy() { img::destroy_image(gray); }
+
+		SpanView<u8> to_span() const { SpanView<u8> view; view.data = gray.data_; view.length = gray.width * gray.height; return view; }
 	};
 
 
@@ -76,6 +78,8 @@ namespace bin_table
 		ImageGray gray;
 
 		void destroy() { img::destroy_image(gray); }
+
+		SpanView<u8> to_span() const { SpanView<u8> view; view.data = gray.data_; view.length = gray.width * gray.height; return view; }
 	};
 
 
@@ -89,6 +93,8 @@ namespace bin_table
 		p32 at(u32 id) { return rgba.data_[id]; }
 
 		void destroy() { img::destroy_image(rgba); }
+
+		SpanView<p32> to_span() const { SpanView<p32> view; view.data = rgba.data_; view.length = rgba.width * rgba.height; return view; }
 	};
 	
 }
@@ -337,6 +343,58 @@ namespace bin_table
 
 namespace bin_table
 {
+	inline void alpha_filter_convert(SpanView<u8> const& src, SpanView<p32> const& dst)
+	{
+		constexpr auto white = img::to_pixel(255);
+
+		auto length = src.length;
+		auto s = src.data;
+		auto d = dst.data;
+
+		for (u32 i = 0; i < length; i++)
+		{
+			d[i] = white;
+
+			// filter preserved in alpha channel
+			d[i].alpha = s[i];
+		}
+	}
+
+
+	inline void alpha_filter_convert(SpanView<u8> const& src, SpanView<p32> const& dst, p32 primary)
+	{
+		constexpr auto off = img::to_pixel(0, 0, 0, 0);
+
+		primary.alpha = 255; // no transparency allowed
+
+		auto length = src.length;
+		auto s = src.data;
+		auto d = dst.data;
+
+		u8 alpha = 0;
+
+		for (u32 i = 0; i < length; i++)
+		{
+			/*alpha = s[i];
+			switch ((AlphaFilter)alpha)
+			{
+            case AlphaFilter::Primary:
+                d[i] = primary;
+                break;
+
+            default:
+				d[i] = off;
+                break;
+			}*/
+
+			d[i].rgba = (s[i] / 255) * primary.rgba;
+
+			// filter preserved in alpha channel
+			//d[i].alpha = alpha;
+		}
+	}
+	
+	
 	inline bool alpha_filter_convert(AlphaFilterImage const& filter, ImageView const& dst)
 	{
 		auto& src = filter.gray;
@@ -346,19 +404,7 @@ namespace bin_table
 			return false;
 		}
 
-		constexpr auto white = img::to_pixel(255);
-
-		auto length = src.width * src.height;
-		auto s = src.data_;
-		auto d = dst.matrix_data_;
-
-		for (u32 i = 0; i < length; i++)
-		{
-			d[i] = white;
-
-			// filter preserved in alpha channel
-			d[i].alpha = s[i];
-		}
+		alpha_filter_convert(filter.to_span(), img::to_span(dst));
 
 		return true;
 	}
@@ -373,35 +419,11 @@ namespace bin_table
 			return false;
 		}
 
-		constexpr auto off = img::to_pixel(0, 0, 0, 0);
-		primary.alpha = 255; // no transparency allowed
-
-		auto length = src.width * src.height;
-		auto s = src.data_;
-		auto d = dst.matrix_data_;
-
-		u8 alpha = 0;
-
-		for (u32 i = 0; i < length; i++)
-		{
-			alpha = s[i];
-			switch ((AlphaFilter)alpha)
-			{
-            case AlphaFilter::Primary:
-                d[i] = primary;
-                break;
-
-            default:
-				d[i] = off;
-                break;
-			}
-
-			// filter preserved in alpha channel
-			d[i].alpha = alpha;
-		}
+		alpha_filter_convert(filter.to_span(), img::to_span(dst), primary);
 
 		return true;
 	}
+
 
 
 	inline void alpha_filter_update(ImageView const& dst, p32 primary, p32 secondary)
@@ -986,7 +1008,7 @@ namespace bin_table
 namespace bin_table
 {
 
-	constexpr u32 VERSION = 392861438;
+	constexpr u32 VERSION = 4101376088;
 	constexpr u32 CLASS_COUNT = 8;
 
 }

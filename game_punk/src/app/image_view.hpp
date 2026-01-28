@@ -148,6 +148,54 @@ namespace game_punk
 }
 
 
+/* background filter view */
+
+namespace game_punk
+{
+    class BackgroundFilterView
+    {
+    public:
+        static constexpr auto dims = BACKGROUND_DIMS;
+
+        u8* data = 0;
+    };
+
+
+    static void count_view(BackgroundFilterView& view, MemoryCounts& counts)
+    {
+        auto length = view.dims.proc.width * view.dims.proc.height;
+        add_count<u8>(counts, length);
+        view.data = 0;
+    }
+
+
+    static bool create_view(BackgroundFilterView& view, Memory& memory)
+    {
+        auto length = view.dims.proc.width * view.dims.proc.height;
+
+        auto res = push_mem<u8>(memory, length);
+        if (res.ok)
+        {
+            view.data = res.data;
+        }
+
+        return res.ok;
+    }
+
+
+    static SpanView<u8> to_span(BackgroundFilterView const& filter)
+    {
+        auto dims = filter.dims.proc;
+
+        SpanView<u8> view;
+        view.data = filter.data;
+        view.length = dims.width * dims.height;
+
+        return view;
+    }
+}
+
+
 /* sky overlay view */
 
 namespace game_punk
@@ -223,7 +271,12 @@ namespace game_punk
 
     static SubView sub_view(SkyOverlayView const& view, ScenePosition pos)
     {
-        return sub_view(view, pos.proc);
+        Vec2Di32 p = {
+            pos.proc.x.get(),
+            pos.proc.y.get()
+        };
+
+        return sub_view(view, p);
     }
 }
 

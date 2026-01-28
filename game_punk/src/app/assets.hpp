@@ -214,11 +214,14 @@ namespace assets
     }
    
 
+}    
 }
 
 
 /* backgrounds */
 
+namespace game_punk
+{
 namespace assets
 {     
     static bool init_load_sky_overlay(Buffer8 const& buffer, SkyAnimation& sky)
@@ -274,13 +277,27 @@ namespace assets
 
         auto table = list.read_table(buffer);
         auto color = table.at(color_id);
+        table.destroy();
 
-        bg.select_asset_ids.size = BG_DEF::count - bg.work_asset_ids.count;        
-        bg.load_cmd.on_load = load_background_image<BG_DEF>;
-        bg.load_cmd.ctx.color = color;
+        bg.select_asset_ids.size = BG_DEF::count - bg.work_asset_ids.count;
+
+        bg.primary_color = color;
 
         bool ok = true;
 
+        ok &= list.count == bg.background_filters.capacity;
+        app_assert(ok && "*** Unexpected number of backgrounds ***");
+
+        // store filters in memory
+        for (u32 i = 0; i < list.count; i++)
+        {
+            auto item = static_cast<BG_DEF::Items>(i);
+            auto filter = list.read_alpha_filter_item(buffer, item);
+            span::copy(filter.to_span(), to_span(bg.background_filters.data[i]));
+            filter.destroy();
+        }
+
+        // initial background_data
         for (u32 i = 0; i < N; i++)
         {
             auto item = static_cast<BG_DEF::Items>(i);
@@ -291,14 +308,11 @@ namespace assets
             filter.destroy();
         }
 
-        table.destroy();
-
         return ok;
     }
 
     
 } // assets
-    
 }
 
 
@@ -308,7 +322,7 @@ namespace game_punk
 {
 namespace assets
 {
-    static bool load_sprites_punk(Buffer8 const& buffer, SpritesheetState const& ss)
+    static bool load_sprites_punk(Buffer8 const& buffer, SpritesheetList const& ss)
     {
         using Punk = bt::Spriteset_Punk;
 
@@ -442,7 +456,7 @@ namespace assets
     }
 
 
-    static bool load_spritesheet_assets(AssetData const& src, SpritesheetState const& ss_state)
+    static bool load_spritesheet_assets(AssetData const& src, SpritesheetList const& ss_state)
     {  
         bool ok = true;
 
@@ -506,7 +520,7 @@ namespace assets
 
         bool ok = true;
         ok &= load_background_assets(src, data.background);
-        ok &= load_spritesheet_assets(src, data.spritesheet);
+        ok &= load_spritesheet_assets(src, data.spritesheets);
         ok &= load_tile_assets(src, data.tile_state);
         ok &= load_ui_assets(src, data.ui);
 

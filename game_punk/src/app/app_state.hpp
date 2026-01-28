@@ -1,136 +1,6 @@
 #pragma once
 
 
-/* background state */
-
-namespace game_punk
-{
-    class BackgroundState
-    {
-    public:
-
-        SkyAnimation sky;
-
-        BackgroundAnimation bg_1;
-        BackgroundAnimation bg_2;
-    };
-
-
-    static void reset_background_state(BackgroundState& bg)
-    {   
-        reset_sky_animation(bg.sky);
-
-        reset_background_animation(bg.bg_1);
-        reset_background_animation(bg.bg_2);
-        bg.bg_1.speed_shift = 1;
-        bg.bg_2.speed_shift = 0;
-    }
-
-
-    static void count_background_state(BackgroundState& bg, MemoryCounts& counts)
-    {  
-        count_sky_animation(bg.sky, counts);
-        
-        count_background_animation(bg.bg_1, counts);
-        count_background_animation(bg.bg_2, counts);
-    }
-
-
-    static bool create_background_state(BackgroundState& bg_state, Memory& memory)
-    {
-        bool ok = true;
-
-        ok &= create_sky_animation(bg_state.sky, memory);
-
-        ok &= create_background_animation(bg_state.bg_1, memory);
-        ok &= create_background_animation(bg_state.bg_2, memory);
-
-        return ok;
-    }
-
-
-}
-
-
-/* spritesheet state */
-
-namespace game_punk
-{
-    class SpritesheetState
-    {
-    public:        
-
-        SpritesheetView punk_run;
-        SpritesheetView punk_idle;
-        SpritesheetView punk_jump;
-    };
-
-
-    static void count_spritesheet_state(SpritesheetState& ss_state, MemoryCounts& counts)
-    {
-        using Punk = bt::Spriteset_Punk;
-
-        constexpr Punk list;
-        constexpr auto run = Punk::Items::Punk_run;
-        constexpr auto idle = Punk::Items::Punk_idle;
-        constexpr auto jump = Punk::Items::Punk_jump;
-
-        count_view(ss_state.punk_run, counts, bt::item_at(list, run));
-        count_view(ss_state.punk_idle, counts, bt::item_at(list, idle));
-        count_view(ss_state.punk_jump, counts, bt::item_at(list, jump));
-    }
-
-
-    static bool create_spritesheet_state(SpritesheetState& ss_state, Memory& memory)
-    {
-        bool ok = true;
-
-        ok &= create_view(ss_state.punk_run, memory);
-        ok &= create_view(ss_state.punk_idle, memory);
-        ok &= create_view(ss_state.punk_jump, memory);
-
-        return ok;
-    }
-}
-
-
-/* tile state */
-
-namespace game_punk
-{
-    class TileState
-    {
-    public:
-        TileView floor_a;
-        TileView floor_b;
-    };
-
-
-    static void count_tile_state(TileState& tiles, MemoryCounts& counts)
-    {
-        using Ex = bt::Tileset_ex_zone;
-
-        constexpr Ex list;
-        constexpr auto f2 = Ex::Items::floor_02;
-        constexpr auto f3 = Ex::Items::floor_03;
-
-        count_view(tiles.floor_a, counts, bt::item_at(list, f2));
-        count_view(tiles.floor_b, counts, bt::item_at(list, f3));
-    }
-
-
-    static bool create_tile_state(TileState& tiles, Memory& memory)
-    {
-        bool ok = true;
-
-        ok &= create_view(tiles.floor_a, memory);
-        ok &= create_view(tiles.floor_b, memory);
-
-        return ok;
-    }
-}
-
-
 /* ui state */
 
 namespace game_punk
@@ -313,54 +183,18 @@ namespace game_punk
 
 namespace game_punk
 {
-    enum class SpriteMode : u8
-    {
-        Idle,
-        Run,
-        Jump
-    };
-    
     
     class PlayerState
     {
     public:
         SpriteID sprite;
-        SpriteMode mode;
+        SpriteMode current_mode;
     };
 
 
-    static void set_player_mode(PlayerState& player, SpriteTable table, SpritesheetState const& ss, SpriteMode mode)
+    static void set_player_mode(PlayerState& player, SpriteTable sprites, SpriteMode mode, GameTick64 tick)
     {
-        player.mode = mode;
-
-        auto& vel = table.velocity_px_at(player.sprite);
-        auto& amn = table.animation_at(player.sprite);
-        auto view = ss.punk_idle;
-        u32 bmp_ticks = 10;
-
-        switch (mode)
-        {
-        case SpriteMode::Idle:
-        {
-            vel = { 0, 0 };
-            bmp_ticks = 15;
-            view = ss.punk_idle;            
-        } break;
-
-        case SpriteMode::Run:
-        {
-            vel = { 2, 0 };
-            bmp_ticks = 10 / vel.x;
-            view = ss.punk_run;
-        } break;
-
-        case SpriteMode::Jump:
-        {
-            u32 bmp_ticks = 10;
-            view = ss.punk_jump;
-        } break;
-        }
-
-        set_animation_spritesheet(amn, view, bmp_ticks);
+        set_sprite_mode(sprites, player.sprite, mode, tick);
+        player.current_mode = mode;
     }
 }

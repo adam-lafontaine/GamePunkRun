@@ -78,8 +78,8 @@ namespace cxpr
     constexpr u32 BACKGROUND_2_COUNT = bt::Background_Bg2::count;
     constexpr u32 BACKGROUND_COUNT_MAX = math::cxpr::max(BACKGROUND_1_COUNT, BACKGROUND_2_COUNT);
 
-    constexpr u32 TILE_WIDTH = bt::Tileset_ex_zone().items[0].height;
-    constexpr u32 TILE_HEIGHT = bt::Tileset_ex_zone().items[0].width;
+    constexpr u32 TILE_WIDTH_PX = bt::Tileset_ex_zone().items[0].height;
+    constexpr u32 TILE_HEIGHT_PX = bt::Tileset_ex_zone().items[0].width;
 
 
 
@@ -432,7 +432,7 @@ namespace game_punk
 
 namespace game_punk
 {
-    template <typename T, u32 TAG>
+    template <typename T, u32 TAG = 0>
     class ObjectTable
     {
     public:
@@ -529,8 +529,18 @@ namespace game_punk
     }
 
 
-    using BitmapTable = ObjectTable<ImageView, 0>;
-    using BitmapID = BitmapTable::ID;
+    using BitmapTable = ObjectTable<ImageView>;
+    using BitmapID = BitmapTable::ID;  
+    
+    
+    template <typename T, typename ENUM>
+    class EnumArray
+    {
+    public:
+        T data[(u32)ENUM::Count];
+
+        T& item_at(ENUM id) { return data[(u32)id]; }
+    };
 }
 
 
@@ -613,21 +623,8 @@ namespace game_punk
 
 
         Vec2D<T> pos_game() { return { game.x, game.y }; }
+        Vec2D<T> pos_game() const { return { game.x, game.y }; }
     };
-
-
-    using GamePosition = ContextPosition<i64>;
-    using ScenePosition = ContextPosition<i32>;
-
-    
-    static Point2Di32 delta_pos_px(ScenePosition a, ScenePosition b)
-    {
-        Point2Di32 p;
-        p.x = a.proc.x - b.proc.x;
-        p.y = a.proc.y - b.proc.y;
-
-        return p;
-    }
 
 
     constexpr auto BACKGROUND_DIMS = ContextDims(cxpr::GAME_BACKGROUND_WIDTH_PX, cxpr::GAME_BACKGROUND_HEIGHT_PX, DimCtx::Game);
@@ -640,6 +637,96 @@ namespace game_punk
 }
 
 
+/* positions */
+
+namespace game_punk
+{
+    using SceneDim = units::SceneDimension;
+    using TileDim = units::TileDimension;
+
+    using TileValue = units::TileValue;
+    using TileAcc = units::TileAcceleration;
+    using TileSpeed = units::TileSpeed;
+    using TileDelta = units::TileDelta;
+
+    using ScenePosition = ContextPosition<SceneDim>;
+    using TilePosition = ContextPosition<TileDim>;
+    
+    using VecScene = Vec2D<SceneDim>;
+    using VecTile = Vec2D<TileDim>;
+    using VecAcc = Vec2D<TileAcc>;
+    using VecSpeed = Vec2D<TileSpeed>;
+
+
+    static i64 to_delta_px(TileDelta tile)
+    {
+        return (i64)(cxpr::TILE_WIDTH_PX * tile.get());
+    }
+
+
+    static constexpr TileValue px_to_tile_value(f32 px)
+    {
+        return TileValue::make(px / cxpr::TILE_WIDTH_PX);
+    }
+
+
+    static constexpr TileValue px_to_tile_value(i32 px)
+    {
+        return TileValue::make((f32)px / cxpr::TILE_WIDTH_PX);
+    }
+
+
+    static TileDelta px_to_delta_tile(f32 delta_px)
+    {
+        auto value = TileValue::make(delta_px / cxpr::TILE_WIDTH_PX);
+        return TileDelta::make(value);
+    }
+
+
+    template <typename T>
+    static TileDelta px_to_delta_tile(T px)
+    {
+        return px_to_delta_tile((f32)px);
+    }
+
+
+    static u64 to_pixel_pos(TileDim tile)
+    {
+        return (u64)(cxpr::TILE_WIDTH_PX * tile.get());
+    }
+
+
+    template <class T>
+    inline Vec2D<T> vec_zero()
+    {
+        Vec2D<T> vec = { T::zero(), T::zero() };
+
+        return vec;
+    }
+
+
+    static inline VecScene make_vec_scene(i32 x, i32 y)
+    {
+        VecScene vec = {
+            .x = SceneDim::make(x),
+            .y = SceneDim::make(y)
+        };
+        
+        return vec;
+    }
+
+    
+    static Point2Di32 delta_pos_px(ScenePosition a, ScenePosition b)
+    {
+        Point2Di32 p;
+        p.x = units::delta_i32(a.proc.x, b.proc.x);
+        p.y = units::delta_i32(a.proc.y, b.proc.y);
+
+        return p;
+    }
+}
+
+
 /* game scene */
 
 namespace game_punk
@@ -649,27 +736,46 @@ namespace game_punk
     public:
         static constexpr auto dims = SCENE_DIMS;
 
-        GamePosition game_position;
+        TilePosition game_position;
     };
 
 
     static void reset_game_scene(GameScene& scene)
     {
-        scene.game_position = GamePosition(0, 0, DimCtx::Game);
+        scene.game_position = TilePosition(vec_zero<TileDim>(), DimCtx::Game);
     }
 
 
-    static ScenePosition delta_pos_scene(GamePosition const& pos, GameScene const& scene)
+    static SceneDim to_scene_dim(TileDim tile, TileDim ref)
     {
-        constexpr u32 dmax = 10 * math::cxpr::max(cxpr::GAME_BACKGROUND_WIDTH_PX, cxpr::GAME_BACKGROUND_HEIGHT_PX);
-        
-        auto dx = pos.proc.x - scene.game_position.proc.x;
-        auto dy = pos.proc.y - scene.game_position.proc.y;
+        constexpr auto tile_w = cxpr::TILE_WIDTH_PX;
 
-        app_assert(math::abs(dx) < dmax && math::abs(dy) < dmax);
+        auto delta = tile - ref;
 
-        return ScenePosition((i32)dx, (i32)dy, DimCtx::Proc);        
+        auto delta_px = to_delta_px(delta);
+
+        return SceneDim::make((i32)delta_px);
     }
+
+
+    static ScenePosition to_scene_pos(VecTile const& tile, GameScene const& scene)
+    {
+        auto ref = scene.game_position.pos_game();
+
+        auto x = to_scene_dim(tile.x, ref.x);
+        auto y = to_scene_dim(tile.y, ref.y);
+
+        return ScenePosition(x, y, DimCtx::Game);
+    }
+
+
+    static ScenePosition to_scene_pos(TilePosition const& pos, GameScene const& scene)
+    {
+        return to_scene_pos(pos.pos_game(), scene);
+    }
+
+
+    
 }
 
 
@@ -711,7 +817,9 @@ namespace game_punk
 
     static void reset_screen_camera(SceneCamera& camera)
     {
-        camera.scene_position = ScenePosition(10, 16, DimCtx::Game);
+        auto pos = make_vec_scene(10, 16);
+
+        camera.scene_position = ScenePosition(pos, DimCtx::Game);
         camera.speed_px = 2;
     }
 
@@ -719,18 +827,20 @@ namespace game_punk
     static void move_camera(SceneCamera& camera, Vec2Di8 delta_px)
     {        
         auto cam_dims = CAMERA_DIMS.game;
-        auto& pos = camera.scene_position.game;
+        auto pos = camera.scene_position.pos_game();
 
-        auto pos_x = (i32)pos.x + delta_px.x;
-        auto pos_y = (i32)pos.y + delta_px.y;
+        i32 pos_x = pos.x.get() + delta_px.x;
+        i32 pos_y = pos.y.get() + delta_px.y;
 
         auto max_dims = SCENE_DIMS.game;
 
         auto x_max = (i32)(max_dims.width - cam_dims.width);
         auto y_max = (i32)(max_dims.height - cam_dims.height);
 
-        pos.x = (u32)math::cxpr::clamp(pos_x, 0, x_max);
-        pos.y = (u32)math::cxpr::clamp(pos_y, 0, y_max);
+        pos_x = math::cxpr::clamp(pos_x, 0, x_max);
+        pos_y = math::cxpr::clamp(pos_y, 0, y_max);
+
+        camera.scene_position = ScenePosition(make_vec_scene(pos_x, pos_y), DimCtx::Game);
     }
 
 
@@ -789,8 +899,14 @@ namespace game_punk
     {
         mb::destroy_buffer(gd.bytes);
     }
+    
+}
 
 
+/* load asset queue */
+
+namespace game_punk
+{
     class LoadContext
     {
     public:
@@ -930,6 +1046,8 @@ namespace game_punk
     public:
     
         b8 action = 0;
+
+        b8 jump = 0;
     
         // gameplay
         union
@@ -956,17 +1074,18 @@ namespace game_punk
         InputCommand cmd;
 
         cmd.action = 
-            kbd.kbd_return.pressed || 
-            kbd.kbd_space.pressed ||
+            kbd.kbd_return.pressed ||
             gpd.btn_south.pressed;
 
-        cmd.camera.move = 0;
-        cmd.camera.up = kbd.kbd_up.is_down || gpd.btn_dpad_up.is_down;
-        cmd.camera.down = kbd.kbd_down.is_down || gpd.btn_dpad_down.is_down;
-        cmd.camera.right =  kbd.kbd_right.is_down || gpd.btn_dpad_right.is_down;
-        cmd.camera.left = kbd.kbd_left.is_down || gpd.btn_dpad_left.is_down;
+        cmd.jump = 
+            kbd.kbd_space.pressed ||
+            gpd.btn_north.pressed;
 
-        //cmd.camera.move = 0; // disable
+        cmd.camera.move = 0;
+        cmd.camera.up    = kbd.kbd_up.is_down    || gpd.btn_dpad_up.is_down;
+        cmd.camera.down  = kbd.kbd_down.is_down  || gpd.btn_dpad_down.is_down;
+        cmd.camera.right = kbd.kbd_right.is_down || gpd.btn_dpad_right.is_down;
+        cmd.camera.left  = kbd.kbd_left.is_down  || gpd.btn_dpad_left.is_down;
 
         return cmd;
     }

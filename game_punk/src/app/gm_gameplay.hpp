@@ -9,22 +9,32 @@ namespace internal
 {
     static void init_punk_sprite(StateData& data)
     {
-        constexpr auto tile_h = cxpr::TILE_WIDTH;
+        constexpr auto tile_h = cxpr::TILE_HEIGHT_PX;
+
+        auto& bitmaps = data.bitmaps;
+        auto& animations = data.animations;
+        auto& player = data.player_state;
+        auto& spritesheets = data.spritesheets;
+
+        auto bmp = bitmaps.push();
 
         auto pos = data.scene.game_position.pos_game();
-        pos.x += PLAYER_SCENE_OFFSET;
-        pos.y = tile_h;
+        pos.x += px_to_delta_tile(PLAYER_SCENE_OFFSET);
+        pos.y += px_to_delta_tile(tile_h);
 
-        auto punk = SpriteDef(data.game_tick, pos, data.bitmaps.push());
-        data.player_state.sprite = spawn_sprite(data.sprites, punk);
-        
-        set_player_mode(data.player_state, data.sprites, data.spritesheet, SpriteMode::Idle);
+        auto mode = SpriteMode::Idle;
+
+        auto punk = SpriteDef(data.game_tick, pos, bmp, SpriteName::Punk, mode);
+
+        player.sprite = spawn_sprite(data.sprites, punk);
+        player.current_mode = mode;
     }
 
 
     static void init_tiles(StateData& data)
     {
-        constexpr auto tile_w = cxpr::TILE_WIDTH;
+        constexpr auto zero = TileDim::zero();
+        constexpr auto one = TileDelta::make(TileValue::make(1.0f));
 
         auto& src = data.tile_state;
         auto& bitmaps = data.tile_bitmaps;
@@ -32,16 +42,16 @@ namespace internal
         bitmaps.data[0] = data.bitmaps.push_item(to_image_view(src.floor_a));
         bitmaps.data[1] = data.bitmaps.push_item(to_image_view(src.floor_b));
 
-        Vec2Di64 pos = { 0, 0 };
+        VecTile pos = { zero, zero };
         for (u32 i = 0; i < 20; i++)
         {
             auto tile = TileDef(data.game_tick, pos, data.tile_bitmaps.front());
             spawn_tile(data.tiles, tile);
-            pos.x += tile_w;
+            pos.x += one;
             data.tile_bitmaps.next();
         }
 
-        data.next_tile_position = GamePosition(pos, DimCtx::Game);
+        data.next_tile_position = TilePosition(pos, DimCtx::Game);
     }
 }
 
@@ -68,41 +78,80 @@ namespace internal
 
     static void update_player(StateData& data, InputCommand const& cmd)
     {
-        if (!cmd.action)
-        {
-            return;
-        }
-
         auto& player = data.player_state;
+        auto& sprites = data.sprites;
 
-        switch (player.mode)
+        auto mode = player.current_mode;
+        auto tick = data.game_tick;
+        
+        if (cmd.action)
         {
-        case SpriteMode::Idle:
-            set_player_mode(player, data.sprites, data.spritesheet, SpriteMode::Run);
-            break;
+            switch (mode)
+            {
+            case SpriteMode::Idle:
+                mode = SpriteMode::Run;
+                set_player_mode(player, sprites, mode, tick);
+                break;
 
-        case SpriteMode::Run:
-            set_player_mode(player, data.sprites, data.spritesheet, SpriteMode::Jump);
-            break;
+            case SpriteMode::Run:
+                mode = SpriteMode::Idle;
+                set_player_mode(player, sprites, mode, tick);
+                break;
 
-        case SpriteMode::Jump:
-            set_player_mode(player, data.sprites, data.spritesheet, SpriteMode::Idle);
-            break;
+            default:
+                break;
+            }
+        }
+        else if (cmd.jump)
+        {
+            if (mode != SpriteMode::Jump)
+            {
+                set_player_mode(player, sprites, SpriteMode::Jump, tick);
+            }            
+        }
+        else
+        {
+            switch (mode)
+            {
+            case SpriteMode::Jump:
+            {
+                auto vel = sprites.get_tile_velocity(player.sprite);
+                auto pos = sprites.get_tile_pos(player.sprite);
+
+                if (vel.y < TileSpeed::zero() && pos.y <= TileDim::make(TileValue::make(1)))
+                {
+                    mode = vel.x == TileSpeed::zero() ? SpriteMode::Idle : SpriteMode::Run;                    
+                    set_player_mode(player, sprites, mode, tick);
+                    sprites.speed_y_at(player.sprite) = TileSpeed::zero();
+                    sprites.position_y_at(player.sprite) = TileDim::make(TileValue::make(1));
+                }
+
+            } break;
+
+            default:
+                break;
+            }
         }
     }
 
 
     static void update_tiles(StateData& data)
     {
-        constexpr auto tile_w = cxpr::TILE_WIDTH;
+        constexpr auto one = TileDelta::make(TileValue::make(1.0f));
+        constexpr auto tile_w = cxpr::TILE_WIDTH_PX;
+        constexpr auto limit = (i32)(cxpr::GAME_BACKGROUND_WIDTH_PX - 2 * tile_w);
+
+        auto scene = to_scene_pos(data.next_tile_position, data.scene);
         
-        auto pos = data.scene.game_position.game.x;
-        if (data.next_tile_position.game.x - pos < (i64)cxpr::GAME_BACKGROUND_WIDTH_PX)
+        auto delta = scene.pos_game().x.get();
+
+        if (delta < limit)
         {
-            auto tile = TileDef(data.game_tick, data.next_tile_position.pos_game(), data.tile_bitmaps.front());
+            auto pos = data.next_tile_position.pos_game();
+            auto tile = TileDef(data.game_tick, pos, data.tile_bitmaps.front());
             spawn_tile(data.tiles, tile);
 
-            data.next_tile_position.game.x += tile_w;
+            data.next_tile_position.game.x += one;
             data.tile_bitmaps.next();
         }
     }
@@ -114,19 +163,23 @@ namespace internal
 
         auto N = table.capacity;
 
-        auto beg = table.tick_begin;
-        auto amn = table.animation;
+        auto beg = table.mode_begin;
+        auto afn = table.animate;
         auto bmp = table.bitmap_id;
 
         for (u32 i = 0; i < N; i++)
         {
-            if (!is_spawned(table, i))
+            SpriteID id = { i };
+
+            if (!is_spawned(table, id))
             {
                 continue;
             }
 
+            auto vel = table.get_tile_velocity(id);
+
             auto time = data.game_tick - beg[i];
-            auto view = get_animation_bitmap(amn[i], time);
+            auto view = afn[i](data.animations, vel, time);
             data.bitmaps.item_at(bmp[i]) = to_image_view(view);
         }
     }
@@ -144,7 +197,9 @@ namespace internal
         auto& camera = data.camera;
         auto& rng = data.rng;
 
-        auto pos = data.scene.game_position.game.x;
+        auto tile = data.scene.game_position.pos_game().x;
+
+        auto pos = to_pixel_pos(tile);
 
         auto sky = get_sky_animation(bg.sky, data.game_tick);
         auto bg1 = get_animation_pair(bg.bg_1, rng, pos);
@@ -161,6 +216,7 @@ namespace internal
         constexpr i32 xmin = -(cxpr::GAME_BACKGROUND_WIDTH_PX / 4);
         constexpr i32 ymin = -(cxpr::GAME_BACKGROUND_HEIGHT_PX / 4);
 
+        auto& scene = data.scene;
         auto& dq = data.drawq;
         auto& camera = data.camera;
         auto& table = data.tiles;
@@ -172,22 +228,24 @@ namespace internal
 
         for (u32 i = 0; i < N; i++)
         {
-            if (!is_spawned(table, i))
+            TileID id = { i };
+
+            if (!is_spawned(table, id))
             {
                 continue;
             }
 
-            auto dps = delta_pos_scene(GamePosition(pos[i], DimCtx::Game), data.scene);
-            auto gpos = dps.pos_game();
+            auto spos = to_scene_pos(pos[i], scene);
+            auto gpos = spos.pos_game();
 
-            if (gpos.x < xmin || gpos.y < ymin)
+            if (gpos.x.get() < xmin || gpos.y.get() < ymin)
             {
-                despawn_tile(table, i);
+                despawn_tile(table, id);
                 continue;
-            }
+            }            
 
             auto view = data.bitmaps.item_at(bmp[i]);
-            push_draw(dq, view, dps, camera);
+            push_draw(dq, view, spos, camera);
         }
     }
     
@@ -204,9 +262,8 @@ namespace internal
         auto tick = data.game_tick;
         auto N = sprites.capacity;
 
-        auto beg = sprites.tick_begin;
+        auto beg = sprites.mode_begin;
         auto end = sprites.tick_end;
-        auto pos = sprites.position;
         auto bmp = sprites.bitmap_id;
 
         for (u32 i = 0; i < N; i++)
@@ -216,10 +273,14 @@ namespace internal
                 continue;
             }
 
-            auto dps = delta_pos_scene(GamePosition(pos[i], DimCtx::Game), data.scene);
-            auto gpos = dps.pos_game();
+            SpriteID id = { i };
 
-            if (gpos.x < xmin || gpos.y < ymin)
+            auto tile = sprites.get_tile_pos(id);
+
+            auto spos = to_scene_pos(tile, data.scene);
+            auto gpos = spos.pos_game();
+
+            if (gpos.x.get() < xmin || gpos.y.get() < ymin)
             {
                 beg[i] = GameTick64::none();
                 sprites.first_id = math::min(i, sprites.first_id);
@@ -227,7 +288,7 @@ namespace internal
             }
             
             auto view = data.bitmaps.item_at(bmp[i]);
-            push_draw(dq, view, dps, camera);
+            push_draw(dq, view, spos, camera);
         }
     }
 }
@@ -255,13 +316,14 @@ namespace gm_gameplay
     {
         internal::update_game_camera(data, cmd);
         internal::update_player(data, cmd);
-
-        move_sprites(data.sprites);
+        
+        move_sprites_xy(data.sprites, data.game_tick);
 
         auto& scene_pos = data.scene.game_position.game;
-        auto player_pos = data.sprites.position_at(data.player_state.sprite);
+        auto player_pos = data.sprites.get_tile_x(data.player_state.sprite);
 
-        scene_pos.x = player_pos.x - PLAYER_SCENE_OFFSET;
+        scene_pos.x = player_pos;
+        scene_pos.x -= px_to_delta_tile(PLAYER_SCENE_OFFSET);
         
         internal::update_tiles(data);
         internal::animate_sprites(data);

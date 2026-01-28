@@ -56,7 +56,8 @@ namespace game_punk
 
     static void reset_sky_animation(SkyAnimation& sky)
     {
-        sky.ov_pos.proc = { 0, 0 };
+        auto vs = make_vec_scene(0, 0);
+        sky.ov_pos = ScenePosition(vs, DimCtx::Proc);
         sky.ov_vel = { 4, 2 };
 
         bool ok = true;
@@ -84,8 +85,8 @@ namespace game_punk
         auto& pos = sky.ov_pos.proc;
         auto& vel = sky.ov_vel;
 
-        i32 x = pos.x + vel.x;
-        i32 y = pos.y + vel.y;
+        i32 x = pos.x.get() + vel.x;
+        i32 y = pos.y.get() + vel.y;
 
         if (x < 0 || x > xm)
         {
@@ -93,7 +94,7 @@ namespace game_punk
         }
         else
         {
-            pos.x = (u32)x;
+            pos.x = units::SceneDimension::make(x);
         }
 
         if (y < 0 || y > ym)
@@ -102,10 +103,10 @@ namespace game_punk
         }
         else
         {
-            pos.y = (u32)y;
+            pos.y = units::SceneDimension::make(y);
         }
 
-        img::copy(sub_view(data_ov, pos), ov);
+        img::copy(sub_view(data_ov, sky.ov_pos), ov);
     }
     
     
@@ -168,24 +169,21 @@ namespace game_punk
     class BackgroundAnimation
     {
     public:
-        class AssetID
-        {
-        public:
-            u8 value_ = (u8)cxpr::BACKGROUND_COUNT_MAX;
 
-            AssetID(){}
-            AssetID(u8 v) { value_ = v; }
-        };        
+        using FilterTable = ObjectTable<BackgroundFilterView>;
+        using AssetID = FilterTable::ID;
+
+        FilterTable background_filters;
+        BackgroundView background_data[2] = { 0 };
         
         u32 speed_shift = 0;
-        u64 load_pos = 0;
+        p32 primary_color;
 
-        BackgroundView background_data[2] = { 0 };
+        u64 load_pos = 0;
+        AssetID current_background;
 
         RingStackBuffer<AssetID, 4> work_asset_ids;
         RandomStackBuffer<AssetID, cxpr::BACKGROUND_COUNT_MAX - 4> select_asset_ids;
-
-        LoadAssetCommand load_cmd;
     };
 
 
@@ -209,20 +207,27 @@ namespace game_punk
         
         for (u32 i = 0; i < WC; i++)
         {
-            an.work_asset_ids.data[i] = i;
+            an.work_asset_ids.data[i] = {(u16)i};
         }
 
         for (u32 i = 0; i < SC; i++)
         {
-            an.select_asset_ids.data[i] = i + WC;
+            an.select_asset_ids.data[i] = { (u16)(i + WC) };
         }
     }
 
 
-    static void count_background_animation(BackgroundAnimation& an, MemoryCounts& counts)
+    static void count_background_animation(BackgroundAnimation& an, MemoryCounts& counts, u32 n_backgrounds)
     {
         count_view(an.background_data[0], counts);
         count_view(an.background_data[1], counts);
+        count_table(an.background_filters, counts, n_backgrounds);
+
+        BackgroundFilterView filter;
+        for (u32 i = 0; i < n_backgrounds; i++)
+        {
+            count_view(filter, counts);
+        }
     }
 
 
@@ -232,6 +237,15 @@ namespace game_punk
 
         ok &= create_view(an.background_data[0], memory);
         ok &= create_view(an.background_data[1], memory);
+
+        auto& filters = an.background_filters;
+
+        ok &= create_table(filters, memory);
+        for (u32 i = 0; i < filters.capacity; i++)
+        {
+            auto id = filters.push();
+            ok &= create_view(filters.item_at(id), memory);
+        }
 
         return ok;
     }
@@ -265,92 +279,70 @@ namespace game_punk
             an.load_pos = pos;
 
             // select next background to load
-            auto bg_id = an.select_asset_ids.get(rng);
+            an.current_background = an.select_asset_ids.get(rng);
 
             // swap selected id with working id
             auto& work_id = an.work_asset_ids.front();
             an.select_asset_ids.set(work_id);
-            work_id = bg_id;
+            work_id = an.current_background;
             an.work_asset_ids.next();
 
-            // signal load
-            an.load_cmd.is_active = 1;
-            an.load_cmd.ctx.item_id = bg_id.value_;
-            an.load_cmd.ctx.dst = to_image_view(an.background_data[data_2]);
+            auto src = to_span(an.background_filters.item_at(an.current_background));
+            auto dst = to_span(an.background_data[data_2]);
+            bt::alpha_filter_convert(src, dst, an.primary_color);
         }
 
         return bp;
     }
-
-
-    static void push_load_background(BackgroundAnimation& an, LoadAssetQueue& lq)
-    {
-        push_load(lq, an.load_cmd);
-        an.load_cmd.is_active = 0;
-    }
 }
 
 
-/* sprite animation */
+/* background state */
 
 namespace game_punk
 {
-    class SpriteAnimation
+    class BackgroundState
     {
     public:
 
-        u32 bitmap_count = 0;
+        SkyAnimation sky;
 
-        u32 ticks_per_bitmap;
-
-        p32* spritesheet_data = 0;
-
-        ContextDims bitmap_dims;
+        BackgroundAnimation bg_1;
+        BackgroundAnimation bg_2;
     };
 
 
-    static bool set_animation_spritesheet(SpriteAnimation& an, SpritesheetView const& ss, u32 bmp_ticks)
+    static void reset_background_state(BackgroundState& bg)
+    {   
+        reset_sky_animation(bg.sky);
+
+        reset_background_animation(bg.bg_1);
+        reset_background_animation(bg.bg_2);
+        bg.bg_1.speed_shift = 1;
+        bg.bg_2.speed_shift = 0;
+    }
+
+
+    static void count_background_state(BackgroundState& bg, MemoryCounts& counts)
+    {  
+        count_sky_animation(bg.sky, counts);
+        
+        count_background_animation(bg.bg_1, counts, bt::Background_Bg1::count);
+        count_background_animation(bg.bg_2, counts, bt::Background_Bg2::count);
+    }
+
+
+    static bool create_background_state(BackgroundState& bg_state, Memory& memory)
     {
-        auto& dims = ss.dims.game;
+        bool ok = true;
 
-        bool ok = ss.data != 0;
-        app_assert(ok && "*** Spritesheet data not set ***");
+        ok &= create_sky_animation(bg_state.sky, memory);
 
-        ok &= dims.width > dims.height;
-        ok &= dims.width % dims.height == 0;
-        app_assert(ok && "*** Invalid spritesheet dimensions ***");
-
-        an.spritesheet_data = ss.data;
-        an.bitmap_dims = ss.bitmap_dims;
-        an.bitmap_count = ss.bitmap_count;
-        an.ticks_per_bitmap = bmp_ticks;
+        ok &= create_background_animation(bg_state.bg_1, memory);
+        ok &= create_background_animation(bg_state.bg_2, memory);
 
         return ok;
     }
 
-
-    static SpriteView get_animation_bitmap(SpriteAnimation const& an, TickQty32 time)
-    {
-        p32* data = 0;
-
-        auto t = time.value_ % (an.bitmap_count * an.ticks_per_bitmap);
-
-        auto dims = an.bitmap_dims.proc;
-
-        auto b = t / an.ticks_per_bitmap;
-        if (b < an.bitmap_count)
-        {
-            auto offset = b * dims.width * dims.height;
-            data = an.spritesheet_data + offset;
-        }
-
-        app_assert(data);
-
-        SpriteView view;
-        view.dims = an.bitmap_dims;
-        view.data = data;
-
-        return view;
-    }
 
 }

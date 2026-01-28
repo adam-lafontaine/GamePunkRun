@@ -13,15 +13,28 @@ https://itch.io/c/2053292/cyberpunk-pixel-art
 ### TODO
 * [ ] Refactor font and icons
 * [ ] Name UI icons
-* [ ] Automate release builds
+
 * [ ] Single asset color table
 
 
-### v 0.3.0
+### v0.4.0
+* [x] Pre-load background filters
+* [x] Sprite animation functions
+* [x] Tile coordinate system
+* [x] Separate sprite x y dimensions
+* [x] Sprite acceleration functions
+* [x] Enable jump motion with animation
+* [x] Automate release builds
+* [x] CMS page
+* [x] Itch.io
+
+
+### v0.3.0
 * [x] Tile table SOA
 * [x] Sprite table SOA
 * [x] Add tiles and sprites to engine UI
 * [x] Simplify sky animation
+* No release
 
 
 ### v0.2.1
