@@ -80,7 +80,6 @@ namespace internal
     {
         auto& player = data.player_state;
         auto& sprites = data.sprites;
-        //auto& vel = data.sprites.velocity_px_at(player.sprite);
 
         auto mode = player.current_mode;
         auto tick = data.game_tick;
@@ -91,21 +90,24 @@ namespace internal
             {
             case SpriteMode::Idle:
                 mode = SpriteMode::Run;
+                set_player_mode(player, sprites, mode, tick);
                 break;
 
             case SpriteMode::Run:
                 mode = SpriteMode::Idle;
+                set_player_mode(player, sprites, mode, tick);
                 break;
 
             default:
                 break;
             }
-
-            set_player_mode(player, sprites, mode, tick);
         }
         else if (cmd.jump)
         {
-            set_player_mode(player, sprites, SpriteMode::Jump, tick);
+            if (mode != SpriteMode::Jump)
+            {
+                set_player_mode(player, sprites, SpriteMode::Jump, tick);
+            }            
         }
         else
         {
@@ -118,8 +120,8 @@ namespace internal
 
                 if (vel.y < TileSpeed::zero() && pos.y <= TileDim::make(TileValue::make(1)))
                 {
-                    auto m = vel.x == TileSpeed::zero() ? SpriteMode::Idle : SpriteMode::Run;                    
-                    set_player_mode(player, sprites, m, tick);
+                    mode = vel.x == TileSpeed::zero() ? SpriteMode::Idle : SpriteMode::Run;                    
+                    set_player_mode(player, sprites, mode, tick);
                     sprites.speed_y_at(player.sprite) = TileSpeed::zero();
                     sprites.position_y_at(player.sprite) = TileDim::make(TileValue::make(1));
                 }
