@@ -19,10 +19,11 @@ https://itch.io/c/2053292/cyberpunk-pixel-art
 
 ### v0.4.0
 * [x] Pre-load background filters
-* 
-* [x] Tile positions
+* [x] Sprite animation functions
+* [x] Tile coordinate system
 * [x] Separate sprite x y dimensions
-* [x] 
+* [x] Sprite acceleration functions
+* [x] Enable jump motion with animation
 
 
 ### v0.3.0
