@@ -304,7 +304,7 @@ namespace gm_gameplay
         internal::update_game_camera(data, cmd);
         internal::update_player(data, cmd);
         
-        move_sprites_xy(data.sprites);
+        move_sprites_xy(data.sprites, data.game_tick);
 
         auto& scene_pos = data.scene.game_position.game;
         auto player_pos = data.sprites.get_tile_x(data.player_state.sprite);

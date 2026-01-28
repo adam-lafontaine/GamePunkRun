@@ -66,11 +66,94 @@ namespace game_punk
 }
 
 
-/* acceleration */
+/* punk sprite acceleration */
 
 namespace game_punk
 {
+    using AccelerateFn = TileAcc (*)(TileSpeed speed, TickQty32 time);
 
+
+    static TileAcc accelerate_zero(TileSpeed speed, TickQty32 time)
+    {
+        return TileAcc::zero();
+    }
+
+
+    static TileAcc accelerate_punk_run_x(TileSpeed speed, TickQty32 time)
+    {
+        return TileAcc::zero();
+    }
+
+
+    static TileAcc accelerate_punk_jump_y(TileSpeed speed, TickQty32 time)
+    {
+        return TileAcc::zero();
+    }
+
+}
+
+
+/* acceleration x */
+
+namespace game_punk
+{
+    static AccelerateFn get_punk_accelerate_fn_x(SpriteMode mode)
+    {
+        using Mode = SpriteMode;
+
+        switch (mode)
+        {
+        case Mode::Run: return accelerate_punk_run_x;
+
+        default: return accelerate_zero;
+        }
+    }
+
+
+    static AccelerateFn get_accelerate_fn_x(SpriteName sprite, SpriteMode mode)
+    {
+        using Sprite = SpriteName;
+        using Mode = SpriteMode;
+
+        switch (sprite)
+        {
+        case Sprite::Punk: return get_punk_accelerate_fn_x(mode);
+
+        default: return accelerate_zero;
+        }
+    }
+}
+
+
+/* acceleration y */
+
+namespace game_punk
+{
+    static AccelerateFn get_punk_accelerate_fn_y(SpriteMode mode)
+    {
+        using Mode = SpriteMode;
+
+        switch (mode)
+        {
+        case Mode::Jump: return accelerate_punk_jump_y;
+
+        default: return accelerate_zero;
+        }
+    }
+
+
+    static AccelerateFn get_accelerate_fn_y(SpriteName sprite, SpriteMode mode)
+    {
+        using Sprite = SpriteName;
+        using Mode = SpriteMode;
+
+        switch (sprite)
+        {
+        case Sprite::Punk: return get_punk_accelerate_fn_y(mode);
+
+        default: return accelerate_zero;
+        }
+    }
 }
 
 
@@ -303,6 +386,9 @@ namespace game_punk
         GameTick64* mode_begin = 0;
         GameTick64* tick_end = 0;
 
+        AccelerateFn* accelerate_x = 0;
+        AccelerateFn* accelerate_y = 0;
+
         TileAcc* acceleration_x = 0;
         TileAcc* acceleration_y = 0;
 
@@ -338,7 +424,14 @@ namespace game_punk
     {
         table.first_id = 0;
 
-        span::fill(span::make_view(table.mode_begin, table.capacity), GameTick64::none());
+        auto N = table.capacity;
+
+        for (u32 i = 0; i < N; i++)
+        {
+            table.mode_begin[i] = GameTick64::none();
+            table.accelerate_x[i] = accelerate_zero;
+            table.accelerate_y[i] = accelerate_zero;
+        }
     }
 
 
@@ -350,6 +443,8 @@ namespace game_punk
         add_count<SpriteMode>(counts, capacity);
         
         add_count<GameTick64>(counts, 2 * capacity);
+
+        add_count<AccelerateFn>(counts, 2 * capacity);
 
         add_count<TileAcc>(counts, 2 * capacity);
         add_count<TileSpeed>(counts, 2 * capacity);
@@ -384,6 +479,12 @@ namespace game_punk
         auto tick_end = push_mem<GameTick64>(memory, n);
         ok &= tick_end.ok;
 
+        auto acc_fn_x = push_mem<AccelerateFn>(memory, n);
+        ok &= acc_fn_x.ok;
+
+        auto acc_fn_y = push_mem<AccelerateFn>(memory, n);
+        ok &= acc_fn_y.ok;
+
         auto acc_x = push_mem<TileAcc>(memory, n);
         ok &= acc_x.ok;
 
@@ -415,6 +516,9 @@ namespace game_punk
 
             table.mode_begin = mode_begin.data;
             table.tick_end = tick_end.data;
+
+            table.accelerate_x = acc_fn_x.data;
+            table.accelerate_y = acc_fn_y.data;
 
             table.acceleration_x = acc_x.data;
             table.acceleration_y = acc_y.data;
@@ -453,8 +557,6 @@ namespace game_punk
         VecTile position = vec_zero<TileDim>();
 
         BitmapID bitmap_id;
-        AnimateFn animate;
-
 
         SpriteDef() = delete;
 
@@ -465,7 +567,6 @@ namespace game_punk
             mode_begin = begin;
             position = pos;
             bitmap_id = bmp;
-            animate = get_animate_fn(s_name, s_mode);
         }
     };
 
@@ -475,6 +576,8 @@ namespace game_punk
         auto i = id.value_;
 
         table.mode_begin[i] = GameTick64::none();
+        table.accelerate_x[i] = accelerate_zero;
+        table.accelerate_y[i] = accelerate_zero;
         table.first_id = math::min(i, table.first_id);
     }
 
@@ -515,6 +618,9 @@ namespace game_punk
         table.mode_begin[i] = def.mode_begin;
         table.tick_end[i] = def.tick_end;
 
+        table.accelerate_x[i] = get_accelerate_fn_x(def.name, def.mode);
+        table.accelerate_y[i] = get_accelerate_fn_y(def.name, def.mode);
+
         table.acceleration_x[i] = TileAcc::zero();
         table.acceleration_y[i] = TileAcc::zero();
 
@@ -524,7 +630,7 @@ namespace game_punk
         table.position_x[i] = def.position.x;
         table.position_y[i] = def.position.y;
 
-        table.animate[i] = def.animate;
+        table.animate[i] = get_animate_fn(def.name, def.mode);
         table.bitmap_id[i] = def.bitmap_id;
 
         return id;
@@ -551,41 +657,58 @@ namespace game_punk
     }
     
     
-    static void move_sprites_x(SpriteTable const& table)
+    static void move_sprites_x(SpriteTable const& table, GameTick64 tick)
     {
         auto N = table.capacity;
 
+        auto beg = table.mode_begin;
+
+        auto accfn = table.accelerate_x;
         auto acc = table.acceleration_x;
         auto vel = table.speed_x;
         auto pos = table.position_x;
 
         for (u32 i = 0; i < N; i++)
         {
+            auto time = tick - beg[i];
+
+            acc[i] = accfn[i](vel[i], time);
             vel[i] += acc[i];
             pos[i] += vel[i];
         }
     }
 
 
-    static void move_sprites_y(SpriteTable const& table)
+    static void move_sprites_y(SpriteTable const& table, GameTick64 tick)
     {
         auto N = table.capacity;
 
+        auto beg = table.mode_begin;
+
+        auto accfn = table.accelerate_y;
         auto acc = table.acceleration_y;
         auto vel = table.speed_y;
         auto pos = table.position_y;
 
         for (u32 i = 0; i < N; i++)
         {
+            auto time = tick - beg[i];
+
+            acc[i] = accfn[i](vel[i], time);
             vel[i] += acc[i];
             pos[i] += vel[i];
         }
     }
 
 
-    static void move_sprites_xy(SpriteTable const& table)
+    static void move_sprites_xy(SpriteTable const& table, GameTick64 tick)
     {
         auto N = table.capacity;
+
+        auto beg = table.mode_begin;
+
+        auto accfn_x = table.accelerate_x;
+        auto accfn_y = table.accelerate_y;
 
         auto acc_x = table.acceleration_x;
         auto vel_x = table.speed_x;
@@ -597,6 +720,11 @@ namespace game_punk
 
         for (u32 i = 0; i < N; i++)
         {
+            auto time = tick - beg[i];
+
+            acc_x[i] = accfn_x[i](vel_x[i], time);
+            acc_y[i] = accfn_y[i](vel_y[i], time);
+
             vel_x[i] += acc_x[i];
             vel_y[i] += acc_y[i];
 
