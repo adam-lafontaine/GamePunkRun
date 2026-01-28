@@ -13,7 +13,7 @@ https://itch.io/c/2053292/cyberpunk-pixel-art
 ### TODO
 * [ ] Refactor font and icons
 * [ ] Name UI icons
-* [ ] Automate release builds
+
 * [ ] Single asset color table
 
 
@@ -24,6 +24,7 @@ https://itch.io/c/2053292/cyberpunk-pixel-art
 * [x] Separate sprite x y dimensions
 * [x] Sprite acceleration functions
 * [x] Enable jump motion with animation
+* [x] Automate release builds
 * [x] CMS page
 * [ ] Itch.io
 

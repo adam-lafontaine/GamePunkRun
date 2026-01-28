@@ -8,7 +8,7 @@ BUILD_DIR="/home/adam/Repos/GamePunkRun/game_punk/src/pltfm/wasm_sdl2"
 OUT_DIR="/home/adam/Repos/GamePunkRun/game_punk/build/wasm_sdl2"
 
 BIN_SRC="$OUT_DIR/punk_run.bin"
-HTML_SRC="$OUT_DIR/punk_run.html"
+HTML_SRC="$OUT_DIR/itch_io_index.html"
 JS_SRC="$OUT_DIR/punk_run.js"
 WASM_SRC="$OUT_DIR/punk_run.wasm"
 
