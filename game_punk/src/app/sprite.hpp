@@ -493,10 +493,12 @@ namespace game_punk
         BitmapID* bitmap_id = 0;
         
         GameTick64& mode_begin_at(ID id) { return mode_begin[id.value_]; }
-        //TileSpeed& velocity_x_at(ID id) { return speed_x[id.value_]; }
+
+        TileSpeed& speed_y_at(ID id) { return speed_y[id.value_]; }
+        TileDim& position_y_at(ID id) { return position_y[id.value_]; }
 
         AccelerateFn& accelerate_x_at(ID id) { return accelerate_x[id.value_]; }
-        AccelerateFn& accelerate_y_at(ID id) { return accelerate_y[id.value_]; }        
+        AccelerateFn& accelerate_y_at(ID id) { return accelerate_y[id.value_]; }
         AnimateFn& animate_at(ID id) { return animate[id.value_]; }
 
         SpriteName get_name(ID id) const { return name[id.value_]; }

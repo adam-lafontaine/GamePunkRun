@@ -79,6 +79,8 @@ namespace units
         bool operator == (TileSpeed other) { return value_.value_ == other.value_.value_; }
         bool operator <= (TileSpeed other) { return value_.value_ <= other.value_.value_; }
         bool operator >= (TileSpeed other) { return value_.value_ >= other.value_.value_; }
+        bool operator < (TileSpeed other) { return value_.value_ < other.value_.value_; }
+        bool operator > (TileSpeed other) { return value_.value_ > other.value_.value_; }
 
         f32 get() { return (f32)value_.value_ / BASE_TILE_VALUE; }
     };
@@ -147,6 +149,8 @@ namespace units
 
             return TileDelta::make(TileValue::make(n));
         }
+
+        bool operator <= (TileDimension other) { return get() <= other.get(); }
 
         f32 get() { return (f32)value_.i_part + (f32)value_.f_part / BASE_TILE_VALUE; }
     };

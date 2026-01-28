@@ -79,6 +79,7 @@ namespace internal
     static void update_player(StateData& data, InputCommand const& cmd)
     {
         auto& player = data.player_state;
+        auto& sprites = data.sprites;
         //auto& vel = data.sprites.velocity_px_at(player.sprite);
 
         auto mode = player.current_mode;
@@ -100,25 +101,35 @@ namespace internal
                 break;
             }
 
-            set_player_mode(player, data.sprites, mode, tick);
+            set_player_mode(player, sprites, mode, tick);
         }
         else if (cmd.jump)
         {
-            set_player_mode(player, data.sprites, SpriteMode::Jump, tick);
+            set_player_mode(player, sprites, SpriteMode::Jump, tick);
         }
-        /*else
+        else
         {
             switch (mode)
             {
             case SpriteMode::Jump:
-                vel.y -= 1; // TODO sprite stuff
-                vel.y = math::max(vel.y, -1);
-                break;
+            {
+                auto vel = sprites.get_tile_velocity(player.sprite);
+                auto pos = sprites.get_tile_pos(player.sprite);
+
+                if (vel.y < TileSpeed::zero() && pos.y <= TileDim::make(TileValue::make(1)))
+                {
+                    auto m = vel.x == TileSpeed::zero() ? SpriteMode::Idle : SpriteMode::Run;                    
+                    set_player_mode(player, sprites, m, tick);
+                    sprites.speed_y_at(player.sprite) = TileSpeed::zero();
+                    sprites.position_y_at(player.sprite) = TileDim::make(TileValue::make(1));
+                }
+
+            } break;
 
             default:
                 break;
             }
-        }*/
+        }
     }
 
 
