@@ -213,8 +213,17 @@ public:
 
 static bool window_create(Vec2Du32 game_dims, InitParams const& params)
 { 
+#ifdef APP_ROTATE_90
+
+    auto game_w = game_dims.y;
+    auto game_h = game_dims.x;
+
+#else
+
     auto game_w = game_dims.x;
     auto game_h = game_dims.y;
+
+#endif    
 
     auto max_w = params.max_width ? params.max_width : game_w * mv::GAME_SCALE;
     auto max_h = params.max_height ? params.max_height : game_h * mv::GAME_SCALE;
@@ -227,17 +236,14 @@ static bool window_create(Vec2Du32 game_dims, InitParams const& params)
 
     auto w = math::cxpr::round_to_unsigned<u32>(scale * game_w);
     auto h = math::cxpr::round_to_unsigned<u32>(scale * game_h);
+    
+    Vec2Du32 window_dims = { w, h };        
 
 #ifdef APP_ROTATE_90
 
-    // rotated
-    Vec2Du32 window_dims = { h, w };
-
     return window::create(mv::window, game::APP_TITLE, window_dims, game_dims, mv::GAME_ROTATE);
 
-#else    
-    
-    Vec2Du32 window_dims = { w, h };
+#else
 
     return window::create(mv::window, game::APP_TITLE, window_dims, game_dims);
 
