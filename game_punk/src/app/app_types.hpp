@@ -664,7 +664,19 @@ namespace game_punk
     }
 
 
-    static TileDelta to_delta_tile(f32 delta_px)
+    static constexpr TileValue px_to_tile_value(f32 px)
+    {
+        return TileValue::make(px / cxpr::TILE_WIDTH_PX);
+    }
+
+
+    static constexpr TileValue px_to_tile_value(i32 px)
+    {
+        return TileValue::make((f32)px / cxpr::TILE_WIDTH_PX);
+    }
+
+
+    static TileDelta px_to_delta_tile(f32 delta_px)
     {
         auto value = TileValue::make(delta_px / cxpr::TILE_WIDTH_PX);
         return TileDelta::make(value);
@@ -672,9 +684,9 @@ namespace game_punk
 
 
     template <typename T>
-    static TileDelta to_delta_tile(T px)
+    static TileDelta px_to_delta_tile(T px)
     {
-        return to_delta_tile((f32)px);
+        return px_to_delta_tile((f32)px);
     }
 
 

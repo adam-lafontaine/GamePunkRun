@@ -19,8 +19,8 @@ namespace internal
         auto bmp = bitmaps.push();
 
         auto pos = data.scene.game_position.pos_game();
-        pos.x += to_delta_tile(PLAYER_SCENE_OFFSET);
-        pos.y += to_delta_tile(tile_h);
+        pos.x += px_to_delta_tile(PLAYER_SCENE_OFFSET);
+        pos.y += px_to_delta_tile(tile_h);
 
         auto mode = SpriteMode::Idle;
 
@@ -310,7 +310,7 @@ namespace gm_gameplay
         auto player_pos = data.sprites.get_tile_x(data.player_state.sprite);
 
         scene_pos.x = player_pos;
-        scene_pos.x -= to_delta_tile(PLAYER_SCENE_OFFSET);
+        scene_pos.x -= px_to_delta_tile(PLAYER_SCENE_OFFSET);
         
         internal::update_tiles(data);
         internal::animate_sprites(data);

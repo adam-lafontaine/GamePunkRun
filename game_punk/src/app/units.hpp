@@ -26,6 +26,7 @@ namespace units
         static constexpr TileValue make(f32 v) { return TileValue(v); }
         static constexpr TileValue make(i32 v) { return TileValue(v); }
         static constexpr TileValue zero() { return TileValue(0); }
+        static constexpr f32 min_value() { return 1.0f / BASE_TILE_VALUE; }
 
         TileValue make(u32 v) = delete;
 
@@ -76,6 +77,7 @@ namespace units
         TileSpeed& operator += (TileAcceleration other) { value_.value_ += other.value_.value_; return *this; }
 
         bool operator == (TileSpeed other) { return value_.value_ == other.value_.value_; }
+        bool operator <= (TileSpeed other) { return value_.value_ <= other.value_.value_; }
         bool operator >= (TileSpeed other) { return value_.value_ >= other.value_.value_; }
 
         f32 get() { return (f32)value_.value_ / BASE_TILE_VALUE; }

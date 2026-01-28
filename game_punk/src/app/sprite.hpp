@@ -66,7 +66,7 @@ namespace game_punk
 }
 
 
-/* punk sprite acceleration */
+/* acceleration helpers */
 
 namespace game_punk
 {
@@ -79,19 +79,64 @@ namespace game_punk
     }
 
 
+    static TileAcc accelerate_stop(TileSpeed speed)
+    {
+        auto delta = TileValue::make(-speed.get());
+
+        return TileAcc::make(delta);
+    }
+
+
+    static constexpr TileAcc accelerate_px(f32 px)
+    {
+        return TileAcc::make(px_to_tile_value(px));
+    }
+
+
+    static constexpr TileSpeed speed_px(f32 px)
+    {
+        return TileSpeed::make(px_to_tile_value(px));
+    }
+}
+
+
+/* punk sprite acceleration */
+
+namespace game_punk
+{
+    
+
+
     static TileAcc accelerate_punk_idle_x(TileSpeed speed, TickQty32 time)
     {
-        return TileAcc::zero();
+        constexpr auto min_speed = TileValue::min_value() * 100;
+        constexpr auto zero = TileAcc::zero();
+
+        if (speed == TileSpeed::zero())
+        {
+            return zero;
+        }
+
+        if (math::abs(speed.get()) <= min_speed)
+        {
+            return accelerate_stop(speed);
+        }
+
+        auto delta = TileValue::make(-speed.get() / 8);
+
+        return TileAcc::make(delta);
     }
 
 
     static TileAcc accelerate_punk_run_x(TileSpeed speed, TickQty32 time)
-    {        
-        constexpr auto max_speed = 1.0f / 16;
-        constexpr i32 n_ticks = 80;
-        constexpr auto run_speed = TileSpeed::make(TileValue::make(max_speed));
+    {      
+        constexpr i32 n_ticks = 60;  
+        constexpr i32 max_speed_px = 2;
+        constexpr f32 acc_px = (f32)max_speed_px / n_ticks;
+        
+        constexpr auto run_speed = speed_px(max_speed_px);
         constexpr auto zero = TileAcc::zero();
-        constexpr auto acc = TileAcc::make(TileValue::make(max_speed / n_ticks));
+        constexpr auto acc = accelerate_px(acc_px);
 
         return speed >= run_speed ? zero : acc;
     }
@@ -99,7 +144,21 @@ namespace game_punk
 
     static TileAcc accelerate_punk_jump_y(TileSpeed speed, TickQty32 time)
     {
-        return TileAcc::zero();
+
+
+        switch (time.value_)
+        {
+        case 0: return accelerate_px(0.5f);
+        case 1: return accelerate_px(0.5f);
+        case 2: return accelerate_px(0.5f);
+        case 3: return accelerate_px(0.5f);
+        //case 4: return accelerate_px(-0.025f);
+        //case 60: return accelerate_stop(speed);
+        
+
+
+        default: return accelerate_px(-0.025f); // gravity
+        }        
     }
 
 }
@@ -115,6 +174,7 @@ namespace game_punk
 
         switch (mode)
         {
+        case Mode::Idle: return accelerate_punk_idle_x;
         case Mode::Run: return accelerate_punk_run_x;
 
         default: return accelerate_zero;
@@ -255,15 +315,34 @@ namespace game_punk
 
         SpriteView get_bitmap(VecSpeed vel, TickQty32 time) const
         {
+            constexpr auto speed_low_px = 1.0f;
+
+            auto speed_y = vel.y;
+
             u32 bitmap_id = 0;
 
-            auto t = time.value_ % bitmap_count;
-
-            /*switch (vel.y)
+            if (speed_y >= TileSpeed::zero())
             {
-            case 0:
-                break;
-            }*/
+                if (speed_y >= speed_px(speed_low_px))
+                {
+                    bitmap_id = 0;
+                }
+                else
+                {
+                    bitmap_id = 1;
+                }
+            }
+            else
+            {
+                if (speed_y >= speed_px(-speed_low_px))
+                {
+                    bitmap_id = 2;
+                }
+                else
+                {
+                    bitmap_id = 3;
+                }
+            }
 
             return base.bitmap_at(bitmap_id);
         }
