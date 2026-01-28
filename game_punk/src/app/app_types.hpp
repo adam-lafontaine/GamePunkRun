@@ -1082,12 +1082,10 @@ namespace game_punk
             gpd.btn_north.pressed;
 
         cmd.camera.move = 0;
-        cmd.camera.up = kbd.kbd_up.is_down || gpd.btn_dpad_up.is_down;
-        cmd.camera.down = kbd.kbd_down.is_down || gpd.btn_dpad_down.is_down;
-        cmd.camera.right =  kbd.kbd_right.is_down || gpd.btn_dpad_right.is_down;
-        cmd.camera.left = kbd.kbd_left.is_down || gpd.btn_dpad_left.is_down;
-
-        //cmd.camera.move = 0; // disable
+        cmd.camera.up    = kbd.kbd_up.is_down    || gpd.btn_dpad_up.is_down;
+        cmd.camera.down  = kbd.kbd_down.is_down  || gpd.btn_dpad_down.is_down;
+        cmd.camera.right = kbd.kbd_right.is_down || gpd.btn_dpad_right.is_down;
+        cmd.camera.left  = kbd.kbd_left.is_down  || gpd.btn_dpad_left.is_down;
 
         return cmd;
     }

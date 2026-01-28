@@ -36,10 +36,10 @@ public:
     b8 dpad_down = 0;
     b8 dpad_left = 0;
     b8 dpad_right = 0;
-    b8 btn_a = 0;
-    b8 btn_b = 0;
-    b8 btn_x = 0;
-    b8 btn_y = 0;    
+    b8 btn_a_south = 0;
+    b8 btn_b_east = 0;
+    b8 btn_x_west = 0;
+    b8 btn_y_north = 0;    
 };
 
 
@@ -55,10 +55,10 @@ union EmState
         u32 has_dpad_down:1;
         u32 has_dpad_left:1;
         u32 has_dpad_right:1;
-        u32 has_btn_a:1;
-        u32 has_btn_b:1;
-        u32 has_btn_x:1;
-        u32 has_btn_y:1;
+        u32 has_btn_a_south:1;
+        u32 has_btn_b_east:1;
+        u32 has_btn_x_west:1;
+        u32 has_btn_y_north:1;
     };
 };
 
@@ -72,14 +72,14 @@ static void read_controller_state(EmControllerState state, input::GamepadInput c
 		new_state.raised = old_state.is_down && !is_down;
     };
 
-    record_button_state(prev.btn_dpad_up, curr.btn_dpad_up, state.dpad_up);
-    record_button_state(prev.btn_dpad_down, curr.btn_dpad_down, state.dpad_down);
-    record_button_state(prev.btn_dpad_left, curr.btn_dpad_left, state.dpad_left);
+    record_button_state(prev.btn_dpad_up,    curr.btn_dpad_up, state.dpad_up);
+    record_button_state(prev.btn_dpad_down,  curr.btn_dpad_down, state.dpad_down);
+    record_button_state(prev.btn_dpad_left,  curr.btn_dpad_left, state.dpad_left);
     record_button_state(prev.btn_dpad_right, curr.btn_dpad_right, state.dpad_right);
-    record_button_state(prev.btn_south, curr.btn_south, state.btn_a);
-    record_button_state(prev.btn_east, curr.btn_east, state.btn_b);
-    record_button_state(prev.btn_west, curr.btn_west, state.btn_x);
-    record_button_state(prev.btn_north, curr.btn_north, state.btn_y);
+    record_button_state(prev.btn_south,      curr.btn_south, state.btn_a_south);
+    record_button_state(prev.btn_east,       curr.btn_east, state.btn_b_east);
+    record_button_state(prev.btn_west,       curr.btn_west, state.btn_x_west);
+    record_button_state(prev.btn_north,      curr.btn_north, state.btn_y_north);
 }
 
 
@@ -148,22 +148,22 @@ int update_em_controller(char btn, int is_down)
 
     case 'a':
     case 'A':
-        mv::em_controller.btn_a = btn_down;
+        mv::em_controller.btn_a_south = btn_down;
         break;
 
     case 'b':
     case 'B':
-        mv::em_controller.btn_b = btn_down;
+        mv::em_controller.btn_b_east = btn_down;
         break;
 
     case 'x':
     case 'X':
-        mv::em_controller.btn_x = btn_down;
+        mv::em_controller.btn_x_west = btn_down;
         break;
 
     case 'y':
     case 'Y':
-        mv::em_controller.btn_y = btn_down;
+        mv::em_controller.btn_y_north = btn_down;
         break;
 
     default: return -1;
@@ -222,23 +222,21 @@ static bool window_create(Vec2Du32 game_dims, InitParams const& params)
     auto scale_w = (f32)max_w / game_w;
     auto scale_h = (f32)max_h / game_h;
 
-    auto scale = math::min(scale_w, scale_h);
+    // assume mobile screen height is greater
+    auto scale = params.is_mobile ? scale_w : math::min(scale_w, scale_h);
+
+    auto w = math::cxpr::round_to_unsigned<u32>(scale * game_w);
+    auto h = math::cxpr::round_to_unsigned<u32>(scale * game_h);
 
 #ifdef APP_ROTATE_90
 
     // rotated
-    auto w = math::cxpr::round_to_unsigned<u32>(scale * game_dims.y);
-    auto h = math::cxpr::round_to_unsigned<u32>(scale * game_dims.x);
-
-    Vec2Du32 window_dims = { w, h };
+    Vec2Du32 window_dims = { h, w };
 
     return window::create(mv::window, game::APP_TITLE, window_dims, game_dims, mv::GAME_ROTATE);
 
-#else
+#else    
     
-    auto w = math::cxpr::round_to_unsigned<u32>(scale * game_dims.x);
-    auto h = math::cxpr::round_to_unsigned<u32>(scale * game_dims.y);
-
     Vec2Du32 window_dims = { w, h };
 
     return window::create(mv::window, game::APP_TITLE, window_dims, game_dims);
@@ -363,7 +361,8 @@ static void print_controls()
     "|                          | Gamepad  | Keyboard    |\n" 
     "| Gameplay Controls        | (mobile) | (desktop)   |\n" 
     "|__________________________|__________|_____________|\n"
-    "| Action/Change animation  | A        | Spacebar    |\n"
+    "| Run/Stop                 | A        | Enter       |\n"
+    "| Jump                     | Y        | Spacebar    |\n"
     "|__________________________|__________|_____________|\n"
     "\n"
     " ___________________________________________________\n"
@@ -491,10 +490,10 @@ extern "C"
         state.has_dpad_down  = 1;
         state.has_dpad_left  = 1;
         state.has_dpad_right = 1;
-        state.has_btn_a     = 1;
-        state.has_btn_b     = 0;
-        state.has_btn_x     = 0;
-        state.has_btn_y     = 0;
+        state.has_btn_a_south     = 1;
+        state.has_btn_b_east     = 0;
+        state.has_btn_x_west     = 0;
+        state.has_btn_y_north     = 1;
 
         return state.state;
     }
