@@ -644,6 +644,7 @@ namespace game_punk
     using SceneDim = units::SceneDimension;
     using TileDim = units::TileDimension;
 
+    using TileValue = units::TileValue;
     using TileAcc = units::TileAcceleration;
     using TileSpeed = units::TileSpeed;
     using TileDelta = units::TileDelta;
@@ -665,7 +666,8 @@ namespace game_punk
 
     static TileDelta to_delta_tile(f32 delta_px)
     {
-        return TileDelta::make(delta_px / cxpr::TILE_WIDTH_PX);
+        auto value = TileValue::make(delta_px / cxpr::TILE_WIDTH_PX);
+        return TileDelta::make(value);
     }
 
 

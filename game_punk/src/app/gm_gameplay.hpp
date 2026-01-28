@@ -33,8 +33,8 @@ namespace internal
 
     static void init_tiles(StateData& data)
     {
-        const auto zero = TileDim::zero();
-        const auto one = units::TileDelta::make(1.0f);
+        constexpr auto zero = TileDim::zero();
+        constexpr auto one = TileDelta::make(TileValue::make(1.0f));
 
         auto& src = data.tile_state;
         auto& bitmaps = data.tile_bitmaps;
@@ -124,7 +124,7 @@ namespace internal
 
     static void update_tiles(StateData& data)
     {
-        constexpr auto one = units::TileDelta::make(1.0f);
+        constexpr auto one = TileDelta::make(TileValue::make(1.0f));
         constexpr auto tile_w = cxpr::TILE_WIDTH_PX;
         constexpr auto limit = (i32)(cxpr::GAME_BACKGROUND_WIDTH_PX - 2 * tile_w);
 

@@ -105,7 +105,7 @@ namespace internal
         auto vel = data.sprites.get_tile_velocity(id);
 
         ImGui::Text("Position: (%4.1f, %4.1f)", pos.x.get(), pos.y.get());
-        ImGui::Text("Velocity: (%3.2f, %3.2f), ", vel.x.get(), vel.y.get());
+        ImGui::Text("Velocity: (%4.3f, %4.3f), ", vel.x.get(), vel.y.get());
 
         /*static int v = 0;
 
@@ -283,7 +283,7 @@ namespace internal
             ImGui::Text("(%4.0f, %4.0f)", pos.x.get(), pos.y.get());
 
             ImGui::TableSetColumnIndex(col_vel);
-            ImGui::Text("(%3.2f, %3.2f)", vel.x.get(), vel.y.get());
+            ImGui::Text("(%4.3f, %4.3f)", vel.x.get(), vel.y.get());
 
             ImGui::TableSetColumnIndex(col_active);
             ImGui::Text("%d", game::is_spawned(table, id));

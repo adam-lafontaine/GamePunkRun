@@ -79,9 +79,21 @@ namespace game_punk
     }
 
 
-    static TileAcc accelerate_punk_run_x(TileSpeed speed, TickQty32 time)
+    static TileAcc accelerate_punk_idle_x(TileSpeed speed, TickQty32 time)
     {
         return TileAcc::zero();
+    }
+
+
+    static TileAcc accelerate_punk_run_x(TileSpeed speed, TickQty32 time)
+    {        
+        constexpr auto max_speed = 1.0f / 16;
+        constexpr i32 n_ticks = 80;
+        constexpr auto run_speed = TileSpeed::make(TileValue::make(max_speed));
+        constexpr auto zero = TileAcc::zero();
+        constexpr auto acc = TileAcc::make(TileValue::make(max_speed / n_ticks));
+
+        return speed >= run_speed ? zero : acc;
     }
 
 
@@ -97,7 +109,7 @@ namespace game_punk
 
 namespace game_punk
 {
-    static AccelerateFn get_punk_accelerate_fn_x(SpriteMode mode)
+    static AccelerateFn get_punk_accelerate_x_fn(SpriteMode mode)
     {
         using Mode = SpriteMode;
 
@@ -110,14 +122,14 @@ namespace game_punk
     }
 
 
-    static AccelerateFn get_accelerate_fn_x(SpriteName sprite, SpriteMode mode)
+    static AccelerateFn get_accelerate_x_fn(SpriteName sprite, SpriteMode mode)
     {
         using Sprite = SpriteName;
         using Mode = SpriteMode;
 
         switch (sprite)
         {
-        case Sprite::Punk: return get_punk_accelerate_fn_x(mode);
+        case Sprite::Punk: return get_punk_accelerate_x_fn(mode);
 
         default: return accelerate_zero;
         }
@@ -129,7 +141,7 @@ namespace game_punk
 
 namespace game_punk
 {
-    static AccelerateFn get_punk_accelerate_fn_y(SpriteMode mode)
+    static AccelerateFn get_punk_accelerate_y_fn(SpriteMode mode)
     {
         using Mode = SpriteMode;
 
@@ -142,14 +154,14 @@ namespace game_punk
     }
 
 
-    static AccelerateFn get_accelerate_fn_y(SpriteName sprite, SpriteMode mode)
+    static AccelerateFn get_accelerate_y_fn(SpriteName sprite, SpriteMode mode)
     {
         using Sprite = SpriteName;
         using Mode = SpriteMode;
 
         switch (sprite)
         {
-        case Sprite::Punk: return get_punk_accelerate_fn_y(mode);
+        case Sprite::Punk: return get_punk_accelerate_y_fn(mode);
 
         default: return accelerate_zero;
         }
@@ -402,8 +414,10 @@ namespace game_punk
         BitmapID* bitmap_id = 0;
         
         GameTick64& mode_begin_at(ID id) { return mode_begin[id.value_]; }
-        TileSpeed& velocity_x_at(ID id) { return speed_x[id.value_]; }
-        
+        //TileSpeed& velocity_x_at(ID id) { return speed_x[id.value_]; }
+
+        AccelerateFn& accelerate_x_at(ID id) { return accelerate_x[id.value_]; }
+        AccelerateFn& accelerate_y_at(ID id) { return accelerate_y[id.value_]; }        
         AnimateFn& animate_at(ID id) { return animate[id.value_]; }
 
         SpriteName get_name(ID id) const { return name[id.value_]; }
@@ -479,11 +493,11 @@ namespace game_punk
         auto tick_end = push_mem<GameTick64>(memory, n);
         ok &= tick_end.ok;
 
-        auto acc_fn_x = push_mem<AccelerateFn>(memory, n);
-        ok &= acc_fn_x.ok;
+        auto acc_x_fn = push_mem<AccelerateFn>(memory, n);
+        ok &= acc_x_fn.ok;
 
-        auto acc_fn_y = push_mem<AccelerateFn>(memory, n);
-        ok &= acc_fn_y.ok;
+        auto acc_y_fn = push_mem<AccelerateFn>(memory, n);
+        ok &= acc_y_fn.ok;
 
         auto acc_x = push_mem<TileAcc>(memory, n);
         ok &= acc_x.ok;
@@ -517,8 +531,8 @@ namespace game_punk
             table.mode_begin = mode_begin.data;
             table.tick_end = tick_end.data;
 
-            table.accelerate_x = acc_fn_x.data;
-            table.accelerate_y = acc_fn_y.data;
+            table.accelerate_x = acc_x_fn.data;
+            table.accelerate_y = acc_y_fn.data;
 
             table.acceleration_x = acc_x.data;
             table.acceleration_y = acc_y.data;
@@ -618,8 +632,8 @@ namespace game_punk
         table.mode_begin[i] = def.mode_begin;
         table.tick_end[i] = def.tick_end;
 
-        table.accelerate_x[i] = get_accelerate_fn_x(def.name, def.mode);
-        table.accelerate_y[i] = get_accelerate_fn_y(def.name, def.mode);
+        table.accelerate_x[i] = get_accelerate_x_fn(def.name, def.mode);
+        table.accelerate_y[i] = get_accelerate_y_fn(def.name, def.mode);
 
         table.acceleration_x[i] = TileAcc::zero();
         table.acceleration_y[i] = TileAcc::zero();
@@ -653,6 +667,8 @@ namespace game_punk
         auto name = table.get_name(id);
 
         table.mode_begin_at(id) = tick;
+        table.accelerate_x_at(id) = get_accelerate_x_fn(name, mode);
+        table.accelerate_y_at(id) = get_accelerate_y_fn(name, mode);
         table.animate_at(id) = get_animate_fn(name, mode);
     }
     
