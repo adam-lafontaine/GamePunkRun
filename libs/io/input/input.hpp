@@ -1,5 +1,13 @@
 #pragma once
 
+//#define NO_KEYBOARD
+//#define NO_MOUSE
+//#define NO_GAMEPAD
+//#define NO_JOYSTICK
+
+#define SINGLE_GAMEPAD
+#define SINGLE_JOYSTICK
+
 #include "../../util/types.hpp"
 #include "keyboard_input.hpp"
 #include "mouse_input.hpp"

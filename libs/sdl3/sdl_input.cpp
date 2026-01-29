@@ -161,6 +161,7 @@ namespace sdl
 #include "sdl_input_joystick.cpp"
 #include "sdl_input_keyboard.cpp"
 #include "sdl_input_mouse.cpp"
+#include "sdl_input_touch.cpp"
 
 
 /* api */
@@ -171,6 +172,8 @@ namespace input
     {
         constexpr auto gamepad = (N_GAMEPAD_BUTTONS > 0 || N_GAMEPAD_AXES > 0) ? SDL_INIT_GAMEPAD : 0u;
         constexpr auto joystick = (N_JOYSTICK_BUTTONS > 0 || N_JOYSTICK_AXES > 0) ? SDL_INIT_JOYSTICK : 0u;
+
+        
 
         return gamepad | joystick;
     }
@@ -214,11 +217,13 @@ namespace input
         while (SDL_PollEvent(&event))
         {
             sdl::handle_sdl_event(event, curr);
-            sdl::record_keyboard_input_event(event, prev.keyboard, curr.keyboard);
-            sdl::record_mouse_input_event(event, prev.mouse, curr.mouse);
             sdl::update_device_list(event, inputs);
+
+            sdl::record_keyboard_input_event(event, prev, curr);
+            sdl::record_mouse_input_event(event, prev, curr);
             sdl::record_gamepad_input_event(event, prev, curr);
             sdl::record_joystick_input_event(event, prev, curr);
+            sdl::record_touch_input_event(event, prev, curr);
         }
 
         sdl::record_gamepad_axes(curr);
@@ -244,11 +249,13 @@ namespace input
         {
             //sdl::handle_sdl_event(event, curr);
             handle_event(&event);
-            sdl::record_keyboard_input_event(event, prev.keyboard, curr.keyboard);
-            sdl::record_mouse_input_event(event, prev.mouse, curr.mouse);
             sdl::update_device_list(event, inputs);
+
+            sdl::record_keyboard_input_event(event, prev, curr);
+            sdl::record_mouse_input_event(event, prev, curr);
             sdl::record_gamepad_input_event(event, prev, curr);
             sdl::record_joystick_input_event(event, prev, curr);
+            sdl::record_touch_input_event(event, prev, curr);
         }
 
         sdl::record_gamepad_axes(curr);

@@ -1,8 +1,5 @@
 #pragma once
 
-//#define NO_JOYSTICK
-#define SINGLE_JOYSTICK
-
 #define JOYSTICK_BTN_0 1
 #define JOYSTICK_BTN_1 1
 #define JOYSTICK_BTN_2 1
