@@ -161,9 +161,9 @@ namespace sdl
 }
 
 
-#include "sdl_joystick.cpp"
-#include "sdl_keyboard.cpp"
-#include "sdl_mouse.cpp"
+#include "sdl_input_joystick.cpp"
+#include "sdl_input_keyboard.cpp"
+#include "sdl_input_mouse.cpp"
 
 
 /* api */
