@@ -1,9 +1,6 @@
 #include "../io/input/input_state.hpp"
-#include "../util/numeric.hpp"
+#include "../math/math.hpp"
 #include "sdl_include.hpp"
-
-
-namespace num = numeric;
 
 
 #define ASSERT_INPUT
@@ -38,19 +35,19 @@ namespace sdl
 {
     static f32 normalize_axis_value(Sint16 axis)
     {
-        constexpr num::MinMax<Sint16> mm_axis = {
+        constexpr math::MinMax<Sint16> mm_axis = {
             .min = SDL_JOYSTICK_AXIS_MIN,
             .max = SDL_JOYSTICK_AXIS_MAX
         };
 
-        constexpr num::MinMax<f32> mm_res = {
+        constexpr math::MinMax<f32> mm_res = {
             .min = -1.0f,
             .max = 1.0f
         };
 
-        f32 norm = num::lerp(axis, mm_axis, mm_res);
+        f32 norm = math::cxpr::lerp(axis, mm_axis, mm_res);
 
-        return num::abs(norm) < 0.3f ? 0.0f : norm;
+        return math::abs(norm) < 0.3f ? 0.0f : norm;
     }
 
 
@@ -59,7 +56,7 @@ namespace sdl
         auto& vec = vs.vec;
         auto& unit = vs.unit;
 
-        vs.magnitude = num::magnitude(vec);
+        vs.magnitude = math::magnitude(vec);
 
         auto mag = vs.magnitude > 0.0f ? vs.magnitude : 1.0f;
 
@@ -73,8 +70,8 @@ namespace sdl
         auto& vec = vs.vec;
         auto& unit = vs.unit;
 
-        vec.x = num::sign_i8(x);
-        vec.y = num::sign_i8(y);
+        vec.x = math::cxpr::sign_i8(x);
+        vec.y = math::cxpr::sign_i8(y);
 
         unit.x = (f32)vec.x;
         unit.y = (f32)vec.y;

@@ -215,6 +215,16 @@ namespace math
     f32 rhypot(f32 a, f32 b);
 
     f64 rhypot(f64 a, f64 b);
+
+
+    template <typename T>
+    inline f32 magnitude(Vec2D<T> const& vec)
+    {
+        auto const x = (f32)vec.x;
+        auto const y = (f32)vec.y;
+
+        return hypot(x, y);
+    }
 }
 
 

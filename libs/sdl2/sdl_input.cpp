@@ -1,10 +1,8 @@
 #pragma once
 
 #include "../io/input/input_state.hpp"
-#include "../util/numeric.hpp"
+#include "../math/math.hpp"
 #include "sdl_include.hpp"
-
-namespace num = numeric;
 
 
 #define ASSERT_INPUT
@@ -450,7 +448,7 @@ namespace sdl
 
         f32 norm = (f32)axis / 32767;
 
-        return num::abs(norm) < 0.3f ? 0.0f : num::clamp(norm, min, max);
+        return math::abs(norm) < 0.3f ? 0.0f : math::cxpr::clamp(norm, min, max);
     }
 
 
@@ -459,8 +457,8 @@ namespace sdl
         auto& vec = vs.vec;
         auto& unit = vs.unit;
 
-        vec.x = num::sign_i8(x);
-        vec.y = num::sign_i8(y);
+        vec.x = math::cxpr::sign_i8(x);
+        vec.y = math::cxpr::sign_i8(y);
 
         unit.x = (f32)vec.x;
         unit.y = (f32)vec.y;
@@ -485,7 +483,7 @@ namespace sdl
         vec.x = normalize_axis_value(x);
         vec.y = normalize_axis_value(y);
 
-        vs.magnitude = num::magnitude(vec);
+        vs.magnitude = math::magnitude(vec);
 
         auto mag = vs.magnitude > 0.0f ? vs.magnitude : 1.0f;
 
