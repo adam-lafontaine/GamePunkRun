@@ -19,13 +19,16 @@ namespace input
 {
 	union ButtonState
 	{
-		b8 states[3];
+		b8 states[4];
 		struct
 		{
 			b8 pressed;
 			b8 is_down;
 			b8 raised;
+			b8 pad;
 		};
+
+		u32 any;
 	};
 
 

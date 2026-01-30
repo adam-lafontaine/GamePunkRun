@@ -318,7 +318,46 @@ namespace input
 
 namespace input
 {
+	inline void copy_touch_gesture(TouchGesture const& src, TouchGesture& dst)
+	{
+		constexpr Point2Df32 zero = { 0 };
 
+		copy_button_state(src.btn_touch, dst.btn_touch);
+
+		dst.device_id = src.device_id;
+		dst.gesture_id = src.device_id ? src.gesture_id : 0;
+		dst.pos = src.device_id ? src.pos : zero;
+	}
+	
+	
+	inline void copy_touch_state(TouchInput const& src, TouchInput& dst)
+	{
+		for (u32 i = 0; i < TouchInput::count; i++)
+		{
+			auto& s = src.gestures[i];
+			auto& d = dst.gestures[i];
+			copy_touch_gesture(s, d);			
+		}
+	}
+
+
+	inline void reset_touch_gesture(TouchGesture& dst)
+	{
+		reset_button_state(dst.btn_touch);
+
+		dst.device_id = 0;
+		dst.gesture_id = 0;
+		dst.pos = { 0 };
+	}
+
+
+	inline void reset_touch_state(TouchInput& dst)
+	{
+		for (u32 i = 0; i < TouchInput::count; i++)
+		{
+			reset_touch_gesture(dst.gestures[i]);
+		}
+	}
 }
 
 
@@ -340,6 +379,8 @@ namespace input
 		{
 			copy_joystick_state(src.joysticks[i], dst.joysticks[i]);
 		}
+
+		copy_touch_state(src.touch, dst.touch);
 	}
 
 
@@ -361,5 +402,7 @@ namespace input
 		{
 			reset_joystick_state(input.joysticks[i]);
 		}
+
+		reset_touch_state(input.touch);
 	}
 }
