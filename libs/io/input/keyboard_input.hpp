@@ -134,3 +134,207 @@ namespace input
 
 #endif
 }
+
+
+
+/* keyboard */
+
+namespace input
+{
+	class KeyboardInput
+	{
+	public:
+		
+		union
+		{
+			ButtonState keys[N_KEYBOARD_KEYS];
+			
+			struct
+			{
+
+			#if KEYBOARD_A
+				ButtonState kbd_A;
+			#endif
+			#if KEYBOARD_B
+				ButtonState kbd_B;
+			#endif
+			#if KEYBOARD_C
+				ButtonState kbd_C;
+			#endif
+			#if KEYBOARD_D
+				ButtonState kbd_D;
+            #endif
+            #if KEYBOARD_E
+				ButtonState kbd_E;
+            #endif
+            #if KEYBOARD_F
+				ButtonState kbd_F;
+            #endif
+            #if KEYBOARD_G
+				ButtonState kbd_G;
+            #endif
+            #if KEYBOARD_H
+				ButtonState kbd_H;
+            #endif
+            #if KEYBOARD_I
+				ButtonState kbd_I;
+            #endif
+            #if KEYBOARD_J
+				ButtonState kbd_J;
+            #endif
+            #if KEYBOARD_K
+				ButtonState kbd_K;
+            #endif
+            #if KEYBOARD_L
+				ButtonState kbd_L;
+            #endif
+            #if KEYBOARD_M
+				ButtonState kbd_M;
+            #endif
+            #if KEYBOARD_N
+				ButtonState kbd_N;
+            #endif
+            #if KEYBOARD_O
+				ButtonState kbd_O;
+            #endif
+            #if KEYBOARD_P
+				ButtonState kbd_P;
+            #endif
+            #if KEYBOARD_Q
+				ButtonState kbd_Q;
+            #endif
+            #if KEYBOARD_R
+				ButtonState kbd_R;
+            #endif
+            #if KEYBOARD_S
+				ButtonState kbd_S;
+            #endif
+            #if KEYBOARD_T
+				ButtonState kbd_T;
+            #endif
+            #if KEYBOARD_U
+				ButtonState kbd_U;
+            #endif
+            #if KEYBOARD_V
+				ButtonState kbd_V;
+            #endif
+            #if KEYBOARD_W
+				ButtonState kbd_W;
+            #endif
+            #if KEYBOARD_X
+				ButtonState kbd_X;
+            #endif
+            #if KEYBOARD_Y
+				ButtonState kbd_Y;
+            #endif
+            #if KEYBOARD_Z
+				ButtonState kbd_Z;
+            #endif
+            #if KEYBOARD_0
+				ButtonState kbd_0;
+            #endif
+            #if KEYBOARD_1
+				ButtonState kbd_1;
+            #endif
+            #if KEYBOARD_2
+				ButtonState kbd_2;
+            #endif
+            #if KEYBOARD_3
+				ButtonState kbd_3;
+            #endif
+            #if KEYBOARD_4
+				ButtonState kbd_4;
+            #endif
+            #if KEYBOARD_5
+				ButtonState kbd_5;
+            #endif
+            #if KEYBOARD_6
+				ButtonState kbd_6;
+            #endif
+            #if KEYBOARD_7
+				ButtonState kbd_7;
+            #endif
+            #if KEYBOARD_8
+				ButtonState kbd_8;
+            #endif
+            #if KEYBOARD_9
+				ButtonState kbd_9;
+            #endif
+            #if KEYBOARD_UP
+				ButtonState kbd_up;
+            #endif
+            #if KEYBOARD_DOWN
+				ButtonState kbd_down;
+            #endif
+            #if KEYBOARD_LEFT
+				ButtonState kbd_left;
+            #endif
+            #if KEYBOARD_RIGHT
+				ButtonState kbd_right;
+            #endif
+            #if KEYBOARD_RETURN
+				ButtonState kbd_return;
+            #endif
+            #if KEYBOARD_ESCAPE
+				ButtonState kbd_escape;
+            #endif
+            #if KEYBOARD_SPACE
+				ButtonState kbd_space;
+            #endif
+            #if KEYBOARD_LSHIFT
+				ButtonState kbd_left_shift;
+            #endif
+            #if KEYBOARD_RSHIFT
+				ButtonState kbd_right_shift;
+            #endif
+            #if KEYBOARD_NUMPAD_0
+				ButtonState npd_0;
+            #endif
+            #if KEYBOARD_NUMPAD_1
+				ButtonState npd_1;
+            #endif
+            #if KEYBOARD_NUMPAD_2
+				ButtonState npd_2;
+            #endif
+            #if KEYBOARD_NUMPAD_3
+				ButtonState npd_3;
+            #endif
+            #if KEYBOARD_NUMPAD_4
+				ButtonState npd_4;
+            #endif
+            #if KEYBOARD_NUMPAD_5
+				ButtonState npd_5;
+            #endif
+            #if KEYBOARD_NUMPAD_6
+				ButtonState npd_6;
+            #endif
+            #if KEYBOARD_NUMPAD_7
+				ButtonState npd_7;
+            #endif
+            #if KEYBOARD_NUMPAD_8
+				ButtonState npd_8;
+            #endif
+            #if KEYBOARD_NUMPAD_9
+				ButtonState npd_9;
+            #endif
+            #if KEYBOARD_NUMPAD_PLUS
+				ButtonState npd_plus;
+            #endif
+            #if KEYBOARD_NUMPAD_MINUS
+				ButtonState npd_minus;
+            #endif
+            #if KEYBOARD_NUMPAD_MULTIPLY
+				ButtonState npd_mult;
+            #endif
+            #if KEYBOARD_NUMPAD_DIVIDE
+				ButtonState npd_div;
+            #endif
+            #if KEYBOARD_CTRL
+				ButtonState kbd_ctrl;
+			#endif
+
+			};
+
+		};
+	};
+}

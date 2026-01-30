@@ -28,3 +28,52 @@ namespace input
 
 #endif
 }
+
+
+/* mouse */
+
+namespace input
+{
+	class MouseInput
+	{
+	public:
+
+		u64 window_id;
+
+	#if MOUSE_POSITION
+
+		Point2Di32 window_pos;
+
+	#endif
+	#if MOUSE_WHEEL
+
+		Vec2Di32 wheel;
+
+	#endif
+
+		union
+		{
+			ButtonState buttons[N_MOUSE_BUTTONS];
+			struct
+			{
+			#if MOUSE_LEFT
+				ButtonState btn_left;
+			#endif
+			#if MOUSE_RIGHT
+				ButtonState btn_right;
+			#endif
+			#if MOUSE_MIDDLE
+				ButtonState btn_middle;
+			#endif
+			#if MOUSE_X1
+				ButtonState btn_x1;
+			#endif
+			#if MOUSE_X2
+				ButtonState btn_x2;
+			#endif
+			};
+		};
+
+	};
+}
+

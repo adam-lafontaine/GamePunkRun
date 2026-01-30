@@ -98,7 +98,7 @@ using Vec2Di64 = Vec2D<i64>;
 //using Vec2Df64 = Vec2D<f64>;
 
 using Point2Di32 = Point2D<i32>;
-//using Point2Df32 = Point2D<f32>;
+using Point2Df32 = Point2D<f32>;
 using Point2Du32 = Point2D<u32>;
 using Point2Du64 = Point2D<u64>;
 using Point2Di64 = Point2D<i64>;

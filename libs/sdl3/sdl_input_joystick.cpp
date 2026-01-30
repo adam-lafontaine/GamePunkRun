@@ -716,6 +716,7 @@ namespace sdl
         }
 
         input::record_button_input(btn_old, *btn_new, is_down);
+        input::set_gamepad_dpad_vector(new_gamepad);
     }
 
 
@@ -732,11 +733,13 @@ namespace sdl
     #if GAMEPAD_AXIS_STICK_LEFT
         gamepad.stick_left.vec.x = get_axis_value(SDL_GAMEPAD_AXIS_LEFTX);
         gamepad.stick_left.vec.y = get_axis_value(SDL_GAMEPAD_AXIS_LEFTY);
+        set_vector_state(gamepad.stick_left);
     #endif
 
     #if GAMEPAD_AXIS_STICK_RIGHT
         gamepad.stick_right.vec.x = get_axis_value(SDL_GAMEPAD_AXIS_RIGHTX);
         gamepad.stick_right.vec.y = get_axis_value(SDL_GAMEPAD_AXIS_RIGHTY);
+        set_vector_state(gamepad.stick_right);
     #endif
 
     #if GAMEPAD_TRIGGER_LEFT
@@ -749,28 +752,7 @@ namespace sdl
     }
 
 
-    static void set_gamepad_axis_vectors(GamepadInput& gamepad)
-    {
-    #if GAMEPAD_AXIS_STICK_LEFT
-        set_vector_state(gamepad.stick_left);
-    #endif
-
-    #if GAMEPAD_AXIS_STICK_RIGHT
-        set_vector_state(gamepad.stick_right);
-    #endif
-    }
     
-    
-    static void set_gamepad_dpad_vector(GamepadInput& gamepad)
-    {
-    #if GAMEPAD_BTN_DPAD_ALL
-
-        int x = gamepad.btn_dpad_right.is_down - gamepad.btn_dpad_left.is_down;
-        int y = gamepad.btn_dpad_down.is_down - gamepad.btn_dpad_up.is_down;
-
-        set_unit_vector_state(gamepad.vec_dpad, x, y);
-    #endif
-    }
 
 #endif
 
@@ -832,22 +814,7 @@ namespace sdl
     }
 
 
-    static void set_gamepad_vector_states(Input& curr)
-    {
-    #ifndef NO_GAMEPAD
-
-        for (u32 i = 0; i < input::MAX_GAMEPADS; i++)
-        {
-            auto& gp = curr.gamepads[i];
-            if (gp.is_active)
-            {
-                set_gamepad_axis_vectors(gp);
-                set_gamepad_dpad_vector(gp);
-            }
-        }
-
-    #endif
-    }
+    
 }
 
 

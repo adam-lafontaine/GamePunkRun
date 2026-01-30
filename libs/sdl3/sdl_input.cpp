@@ -33,7 +33,8 @@
 
 namespace sdl
 {
-    static f32 normalize_axis_value(Sint16 axis)
+
+	static f32 normalize_axis_value(Sint16 axis)
     {
         constexpr math::MinMax<Sint16> mm_axis = {
             .min = SDL_JOYSTICK_AXIS_MIN,
@@ -48,43 +49,6 @@ namespace sdl
         f32 norm = math::cxpr::lerp(axis, mm_axis, mm_res);
 
         return math::abs(norm) < 0.3f ? 0.0f : norm;
-    }
-
-
-    static void set_vector_state(input::VectorState<f32>& vs)
-    {
-        auto& vec = vs.vec;
-        auto& unit = vs.unit;
-
-        vs.magnitude = math::magnitude(vec);
-
-        auto mag = vs.magnitude > 0.0f ? vs.magnitude : 1.0f;
-
-        unit.x = vec.x / mag;
-        unit.y = vec.y / mag;
-    }
-
-
-    static void set_unit_vector_state(input::VectorState<i8>& vs, int x, int y)
-    {
-        auto& vec = vs.vec;
-        auto& unit = vs.unit;
-
-        vec.x = math::cxpr::sign_i8(x);
-        vec.y = math::cxpr::sign_i8(y);
-
-        unit.x = (f32)vec.x;
-        unit.y = (f32)vec.y;
-
-        constexpr f32 hypot = 1.4142135f;
-        constexpr f32 i_hypot = 1.0f / hypot;
-        
-        auto mag = (x || y) ? 1.0f : 0.0f;
-        auto i_mag = (x && y) ? i_hypot : (x || y) ? 1.0f : 0.0f;
-
-        vs.magnitude = mag;
-        unit.x *= i_mag;
-        unit.y *= i_mag;
     }
 
 
@@ -228,9 +192,6 @@ namespace input
 
         sdl::record_gamepad_axes(curr);
         sdl::record_joystick_axes(curr);
-
-        set_is_active(curr);
-        sdl::set_gamepad_vector_states(curr);
     }
 
 
@@ -260,8 +221,5 @@ namespace input
 
         sdl::record_gamepad_axes(curr);
         sdl::record_joystick_axes(curr);
-
-        set_is_active(curr);
-        sdl::set_gamepad_vector_states(curr);
     }
 }

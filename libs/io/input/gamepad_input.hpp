@@ -60,3 +60,86 @@ namespace input
 
 #endif
 }
+
+
+/* gamepad */
+
+namespace input
+{
+    class GamepadInput
+    {
+    public:
+    
+		u64 handle = 0;
+	
+        union
+        {
+            ButtonState buttons[N_GAMEPAD_BUTTONS];
+
+            struct
+            {
+			#if GAMEPAD_BTN_DPAD_UP
+                ButtonState btn_dpad_up;
+			#endif
+			#if GAMEPAD_BTN_DPAD_DOWN
+                ButtonState btn_dpad_down;
+			#endif
+			#if GAMEPAD_BTN_DPAD_LEFT
+                ButtonState btn_dpad_left;
+			#endif
+			#if GAMEPAD_BTN_DPAD_RIGHT
+                ButtonState btn_dpad_right;
+			#endif
+			#if GAMEPAD_BTN_START
+                ButtonState btn_start;
+			#endif
+			#if GAMEPAD_BTN_BACK
+                ButtonState btn_back;
+			#endif
+			#if GAMEPAD_BTN_SOUTH
+                ButtonState btn_south;
+			#endif
+			#if GAMEPAD_BTN_EAST
+                ButtonState btn_east;
+			#endif
+			#if GAMEPAD_BTN_WEST
+                ButtonState btn_west;
+			#endif
+			#if GAMEPAD_BTN_NORTH
+                ButtonState btn_north;
+			#endif
+			#if GAMEPAD_BTN_SHOULDER_LEFT
+                ButtonState btn_shoulder_left;
+			#endif
+			#if GAMEPAD_BTN_SHOULDER_RIGHT
+                ButtonState btn_shoulder_right;
+			#endif
+			#if GAMEPAD_BTN_STICK_LEFT
+                ButtonState btn_stick_left;
+			#endif
+			#if GAMEPAD_BTN_STICK_RIGHT
+                ButtonState btn_stick_right;
+			#endif
+            };            
+        };
+
+	#if GAMEPAD_AXIS_STICK_LEFT
+        VectorState<f32> stick_left;
+	#endif
+	#if GAMEPAD_AXIS_STICK_RIGHT
+        VectorState<f32> stick_right;
+	#endif
+	#if GAMEPAD_TRIGGER_LEFT
+        f32 trigger_left;
+	#endif
+	#if GAMEPAD_TRIGGER_RIGHT
+        f32 trigger_right;
+	#endif
+	#if GAMEPAD_BTN_DPAD_ALL
+		VectorState<i8> vec_dpad;
+	#endif	
+
+    };
+	
+}
+
