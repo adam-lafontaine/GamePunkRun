@@ -87,3 +87,53 @@ namespace audio
         return set_music_volume(set_sound_volume(volume));
     }
 }
+
+
+#ifdef NO_AUDIO
+
+namespace audio
+{
+    bool init_audio() { return true; }
+
+    void stop_audio() {}
+
+    void close_audio() {}
+
+
+    bool load_music_from_file(cstr music_file_path, Music& music) { return true; }
+
+    bool load_sound_from_file(cstr sound_file_path, Sound& sound) { return true; }
+
+    bool load_music_from_bytes(ByteView const& bytes, Music& music, cstr tag) { return true; }
+
+    bool load_sound_from_bytes(ByteView const& bytes, Sound& sound, cstr tag) { return true; }
+
+
+    f32 set_music_volume(f32 volume) { return 0.0f; }
+
+    f32 set_sound_volume(f32 volume) { return 0.0f; }
+
+    f32 set_sound_volume(Sound& sound, f32 volume) { return 0.0f; }
+
+
+    void play_music(Music& music) {}
+
+    void toggle_pause_music() {}
+
+    void stop_music() {}
+
+    void fade_in_music(Music& music, u32 fade_ms) {}
+
+    void fade_out_music(u32 fade_ms) {}
+
+
+    void play_sound(Sound& sound) {}
+
+    void play_sound_loop(Sound& sound) {}
+
+    void stop_sound(Sound& sound) {}
+
+    void stop_sound() {}
+}
+
+#endif
