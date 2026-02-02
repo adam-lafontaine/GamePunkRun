@@ -29,11 +29,11 @@ namespace assets
 {
 #ifdef _WIN32
 
-    constexpr auto BIN_DATA_FALLBACK = R"(C:\D_Data\Repos\GameEPC2\engine\src\io_test\res\io_test_data.bin)";
+    constexpr auto BIN_DATA_FALLBACK = R"(C:\D_Data\Repos\GamePunkRun\engine\src\io_test\res\io_test_data.bin)";
 
 #else
 
-    constexpr auto BIN_DATA_FALLBACK = "/home/adam/Repos/GameEPC2/engine/src/io_test/res/io_test_data.bin";
+    constexpr auto BIN_DATA_FALLBACK = "/home/adam/Repos/GamePunkRun/engine/src/io_test/res/io_test_data.bin";
 
 #endif
     
