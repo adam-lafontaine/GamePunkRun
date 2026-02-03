@@ -18,7 +18,9 @@ https://itch.io/c/2053292/cyberpunk-pixel-art
 
 
 ### v0.4.1
-* [ ] Enable touch input SDL3
+* [x] Disable audio for SDL3
+* [x] Disable filesystem for WASM
+* [x] Enable touch input SDL3
 
 ### v0.4.0
 * [x] Pre-load background filters
