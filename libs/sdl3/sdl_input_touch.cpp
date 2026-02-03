@@ -15,7 +15,7 @@ namespace sdl
         for (i32 i = 0; i < N; i++)
         {
             auto& item = touch.gestures[i];
-            if (!item.device_id)
+            if (!item.is_active)
             {
                 item.device_id = d;
                 item.gesture_id = g;
@@ -70,6 +70,8 @@ namespace sdl
             {
                 return;
             }
+
+            is_down = true;
 
             auto& p = prev.touch.gestures[id];
             auto& c = curr.touch.gestures[id];

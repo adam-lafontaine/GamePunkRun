@@ -27,6 +27,32 @@ constexpr f64 TARGET_MS_PER_FRAME = TARGET_NS_PER_FRAME / MICRO;
 using Stopwatch = dt::StopwatchNS;
 
 
+static void map_touch_input(input::Input& input)
+{
+    auto& src = input.touch;
+    auto& dst = input.gamepads[0];
+
+    static int count = 0;
+
+    for (u32 i = 0; i < src.count; i++)
+    {
+        auto& item = src.gestures[i];
+
+        if (!item.is_active)
+        {
+            continue;
+        }
+
+        if (item.pos.x > 0.0f && item.pos.x < 1.0f && item.pos.y > 0.0f && item.pos.y < 1.0f)
+        {
+            printf("Touch %d\n", count++);
+            dst.btn_south.any = item.btn_touch.any;
+            return;
+        }
+    }
+}
+
+
 /* static main variables */
 
 enum class RunState : int
@@ -232,7 +258,8 @@ static void main_loop()
     }
 
     //read_controller_state(mv::em_controller, prev.gamepads[0], input.gamepads[0]);
-    // map touch to gamepad
+    
+    map_touch_input(input);
 
     game::update(mv::app_state, input);
 

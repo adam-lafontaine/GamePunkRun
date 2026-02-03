@@ -13,7 +13,12 @@ namespace input
     {
     public:
         
-        u64 device_id = 0;
+        union 
+        {
+            u64 device_id = 0;
+            u64 is_active;
+        };
+        
         u64 gesture_id = 0;
 
         Point2Df32 pos = { 0 };
