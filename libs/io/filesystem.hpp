@@ -98,3 +98,18 @@ namespace fs
 
     void select_image_file(SingleFileResult* result);
 }
+
+
+#ifdef NO_FILESYSTEM
+
+namespace fs
+{
+    u32 file_size(cstr file_path) { return 0; }
+
+    MemoryBuffer<u8> read_bytes(cstr path) { MemoryBuffer<u8> b; return b; }
+
+    void select_image_file(SingleFileResult* result) {}
+}
+
+
+#endif

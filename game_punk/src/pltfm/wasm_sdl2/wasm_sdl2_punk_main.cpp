@@ -261,7 +261,7 @@ static void window_render(b8 window_size_changed)
 }
 
 
-img::ImageView make_window_view()
+static img::ImageView make_window_view()
 {
     static_assert(window::PIXEL_SIZE == sizeof(img::Pixel));
 
@@ -298,8 +298,7 @@ static bool main_init(InitParams const& params)
     auto h = params.max_height;
 
     Vec2Du32 dims = { w, h };
-
-    //auto result = game::init(mv::app_state, dims);
+    
     auto result = game::init(mv::app_state);
     if (!result.success)
     {
@@ -408,12 +407,6 @@ static void print_credits()
 }
 
 
-static void print_messages()
-{
-
-}
-
-
 int main(int argc, char* argv[])
 {
     InitParams params{};
@@ -446,9 +439,7 @@ int main(int argc, char* argv[])
         break;
     }
 
-    printf("\n%s v%s | %s\n\n", game::APP_TITLE, game::VERSION, game::DATE);
-
-    
+    printf("\n%s v%s | %s\n\n", game::APP_TITLE, game::VERSION, game::DATE);    
 
     if (!main_init(params))
     {
@@ -457,7 +448,6 @@ int main(int argc, char* argv[])
 
     print_controls();
     print_credits();
-    print_messages();
 
     emscripten_set_main_loop(main_loop, 0, 1);
 

@@ -11,11 +11,14 @@ https://itch.io/c/2053292/cyberpunk-pixel-art
 ## Change Log
 
 ### TODO
+* [ ] Update audio SDL3_mixer
 * [ ] Refactor font and icons
 * [ ] Name UI icons
-
 * [ ] Single asset color table
 
+
+### v0.4.1
+* [ ] Enable touch input SDL3
 
 ### v0.4.0
 * [x] Pre-load background filters

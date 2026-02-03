@@ -26,10 +26,13 @@
 #include "../../../../libs/image/image.cpp"
 #include "../../../../libs/sdl3/sdl_input.cpp"
 #include "../../../../libs/sdl3/sdl_window.cpp"
-#include "../../../../libs/sdl3/sdl_filesystem.cpp"
 #include "../../../../libs/sdl3/sdl_datetime.cpp"
 #include "../../../../libs/sdl3/sdl_message.cpp"
 #include "../../../../libs/sdl3/sdl_stb_libs.cpp"
+
+#ifndef NO_FILESYSTEM
+#include "../../../../libs/sdl3/sdl_filesystem.cpp"
+#endif
 
 #ifndef NO_AUDIO
 #include "../../../../libs/sdl3/sdl_audio.cpp"
