@@ -20,6 +20,7 @@ const cpp_flags = &[_][]const u8{
     "-DGAME_PUNK_RELEASE",
     "-DAPP_ROTATE_90",
     "-DIMAGE_READ",
+    "-DNO_AUDIO",
 };
 
 

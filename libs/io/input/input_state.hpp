@@ -35,9 +35,10 @@ namespace input
 
 	inline void reset_button_state(ButtonState& btn)
 	{
-		btn.is_down = 0;
-		btn.pressed = 0;
-		btn.raised = 0;
+		//btn.is_down = 0;
+		//btn.pressed = 0;
+		//btn.raised = 0;
+		btn.any = 0;
 	}
 
 

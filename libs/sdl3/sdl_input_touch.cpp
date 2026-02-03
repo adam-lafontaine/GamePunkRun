@@ -56,12 +56,16 @@ namespace sdl
     #ifndef NO_TOUCH
 
         bool is_down = false;
+        SDL_TouchID device = 0;
+        SDL_FingerID gesture = 0;
 
         switch (event.type)
         {
         case SDL_EVENT_FINGER_DOWN:
         {
-            auto id = spawn_gesture(curr.touch, event.tfinger.touchID, event.tfinger.fingerID);
+            device = event.tfinger.touchID;
+            gesture = event.tfinger.fingerID;
+            auto id = spawn_gesture(curr.touch, device, gesture);
             if (id < 0)
             {
                 return;
@@ -79,7 +83,9 @@ namespace sdl
 
         case SDL_EVENT_FINGER_UP:
         { 
-            auto id = find_gesture(curr.touch, event.tfinger.touchID, event.tfinger.fingerID);
+            device = event.tfinger.touchID;
+            gesture = event.tfinger.fingerID;
+            auto id = find_gesture(curr.touch, device, gesture);
             if (id < 0)
             {
                 return;
@@ -102,7 +108,9 @@ namespace sdl
 
         case SDL_EVENT_FINGER_MOTION:
         { 
-            auto id = find_gesture(curr.touch, event.tfinger.touchID, event.tfinger.fingerID);
+            device = event.tfinger.touchID;
+            gesture = event.tfinger.fingerID;
+            auto id = find_gesture(curr.touch, device, gesture);
             if (id < 0)
             {
                 return;
