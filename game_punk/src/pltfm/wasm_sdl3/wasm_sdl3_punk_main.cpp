@@ -45,7 +45,6 @@ static void map_touch_input(input::Input& input)
 
         if (item.pos.x > 0.0f && item.pos.x < 1.0f && item.pos.y > 0.0f && item.pos.y < 1.0f)
         {
-            printf("Touch %d\n", count++);
             dst.btn_south.any = item.btn_touch.any;
             return;
         }
