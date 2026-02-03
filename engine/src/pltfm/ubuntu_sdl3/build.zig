@@ -23,6 +23,7 @@ const cpp_flags = &[_][]const u8{
     "-DIMAGE_WRITE",
     "-DALLOC_COUNT",
     //"-DNDEBUG",
+    "-DNO_AUDIO",
 };
 
 

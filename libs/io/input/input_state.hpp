@@ -1,15 +1,13 @@
 #pragma once
 
 #include "input.hpp"
-#include "../../util/numeric.hpp"
+#include "../../math/math.hpp"
 
 
 /* helpers */
 
 namespace input
 {
-	namespace num = numeric;
-
 	
 	inline void record_button_input(ButtonState const& old_state, ButtonState& new_state, b32 is_down)
 	{
@@ -37,9 +35,10 @@ namespace input
 
 	inline void reset_button_state(ButtonState& btn)
 	{
-		btn.is_down = 0;
-		btn.pressed = 0;
-		btn.raised = 0;
+		//btn.is_down = 0;
+		//btn.pressed = 0;
+		//btn.raised = 0;
+		btn.any = 0;
 	}
 
 
@@ -74,7 +73,56 @@ namespace input
 		reset_vec_2d(vs.vec);
 		vs.magnitude = 0.0f;
 		reset_vec_2d(vs.unit);
-	}	
+	}
+
+
+    static void set_vector_state(input::VectorState<f32>& vs)
+    {
+        auto vec = vs.vec;
+        auto& unit = vs.unit;
+
+        vs.magnitude = math::magnitude(vec);
+
+        auto mag = vs.magnitude > 0.0f ? vs.magnitude : 1.0f;
+
+        unit.x = vec.x / mag;
+        unit.y = vec.y / mag;
+    }
+
+
+    static void set_unit_vector_state(input::VectorState<i8>& vs, int x, int y)
+    {
+        auto& vec = vs.vec;
+        auto& unit = vs.unit;
+
+        vec.x = math::cxpr::sign_i8(x);
+        vec.y = math::cxpr::sign_i8(y);
+
+        unit.x = (f32)vec.x;
+        unit.y = (f32)vec.y;
+
+        constexpr f32 hypot = 1.4142135f;
+        constexpr f32 i_hypot = 1.0f / hypot;
+        
+        auto mag = (x || y) ? 1.0f : 0.0f;
+        auto i_mag = (x && y) ? i_hypot : (x || y) ? 1.0f : 0.0f;
+
+        vs.magnitude = mag;
+        unit.x *= i_mag;
+        unit.y *= i_mag;
+    }
+    
+    
+    static void set_gamepad_dpad_vector(GamepadInput& gamepad)
+    {
+    #if GAMEPAD_BTN_DPAD_ALL
+
+        int x = gamepad.btn_dpad_right.is_down - gamepad.btn_dpad_left.is_down;
+        int y = gamepad.btn_dpad_down.is_down - gamepad.btn_dpad_up.is_down;
+
+        set_unit_vector_state(gamepad.vec_dpad, x, y);
+    #endif
+    }
 }
 
 
@@ -82,25 +130,12 @@ namespace input
 
 namespace input
 {
-	inline void set_is_active(KeyboardInput& kbd)
-	{
-		kbd.is_active = false;
-
-		for (u32 i = 0; i < N_KEYBOARD_KEYS; ++i)
-		{
-			kbd.is_active |= kbd.keys[i].is_down;
-		}
-	}
-
-
 	inline void copy_keyboard_state(KeyboardInput const& src, KeyboardInput& dst)
 	{
 		for (u32 i = 0; i < N_KEYBOARD_KEYS; ++i)
 		{
 			copy_button_state(src.keys[i], dst.keys[i]);
 		}
-
-		set_is_active(dst);
 	}
 
 
@@ -110,8 +145,6 @@ namespace input
 		{
 			reset_button_state(kbd.keys[i]);
 		}
-
-		kbd.is_active = false;
 	}
 }
 
@@ -119,25 +152,7 @@ namespace input
 /* mouse */
 
 namespace input
-{
-	inline void set_is_active(MouseInput& mouse)
-	{
-		// .is_active is initially set in event listener
-
-	#if MOUSE_POSITION
-
-	#endif
-	#if MOUSE_WHEEL
-
-	#endif
-
-		for (u32 i = 0; i < N_MOUSE_BUTTONS; ++i)
-		{
-			mouse.is_active |= mouse.buttons[i].is_down;
-		}
-	}
-
-	
+{	
 	inline void copy_mouse_position(MouseInput const& src, MouseInput& dst)
 	{
 	#if MOUSE_POSITION
@@ -171,9 +186,6 @@ namespace input
 
 		copy_mouse_position(src, dst);
 		reset_mouse_wheel(dst);
-
-		dst.is_active = false;
-		set_is_active(dst);
 	}
 
 
@@ -186,7 +198,6 @@ namespace input
 
 		reset_mouse_position(mouse);
 		reset_mouse_wheel(mouse);
-		mouse.is_active = false;
 	}
 
 	
@@ -197,37 +208,6 @@ namespace input
 
 namespace input
 {
-	inline void set_is_active(GamepadInput& gamepad)
-    {
-        gamepad.is_active = false ||
-
-	#if GAMEPAD_TRIGGER_LEFT
-        gamepad.trigger_left != 0.0f ||
-	#endif
-	#if GAMEPAD_TRIGGER_RIGHT
-        gamepad.trigger_right != 0.0f ||
-	#endif
-
-	#if GAMEPAD_AXIS_STICK_LEFT
-        gamepad.stick_left.vec.x != 0.0f ||
-		gamepad.stick_left.vec.y != 0.0f ||
-	#endif
-	#if GAMEPAD_AXIS_STICK_RIGHT
-        gamepad.stick_right.vec.x != 0.0f ||
-		gamepad.stick_right.vec.y != 0.0f ||
-	#endif
-        false;
-
-		if (!gamepad.is_active)
-		{
-			for (u32 i = 0; i < N_GAMEPAD_BUTTONS; i++)
-			{
-				gamepad.is_active |= gamepad.buttons[i].is_down;
-			}
-		}
-    }
-
-
 	inline void copy_gamepad_axes(GamepadInput const& src, GamepadInput& dst)
 	{
 	#if GAMEPAD_AXIS_STICK_LEFT
@@ -283,9 +263,8 @@ namespace input
 			copy_button_state(src.buttons[i], dst.buttons[i]);
 		}
 		
-		reset_gamepad_axes(dst);
-		reset_gamepad_triggers(dst);
-		dst.is_active = false;
+		copy_gamepad_axes(src, dst);
+		copy_gamepad_triggers(src, dst);
 	}
 
 
@@ -298,9 +277,6 @@ namespace input
 
 		reset_gamepad_axes(gamepad);
 		reset_gamepad_triggers(gamepad);
-
-		gamepad.is_active = false;
-		set_is_active(gamepad);
 	}
 	
 }
@@ -310,22 +286,6 @@ namespace input
 
 namespace input
 {
-	inline void set_is_active(JoystickInput& jsk)
-	{
-		jsk.is_active = false;
-
-		for (u32 i = 0; i < N_JOYSTICK_BUTTONS; ++i)
-		{
-			jsk.is_active |= jsk.buttons[i].is_down;
-		}
-
-		for (u32 i = 0; i < N_GAMEPAD_AXES; ++i)
-		{
-			jsk.is_active |= num::abs(jsk.axes[i]) > 0.001f;
-		}
-	}
-
-
 	inline void copy_joystick_state(JoystickInput const& src, JoystickInput& dst)
 	{
 		for (u32 i = 0; i < N_JOYSTICK_BUTTONS; ++i)
@@ -337,8 +297,6 @@ namespace input
 		{
 			dst.axes[i] = 0.0f;
 		}
-
-		set_is_active(dst);
 	}
 
 
@@ -353,8 +311,53 @@ namespace input
 		{
 			jsk.axes[i] = 0.0f;
 		}
+	}
+}
 
-		jsk.is_active = false;
+
+/* touch */
+
+namespace input
+{
+	inline void copy_touch_gesture(TouchGesture const& src, TouchGesture& dst)
+	{
+		constexpr Point2Df32 zero = { 0 };
+
+		copy_button_state(src.btn_touch, dst.btn_touch);
+
+		dst.device_id = src.device_id;
+		dst.gesture_id = src.device_id ? src.gesture_id : 0;
+		dst.pos = src.device_id ? src.pos : zero;
+	}
+	
+	
+	inline void copy_touch_state(TouchInput const& src, TouchInput& dst)
+	{
+		for (u32 i = 0; i < TouchInput::count; i++)
+		{
+			auto& s = src.gestures[i];
+			auto& d = dst.gestures[i];
+			copy_touch_gesture(s, d);			
+		}
+	}
+
+
+	inline void reset_touch_gesture(TouchGesture& dst)
+	{
+		reset_button_state(dst.btn_touch);
+
+		dst.device_id = 0;
+		dst.gesture_id = 0;
+		dst.pos = { 0 };
+	}
+
+
+	inline void reset_touch_state(TouchInput& dst)
+	{
+		for (u32 i = 0; i < TouchInput::count; i++)
+		{
+			reset_touch_gesture(dst.gestures[i]);
+		}
 	}
 }
 
@@ -363,23 +366,6 @@ namespace input
 
 namespace input
 {
-	inline void set_is_active(Input& input)
-	{
-		set_is_active(input.keyboard);
-		set_is_active(input.mouse);
-
-		for (u32 i = 0; i < MAX_GAMEPADS; i++)
-		{
-			set_is_active(input.gamepads[i]);
-		}
-
-		for (u32 i = 0; i < MAX_JOYSTICKS; i++)
-		{
-			set_is_active(input.joysticks[i]);
-		}		
-	}
-
-
 	inline void copy_input_state(Input const& src, Input& dst)
 	{
 		copy_keyboard_state(src.keyboard, dst.keyboard);
@@ -394,6 +380,8 @@ namespace input
 		{
 			copy_joystick_state(src.joysticks[i], dst.joysticks[i]);
 		}
+
+		copy_touch_state(src.touch, dst.touch);
 	}
 
 
@@ -415,5 +403,7 @@ namespace input
 		{
 			reset_joystick_state(input.joysticks[i]);
 		}
+
+		reset_touch_state(input.touch);
 	}
 }

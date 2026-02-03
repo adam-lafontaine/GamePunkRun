@@ -1,9 +1,6 @@
 #include "../io/input/input_state.hpp"
-#include "../util/numeric.hpp"
+#include "../math/math.hpp"
 #include "sdl_include.hpp"
-
-
-namespace num = numeric;
 
 
 #define ASSERT_INPUT
@@ -36,58 +33,22 @@ namespace num = numeric;
 
 namespace sdl
 {
-    static f32 normalize_axis_value(Sint16 axis)
+
+	static f32 normalize_axis_value(Sint16 axis)
     {
-        constexpr num::MinMax<Sint16> mm_axis = {
+        constexpr math::MinMax<Sint16> mm_axis = {
             .min = SDL_JOYSTICK_AXIS_MIN,
             .max = SDL_JOYSTICK_AXIS_MAX
         };
 
-        constexpr num::MinMax<f32> mm_res = {
+        constexpr math::MinMax<f32> mm_res = {
             .min = -1.0f,
             .max = 1.0f
         };
 
-        f32 norm = num::lerp(axis, mm_axis, mm_res);
+        f32 norm = math::cxpr::lerp(axis, mm_axis, mm_res);
 
-        return num::abs(norm) < 0.3f ? 0.0f : norm;
-    }
-
-
-    static void set_vector_state(input::VectorState<f32>& vs)
-    {
-        auto& vec = vs.vec;
-        auto& unit = vs.unit;
-
-        vs.magnitude = num::magnitude(vec);
-
-        auto mag = vs.magnitude > 0.0f ? vs.magnitude : 1.0f;
-
-        unit.x = vec.x / mag;
-        unit.y = vec.y / mag;
-    }
-
-
-    static void set_unit_vector_state(input::VectorState<i8>& vs, int x, int y)
-    {
-        auto& vec = vs.vec;
-        auto& unit = vs.unit;
-
-        vec.x = num::sign_i8(x);
-        vec.y = num::sign_i8(y);
-
-        unit.x = (f32)vec.x;
-        unit.y = (f32)vec.y;
-
-        constexpr f32 hypot = 1.4142135f;
-        constexpr f32 i_hypot = 1.0f / hypot;
-        
-        auto mag = (x || y) ? 1.0f : 0.0f;
-        auto i_mag = (x && y) ? i_hypot : (x || y) ? 1.0f : 0.0f;
-
-        vs.magnitude = mag;
-        unit.x *= i_mag;
-        unit.y *= i_mag;
+        return math::abs(norm) < 0.3f ? 0.0f : norm;
     }
 
 
@@ -161,9 +122,10 @@ namespace sdl
 }
 
 
-#include "sdl_joystick.cpp"
-#include "sdl_keyboard.cpp"
-#include "sdl_mouse.cpp"
+#include "sdl_input_joystick.cpp"
+#include "sdl_input_keyboard.cpp"
+#include "sdl_input_mouse.cpp"
+#include "sdl_input_touch.cpp"
 
 
 /* api */
@@ -174,6 +136,8 @@ namespace input
     {
         constexpr auto gamepad = (N_GAMEPAD_BUTTONS > 0 || N_GAMEPAD_AXES > 0) ? SDL_INIT_GAMEPAD : 0u;
         constexpr auto joystick = (N_JOYSTICK_BUTTONS > 0 || N_JOYSTICK_AXES > 0) ? SDL_INIT_JOYSTICK : 0u;
+
+        
 
         return gamepad | joystick;
     }
@@ -217,18 +181,17 @@ namespace input
         while (SDL_PollEvent(&event))
         {
             sdl::handle_sdl_event(event, curr);
-            sdl::record_keyboard_input_event(event, prev.keyboard, curr.keyboard);
-            sdl::record_mouse_input_event(event, prev.mouse, curr.mouse);
             sdl::update_device_list(event, inputs);
+
+            sdl::record_keyboard_input_event(event, prev, curr);
+            sdl::record_mouse_input_event(event, prev, curr);
             sdl::record_gamepad_input_event(event, prev, curr);
             sdl::record_joystick_input_event(event, prev, curr);
+            sdl::record_touch_input_event(event, prev, curr);
         }
 
         sdl::record_gamepad_axes(curr);
         sdl::record_joystick_axes(curr);
-
-        set_is_active(curr);
-        sdl::set_gamepad_vector_states(curr);
     }
 
 
@@ -247,17 +210,16 @@ namespace input
         {
             //sdl::handle_sdl_event(event, curr);
             handle_event(&event);
-            sdl::record_keyboard_input_event(event, prev.keyboard, curr.keyboard);
-            sdl::record_mouse_input_event(event, prev.mouse, curr.mouse);
             sdl::update_device_list(event, inputs);
+
+            sdl::record_keyboard_input_event(event, prev, curr);
+            sdl::record_mouse_input_event(event, prev, curr);
             sdl::record_gamepad_input_event(event, prev, curr);
             sdl::record_joystick_input_event(event, prev, curr);
+            sdl::record_touch_input_event(event, prev, curr);
         }
 
         sdl::record_gamepad_axes(curr);
         sdl::record_joystick_axes(curr);
-
-        set_is_active(curr);
-        sdl::set_gamepad_vector_states(curr);
     }
 }

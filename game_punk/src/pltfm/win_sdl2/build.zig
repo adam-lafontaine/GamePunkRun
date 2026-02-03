@@ -19,7 +19,7 @@ const icon_rc = "punk.rc";
 
 
 const cpp_flags = &[_][]const u8{
-    "-std=c++20",
+    "-std=c++23",
     "-mavx",
     "-mavx2",
     "-mfma",

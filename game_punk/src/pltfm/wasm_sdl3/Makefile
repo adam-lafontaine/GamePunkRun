@@ -18,16 +18,16 @@ EPPFLAGS += -DMATH_NO_SIMD
 EPPFLAGS += -DGAME_PUNK_RELEASE
 EPPFLAGS += -DGAME_PUNK_WASM
 EPPFLAGS += -DAPP_ROTATE_90
-EPPFLAGS += -DIMAGE_READ
 EPPFLAGS += -DNO_FILESYSTEM
+EPPFLAGS += -DIMAGE_READ
 EPPFLAGS += -DNO_AUDIO
 
-EPPFLAGS += -DNDEBUG -O3
-#EPPFLAGS += -DAPP_ASSERT_LOG
+#EPPFLAGS += -DNDEBUG -O3
+EPPFLAGS += -DAPP_ASSERT_LOG
 
 EPPFLAGS += -sASSERTIONS=1
-EPPFLAGS += -sUSE_SDL=2
-#EPPFLAGS += -sUSE_SDL_MIXER=2
+EPPFLAGS += -sUSE_SDL=3
+#EPPFLAGS += -sUSE_SDL_MIXER=3
 #EPPFLAGS += -sUSE_OGG=1
 EPPFLAGS += -sFETCH=1
 EPPFLAGS += -sALLOW_MEMORY_GROWTH=1
@@ -43,7 +43,7 @@ LDFLAGS :=
 
 ROOT := ../../..
 
-BUILD := $(ROOT)/build/wasm_sdl2
+BUILD := $(ROOT)/build/wasm_sdl3
 
 OUT := $(BUILD)/$(EXE).html
 ITCH_IO := itch_io_index.html
@@ -57,7 +57,7 @@ RES := $(ROOT)/res
 
 BIN_DATA := $(RES)/xbin/punk_run.bin
 
-SRC := wasm_sdl2_punk_main.cpp
+SRC := wasm_sdl3_punk_main.cpp
 
 
 #**********************

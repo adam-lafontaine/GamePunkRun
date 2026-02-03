@@ -1,10 +1,7 @@
 #pragma once
 
 #include "../io/input/input_state.hpp"
-#include "../util/numeric.hpp"
 #include "sdl_include.hpp"
-
-namespace num = numeric;
 
 
 #define ASSERT_INPUT
@@ -445,12 +442,19 @@ namespace sdl
 {     
     static f32 normalize_axis_value(Sint16 axis)
     {
-        constexpr f32 min = -1.0f;
-        constexpr f32 max = 1.0f;
+        constexpr math::MinMax<Sint16> mm_axis = {
+            .min = SDL_JOYSTICK_AXIS_MIN,
+            .max = SDL_JOYSTICK_AXIS_MAX
+        };
 
-        f32 norm = (f32)axis / 32767;
+        constexpr math::MinMax<f32> mm_res = {
+            .min = -1.0f,
+            .max = 1.0f
+        };
 
-        return num::abs(norm) < 0.3f ? 0.0f : num::clamp(norm, min, max);
+        f32 norm = math::cxpr::lerp(axis, mm_axis, mm_res);
+
+        return math::abs(norm) < 0.3f ? 0.0f : norm;
     }
 
 
@@ -459,8 +463,8 @@ namespace sdl
         auto& vec = vs.vec;
         auto& unit = vs.unit;
 
-        vec.x = num::sign_i8(x);
-        vec.y = num::sign_i8(y);
+        vec.x = math::cxpr::sign_i8(x);
+        vec.y = math::cxpr::sign_i8(y);
 
         unit.x = (f32)vec.x;
         unit.y = (f32)vec.y;
@@ -485,7 +489,7 @@ namespace sdl
         vec.x = normalize_axis_value(x);
         vec.y = normalize_axis_value(y);
 
-        vs.magnitude = num::magnitude(vec);
+        vs.magnitude = math::magnitude(vec);
 
         auto mag = vs.magnitude > 0.0f ? vs.magnitude : 1.0f;
 
@@ -921,8 +925,6 @@ namespace input
         default:
             break;
         }
-
-        set_is_active(new_keyboard);
     }
 
 #endif
@@ -1041,7 +1043,6 @@ namespace input
         {
             mouse.window_id = event.motion.windowID;
             record_mouse_position_input(mouse, event.motion);
-            mouse.is_active = true;
         } break;
 
         #endif
@@ -1052,7 +1053,6 @@ namespace input
         {
             mouse.window_id = event.wheel.windowID;
             record_mouse_wheel_input(mouse, event.wheel);
-            mouse.is_active = true;
         } break;
         #endif
         }
@@ -1306,7 +1306,7 @@ namespace input
         Sint16 x = (Sint16)gamepad.btn_dpad_right.is_down - (Sint16)gamepad.btn_dpad_left.is_down;
         Sint16 y = (Sint16)gamepad.btn_dpad_down.is_down - (Sint16)gamepad.btn_dpad_up.is_down;
 
-        sdl::set_unit_vector_state(gamepad.vec_dpad, x, y);
+        set_unit_vector_state(gamepad.vec_dpad, x, y);
 
     #endif
     }
@@ -1327,24 +1327,16 @@ namespace input
 
     static void record_gamepad_axis_input(SDL_GameController* sdl_gamepad, GamepadInput& gamepad)
     {
-        Sint16 x = 0;
-        Sint16 y = 0;
-
     #if GAMEPAD_AXIS_STICK_LEFT
-
-        x = SDL_GameControllerGetAxis(sdl_gamepad, SDL_CONTROLLER_AXIS_LEFTX);
-        y = SDL_GameControllerGetAxis(sdl_gamepad, SDL_CONTROLLER_AXIS_LEFTY);
-
-        sdl::set_vector_state(gamepad.stick_left, x, y);
-
+        gamepad.stick_left.vec.x = get_gamepad_axis(sdl_gamepad, SDL_CONTROLLER_AXIS_LEFTX);
+        gamepad.stick_left.vec.y = get_gamepad_axis(sdl_gamepad, SDL_CONTROLLER_AXIS_LEFTY);
+        set_vector_state(gamepad.stick_left);
     #endif
     #if GAMEPAD_AXIS_STICK_RIGHT
         
-        x = SDL_GameControllerGetAxis(sdl_gamepad, SDL_CONTROLLER_AXIS_RIGHTX);
-        y = SDL_GameControllerGetAxis(sdl_gamepad, SDL_CONTROLLER_AXIS_RIGHTY);
-
-        sdl::set_vector_state(gamepad.stick_right, x, y);
-        
+        gamepad.stick_right.vec.x = get_gamepad_axis(sdl_gamepad, SDL_CONTROLLER_AXIS_RIGHTX);
+        gamepad.stick_right.vec.y = get_gamepad_axis(sdl_gamepad, SDL_CONTROLLER_AXIS_RIGHTY);
+        set_vector_state(gamepad.stick_right);        
     #endif
     }
 
@@ -1391,7 +1383,6 @@ namespace input
             auto& c = curr.gamepads[id];
 
             record_gamepad_gamepad_input(gamepads.data[i].gamepad, p, c);
-            set_is_active(c);
         }
 
     #endif
@@ -1490,8 +1481,6 @@ namespace input
         }
 
         record_gamepad_input(prev, curr);
-
-        set_is_active(curr);
     }
 
 
@@ -1517,7 +1506,5 @@ namespace input
         }
 
         record_gamepad_input(prev, curr);
-
-        set_is_active(curr);
     }
 }

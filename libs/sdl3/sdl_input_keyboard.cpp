@@ -343,10 +343,13 @@ namespace sdl
 #endif
 
 
-    void record_keyboard_input_event(SDL_Event const& event, KeyboardInput const& old_keyboard, KeyboardInput& new_keyboard)
+    void record_keyboard_input_event(SDL_Event const& event, Input const& prev, Input& curr)
     {
     #ifndef NO_KEYBOARD
 
+        auto& old_keyboard = prev.keyboard;
+        auto& new_keyboard = curr.keyboard;
+    
         SDL_Keycode key_code;
         SDL_Scancode scan_code;
 

@@ -1,0 +1,52 @@
+<!doctypehtml>
+    <html lang=en-us>
+
+    <head>
+        <meta charset=utf-8>
+        <meta content="text/html; charset=utf-8" http-equiv=Content-Type>
+        <title>App Title...</title>
+        <style>
+            body { margin: 0px; }
+
+            .emscripten {
+                padding-right: 0;
+                margin-left: auto;
+                margin-right: auto;
+                display: block
+            }
+
+            textarea.emscripten {
+                font-family: monospace;
+                width: 80%
+            }
+
+            div.emscripten {
+                text-align: center
+            }
+
+            canvas.emscripten {
+                border: 0 none;
+                background-color: #000
+            }
+
+            .console {
+                color: #fff;
+                background-color: #000
+            }
+
+            .background {
+                background-color: gray
+            }
+        </style>
+    </head>
+
+    <body>
+        <div class=background>
+            <div><canvas class=emscripten id=canvas oncontextmenu=event.preventDefault() tabindex=-1></canvas></div>
+            <!--<textarea class="emscripten console" id=output rows=16></textarea>-->
+        </div>
+        <script>var Module = { preRun: [], postRun: [], print: function () { var t = document.getElementById("output"); return t && (t.value = ""), function (e) { arguments.length > 1 && (e = Array.prototype.slice.call(arguments).join(" ")), console.log(e), t && (t.value += e + "\n", t.scrollTop = t.scrollHeight) } }(), canvas: function () { var t = document.getElementById("canvas"); return t.addEventListener("webglcontextlost", (function (t) { alert("WebGL context lost. You will need to reload the page."), t.preventDefault() }), !1), t }(), setStatus: function (t) { if (Module.setStatus.last || (Module.setStatus.last = { time: Date.now(), text: "" }), t !== Module.setStatus.last.text && 0 !== t.length) { var e = t.match(/([^(]+)\((\d+(\.\d+)?)\/(\d+)\)/), n = Date.now(); e && n - Module.setStatus.last.time < 30 || (Module.setStatus.last.time = n, Module.setStatus.last.text = t, console.log(t)) } }, totalDependencies: 0, monitorRunDependencies: function (t) { this.totalDependencies = Math.max(this.totalDependencies, t), Module.setStatus(t ? "Preparing... (" + (this.totalDependencies - t) + "/" + this.totalDependencies + ")" : "All downloads complete.") } }; Module.setStatus("Downloading..."), window.onerror = function () { Module.setStatus("Exception thrown, see JavaScript console"), spinnerElement.style.display = "none", Module.setStatus = function (t) { t && console.error("[post-exception status] " + t) } }</script>
+        <script async src=punk_run.js></script>
+    </body>
+
+    </html>

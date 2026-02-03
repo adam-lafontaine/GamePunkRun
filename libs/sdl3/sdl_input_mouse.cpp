@@ -65,13 +65,20 @@ namespace sdl
 #endif
 
 
-    static void record_mouse_input_event(SDL_Event const& event, MouseInput const& old_mouse, MouseInput& new_mouse)
+    static void record_mouse_input_event(SDL_Event const& event, Input const& prev, Input& curr)
     {
     #ifndef NO_MOUSE
 
-        auto& mouse = new_mouse;
+        auto& old_mouse = prev.mouse;
+        auto& mouse = curr.mouse;
 
-        switch (event.type)
+        // ignore touch events
+        auto type = event.type;
+        auto not_touch = (Uint32)(!(type == SDL_EVENT_MOUSE_BUTTON_DOWN && event.button.which == SDL_TOUCH_MOUSEID));
+
+        type *= not_touch;
+
+        switch (type)
         {
         case SDL_EVENT_MOUSE_BUTTON_DOWN:
         case SDL_EVENT_MOUSE_BUTTON_UP:

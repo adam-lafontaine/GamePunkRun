@@ -430,8 +430,6 @@ namespace math
 
     #ifdef MATH_SIMD_128
         return avx::sqrt(num);
-    #elif MATH_AVOID_CMATH
-        return 1.0f / quick_rsqrt(num);
     #else
         return std::sqrt(num);
     #endif
@@ -488,7 +486,7 @@ namespace math
     f32 hypot(f32 a, f32 b)
     {
     #if MATH_AVOID_CMATH
-        return 1.0f / quick_rsqrt(fma(a, a, b * b));
+        return sqrt(fma(a, a, b * b));
     #else
         return std::hypotf(a, b);
     #endif
