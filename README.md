@@ -15,6 +15,14 @@ https://itch.io/c/2053292/cyberpunk-pixel-art
 * [ ] Refactor font and icons
 * [ ] Name UI icons
 * [ ] Single asset color table
+* [ ] Assets relative offset
+
+
+### v0.5.0
+* [ ] Touchscreen console
+* [ ] Automate release builds
+* [ ] CMS page
+* [ ] Itch.io
 
 
 ### v0.4.1

@@ -6,7 +6,7 @@ namespace sdl
     using MouseInput = input::MouseInput;
 
 
-    static void record_mouse_button_input(Uint8 button_code, MouseInput const& old_mouse, MouseInput& new_mouse, bool is_down)
+    static void record_mouse_button_input(ButtonCode button_code, MouseInput const& old_mouse, MouseInput& new_mouse, bool is_down)
     {
         switch(button_code)
         {		

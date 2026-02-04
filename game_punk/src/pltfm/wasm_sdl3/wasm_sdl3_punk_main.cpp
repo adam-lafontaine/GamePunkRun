@@ -43,9 +43,19 @@ static void map_touch_input(input::Input& input)
             continue;
         }
 
-        if (item.pos.x > 0.0f && item.pos.x < 1.0f && item.pos.y > 0.0f && item.pos.y < 1.0f)
+        auto left = item.pos.x > 0.0f && item.pos.x < 0.5f && item.pos.y > 0.0f && item.pos.y < 1.0f;
+        auto right = item.pos.x > 0.5f && item.pos.x < 1.0f && item.pos.y > 0.0f && item.pos.y < 1.0f;
+
+        if (left)
         {
+            // action
             dst.btn_south.any = item.btn_touch.any;
+            return;
+        }
+        else if (right)
+        {
+            // jump
+            dst.btn_north.any = item.btn_touch.any;
             return;
         }
     }

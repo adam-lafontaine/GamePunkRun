@@ -6,6 +6,10 @@
 
 namespace game_punk
 {
+    namespace img = image;
+    using Input = input::Input;
+
+
     constexpr auto APP_TITLE = "Punk Run";
     constexpr auto VERSION = "0.4.1";
     constexpr auto DATE = "2026-02-03";
@@ -17,7 +21,7 @@ namespace game_punk
     class AppState
     {
     public:
-        image::ImageView screen;
+        img::ImageView screen;
 
         StateData* data_ = 0;
     };
@@ -49,13 +53,13 @@ namespace game_punk
 
     AppResult init(AppState& state, Vec2Du32 available_dims);
 
-    bool set_screen_memory(AppState& state, image::ImageView screen);
+    bool set_screen_memory(AppState& state, img::ImageView screen);
 
     void reset(AppState& state);
 
     void close(AppState& state);
 
-    void update(AppState& state, input::Input const& input);
+    void update(AppState& state, Input const& input);
 
     cstr decode_error(AppError error);
 }

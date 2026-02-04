@@ -401,7 +401,7 @@ namespace sdl
 
 #ifndef NO_JOYSTICK
 
-    static void record_joystic_button_input(JoystickInput const& old_jsk, JoystickInput& new_jsk, Uint8 btn_id, bool is_down)
+    static void record_joystick_button_input(JoystickInput const& old_jsk, JoystickInput& new_jsk, ButtonCode btn_id, bool is_down)
     {
         input::ButtonState btn_old = {};
         input::ButtonState* btn_new = 0;
@@ -516,7 +516,7 @@ namespace sdl
 
         i32 id = -1;
 
-        Uint8 btn = 255;
+        ButtonCode btn = 255;
         bool is_down = false;
 
         switch (event.type)
@@ -536,7 +536,7 @@ namespace sdl
             btn = event.jbutton.button;
             is_down = event.jbutton.down;
 
-            record_joystic_button_input(p, c, btn, is_down);
+            record_joystick_button_input(p, c, btn, is_down);
 
         } break;
 
@@ -578,7 +578,7 @@ namespace sdl
 
 #ifndef NO_GAMEPAD
 
-    static void record_gamepad_button_input(GamepadInput const& old_gamepad, GamepadInput& new_gamepad, Uint8 btn_id, bool is_down)
+    static void record_gamepad_button_input(GamepadInput const& old_gamepad, GamepadInput& new_gamepad, ButtonCode btn_id, bool is_down)
     {
         input::ButtonState btn_old = {};
         input::ButtonState* btn_new = 0;
@@ -752,8 +752,6 @@ namespace sdl
     }
 
 
-    
-
 #endif
 
 
@@ -763,7 +761,7 @@ namespace sdl
 
     i32 id = -1;
 
-    Uint8 btn = 255; // SDL_GamepadButton
+    ButtonCode btn = 255; // SDL_GamepadButton
     bool is_down = false;
 
     switch (event.type)

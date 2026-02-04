@@ -33,6 +33,8 @@
 
 namespace sdl
 {
+    using ButtonCode = Uint8;
+
 
 	static f32 normalize_axis_value(Sint16 axis)
     {
@@ -119,6 +121,15 @@ namespace sdl
         } break;
         }
     }
+
+
+    static constexpr Uint32 subsystem_flags()
+    {
+        constexpr auto gamepad = (input::N_GAMEPAD_BUTTONS > 0 || input::N_GAMEPAD_AXES > 0) ? SDL_INIT_GAMEPAD : 0u;
+        constexpr auto joystick = (input::N_JOYSTICK_BUTTONS > 0 || input::N_JOYSTICK_AXES > 0) ? SDL_INIT_JOYSTICK : 0u;
+
+        return gamepad | joystick;
+    }
 }
 
 
@@ -132,23 +143,13 @@ namespace sdl
 
 namespace input
 {
-    static constexpr Uint32 subsystem_flags()
-    {
-        constexpr auto gamepad = (N_GAMEPAD_BUTTONS > 0 || N_GAMEPAD_AXES > 0) ? SDL_INIT_GAMEPAD : 0u;
-        constexpr auto joystick = (N_JOYSTICK_BUTTONS > 0 || N_JOYSTICK_AXES > 0) ? SDL_INIT_JOYSTICK : 0u;
-
-        
-
-        return gamepad | joystick;
-    }
-
 
     bool init(InputArray& inputs)
     {
         reset_input_state(inputs.prev());
         reset_input_state(inputs.curr());
 
-        if (!SDL_InitSubSystem(subsystem_flags()))
+        if (!SDL_InitSubSystem(sdl::subsystem_flags()))
         {
             sdl::print_error("Init Input failed");
             return false;
@@ -163,7 +164,7 @@ namespace input
     void close()
     {
         sdl::close_device_list();
-        SDL_QuitSubSystem(subsystem_flags());
+        SDL_QuitSubSystem(sdl::subsystem_flags());
     }
 
 

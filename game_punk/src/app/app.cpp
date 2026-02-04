@@ -21,7 +21,6 @@
 
 namespace game_punk
 {
-    namespace img = image;
     namespace mb = memory_buffer;
 
     using p32 = img::Pixel;
@@ -36,7 +35,6 @@ namespace game_punk
     using Buffer64 = MemoryBuffer<u64>;
     using Span32 = SpanView<p32>;
     using Span8 = SpanView<u8>;
-    using Input = input::Input;
 
 
     constexpr u32 WIDTH_4K = 3840;
@@ -443,7 +441,7 @@ namespace game_punk
     }
 
 
-    void update(AppState& state, input::Input const& input)
+    void update(AppState& state, Input const& input)
     {        
         auto& data = get_data(state);        
         begin_update(data);
@@ -503,7 +501,7 @@ namespace game_punk
     }
 
 
-    void update_dbg(AppState& state, input::Input const& input, DebugContext const& dbg)
+    void update_dbg(AppState& state, Input const& input, DebugContext const& dbg)
     {
         auto& data = get_data(state);        
         begin_update(data);

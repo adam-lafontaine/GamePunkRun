@@ -4,19 +4,19 @@
 #define JOYSTICK_BTN_1 1
 #define JOYSTICK_BTN_2 1
 #define JOYSTICK_BTN_3 1
-#define JOYSTICK_BTN_4 1
-#define JOYSTICK_BTN_5 1
+#define JOYSTICK_BTN_4 0
+#define JOYSTICK_BTN_5 0
 #define JOYSTICK_BTN_6 0
 #define JOYSTICK_BTN_7 0
-#define JOYSTICK_BTN_8 1
-#define JOYSTICK_BTN_9 1
+#define JOYSTICK_BTN_8 0
+#define JOYSTICK_BTN_9 0
 
 #define JOYSTICK_AXIS_0 1
-#define JOYSTICK_AXIS_1 1
-#define JOYSTICK_AXIS_2 1
-#define JOYSTICK_AXIS_3 1
-#define JOYSTICK_AXIS_4 1
-#define JOYSTICK_AXIS_5 1
+#define JOYSTICK_AXIS_1 0
+#define JOYSTICK_AXIS_2 0
+#define JOYSTICK_AXIS_3 0
+#define JOYSTICK_AXIS_4 0
+#define JOYSTICK_AXIS_5 0
 
 
 namespace input
